@@ -34,9 +34,13 @@ EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 libraryDependencies ++= Seq(
   "org.scala-lang"            % "scala-reflect"              % SCALA_VERSION,
   "com.typesafe"              % "config"                     % "1.2.1",
+  "com.eaio.uuid"             % "uuid"                       % "3.2",
   "joda-time"                 % "joda-time"                  % "2.7",
+  "com.squants"              %% "squants"                    % "0.4.2",
   "org.joda"                  % "joda-convert"               % "1.7",
-  "org.apache.spark"         %% "spark-core"                 % SPARK_VERSION,
+  "ch.qos.logback"            % "logback-classic"            % "1.1.1",
+  "org.apache.spark"         %% "spark-core"                 % SPARK_VERSION
+		exclude("org.slf4j", "slf4j-log4j12"),  
   "org.apache.spark"         %% "spark-streaming"            % SPARK_VERSION,
   "org.apache.spark"         %% "spark-streaming-kafka"      % SPARK_VERSION,
   "com.datastax.cassandra"    % "cassandra-driver-core"      % "2.1.4",
