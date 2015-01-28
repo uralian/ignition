@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false" debug="false">
+	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%4p [%date{HH:mm:ss.SSS}] %c{1}: %m%n</pattern>
+		</encoder>
+	</appender>
+	<logger name="org.apache.spark" level="WARN" />
+	<logger name="org.apache.spark.storage" level="ERROR" />
+	<logger name="org.apache.hadoop" level="ERROR" />
+	<logger name="Remoting" level="WARN" />
+	<logger name="org.eclipse" level="ERROR" />
+	<logger name="com.datastax" level="ERROR" />
+	<logger name="akka" level="WARN" />
+	<logger name="com.datastax.spark.connector.writer" level="INFO" />
+	<root level="INFO">
+		<appender-ref ref="stdout" />
+	</root>
+</configuration>        
