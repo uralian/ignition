@@ -1,21 +1,12 @@
 package com.ignition.workflow
 
-import scala.reflect.ClassTag
-import org.apache.spark._
-import org.apache.spark.SparkContext._
-import org.apache.spark.rdd._
+import org.apache.spark.SparkContext
 import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
-import com.ignition.BeforeAllAfterAll
 import org.slf4j.LoggerFactory
-import com.ignition.workflow.rdd.basic.RDDSequence
-import com.ignition.workflow.rdd.basic.RDDMap
-import com.ignition.workflow.rdd.basic.RDDFilter
-import com.ignition.workflow.rdd.basic.RDDFlatMap
-import com.ignition.workflow.rdd.basic.RDDReduceByKey
-import com.ignition.workflow.rdd.basic.RDDJoin
-import com.ignition.workflow.rdd.basic.RDDUnion
+import org.specs2.mutable.Specification
+import com.ignition.BeforeAllAfterAll
+import com.ignition.workflow.rdd.basic._
+import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class RDDStepSpec extends Specification with BeforeAllAfterAll {
