@@ -1,6 +1,7 @@
 package com.ignition.data
 
 import scala.Array.canBuildFrom
+
 import org.joda.time.{ DateTime, DateTimeZone }
 import org.junit.runner.RunWith
 import org.scalacheck.{ Arbitrary, Gen }
@@ -8,9 +9,11 @@ import org.slf4j.LoggerFactory
 import org.specs2.ScalaCheck
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+
 import com.eaio.uuid.UUID
 import com.ignition.data.DataType.BooleanDataType
-import java.nio.ByteBuffer
+
+import DataType.{ BinaryDataType, boolean2bytes, double2bytes, int2bytes, long2bytes }
 
 @RunWith(classOf[JUnitRunner])
 class DataTypeSpec extends Specification with ScalaCheck {
@@ -45,6 +48,7 @@ class DataTypeSpec extends Specification with ScalaCheck {
     "convert from DateTime" in prop { (x: DateTime) => checkConversion[DateTime, String](x, x.toString) }
     "convert from UUID" in prop { (x: UUID) => checkConversion[UUID, String](x, x.toString) }
     "convert from String" in prop { (x: String) => checkConversion[String, String](x, x) }
+    "convert from null" in checkNull[String]
   }
 
   "Boolean data type" should {
@@ -56,6 +60,7 @@ class DataTypeSpec extends Specification with ScalaCheck {
     "convert from Array[Byte]" in prop { (x: Array[Byte]) => checkConversion[Array[Byte], Boolean](x, x.exists(_ != 0)) }
     "convert from UUID" in prop { (x: UUID) => checkConversion[UUID, Boolean](x, x.hashCode != 0) }
     "convert from String" in prop { (x: String) => checkConversion[String, Boolean](x, x.toLowerCase == "true") }
+    "convert from null" in checkNull[Boolean]
   }
 
   "Int data type" should {
@@ -72,6 +77,7 @@ class DataTypeSpec extends Specification with ScalaCheck {
       checkConversion[Array[Byte], Int](Array(b0, b1, b2, b3), shift(b0, 24) | shift(b1, 16) | shift(b2, 8) | b3)
     }
     "convert from String" in prop { (x: Int) => checkConversion[String, Int](x.toString, x) }
+    "convert from null" in checkNull[Int]
   }
 
   "Double data type" should {
@@ -82,6 +88,7 @@ class DataTypeSpec extends Specification with ScalaCheck {
     "convert from DateTime" in prop { (x: DateTime) => checkConversion[DateTime, Double](x, x.getMillis.toDouble) }
     "convert from UUID" in prop { (x: UUID) => checkConversion[UUID, Double](x, x.hashCode) }
     "convert from String" in prop { (x: Double) => checkConversion[String, Double](x.toString, x) }
+    "convert from null" in checkNull[Double]
   }
 
   "Decimal data type" should {
@@ -92,6 +99,7 @@ class DataTypeSpec extends Specification with ScalaCheck {
     "convert from DateTime" in prop { (x: DateTime) => checkConversion[DateTime, BigDecimal](x, x.getMillis) }
     "convert from UUID" in prop { (x: UUID) => checkConversion[UUID, BigDecimal](x, x.hashCode) }
     "convert from String" in prop { (x: BigDecimal) => checkConversion[String, BigDecimal](x.toString, x) }
+    "convert from null" in checkNull[BigDecimal]
   }
 
   "DateTime data type" should {
@@ -101,11 +109,13 @@ class DataTypeSpec extends Specification with ScalaCheck {
     "convert from DateTime" in prop { (x: DateTime) => checkConversion[DateTime, DateTime](x, x) }
     "convert from UUID" in prop { (x: UUID) => checkConversion[UUID, DateTime](x, new DateTime(x.getTime)) }
     "convert from String" in prop { (x: DateTime) => checkConversion[String, DateTime](x.toString, x) }
+    "convert from null" in checkNull[DateTime]
   }
 
   "UUID data type" should {
     "convert from UUID" in prop { (x: UUID) => checkConversion[UUID, UUID](x, x) }
     "convert from String" in prop { (x: UUID) => checkConversion[String, UUID](x.toString, x) }
+    "convert from null" in checkNull[UUID]
   }
 
   "Binary data type" should {
@@ -124,10 +134,15 @@ class DataTypeSpec extends Specification with ScalaCheck {
     }
     "convert from Array[Byte]" in prop { (x: Array[Byte]) => checkConversion[Array[Byte], Array[Byte]](x, x) }
     "convert from String" in prop { (x: String) => checkConversion[String, Array[Byte]](x, x.getBytes) }
+    "convert from null" in checkNull[Array[Byte]]
   }
 
   private def checkConversion[T, D](x: T, expected: => D)(implicit dt: DataType[D]): Boolean = {
     dt.convert(x) === expected
+  }
+
+  private def checkNull[D](implicit dt: DataType[D]): Boolean = {
+    dt.convert(null) === null
   }
 
   private def shift(b: Byte, n: Int) = (b & 0xFFFFFFFF) << n

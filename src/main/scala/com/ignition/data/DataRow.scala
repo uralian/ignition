@@ -3,13 +3,23 @@ package com.ignition.data
 import org.joda.time.DateTime
 
 import com.eaio.uuid.UUID
+import com.ignition.data.DataType.{ BinaryDataType, BooleanDataType, DateTimeDataType, DecimalDataType, DoubleDataType, IntDataType, StringDataType, UUIDDataType }
 
 /**
- * Encapsulates a list of data items with conversion functions for the supported data types.
+ * Encapsulates a list of data items with extraction functions for the supported data types.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DataRow(columnNames: IndexedSeq[String], data: IndexedSeq[Any]) {
+trait DataRow {
+  def columnNames: IndexedSeq[String]
+  def rawData: IndexedSeq[Any]
+  def get[T](index: Int)(implicit dataType: DataType[T]): T
+
+  def columnCount: Int = columnNames.size
+  def get[T](name: String)(implicit dataType: DataType[T]): T = get[T](columnNames.indexOf(name))
+
+  def getRaw(index: Int): Any = rawData(index)
+  def getRaw(name: String): Any = getRaw(columnNames.indexOf(name))
 
   def getString(index: Int) = get[String](index)
   def getString(name: String) = get[String](name)
@@ -34,7 +44,17 @@ case class DataRow(columnNames: IndexedSeq[String], data: IndexedSeq[Any]) {
 
   def getUUID(index: Int) = get[UUID](index)
   def getUUID(name: String) = get[UUID](name)
+}
 
-  def get[T](index: Int)(implicit dataType: DataType[T]): T = dataType.convert(data(index))
-  def get[T](name: String)(implicit dataType: DataType[T]): T = get[T](columnNames.indexOf(name))
+/**
+ * The default implementation of DataRow backed by indexed sequences for column names and data.
+ * The sizes of the name list and data list should match.
+ *
+ * @author Vlad Orzhekhovskiy
+ */
+case class DefaultDataRow(columnNames: IndexedSeq[String], rawData: IndexedSeq[Any]) extends DataRow {
+
+  require(columnNames.size == rawData.size)
+
+  def get[T](index: Int)(implicit dataType: DataType[T]): T = dataType.convert(rawData(index))
 }

@@ -1,30 +1,26 @@
 package com.ignition.data
 
-import scala.Array.canBuildFrom
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.scalacheck.{ Arbitrary, Gen }
 import org.slf4j.LoggerFactory
-import org.specs2.ScalaCheck
+import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
 import com.eaio.uuid.UUID
-import com.ignition.data.DataType.BooleanDataType
-import java.nio.ByteBuffer
+import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class DataRowSpec extends Specification {
+class DataRowSpec extends Specification with XmlMatchers {
 
   val log = LoggerFactory.getLogger(getClass)
 
   val uuid = new UUID
   val date = DateTime.now
-  val binary = Array[Byte](10, 15, 22)
+  val binary = "Ignite!".getBytes
 
-  val columns = Vector("a", "b", "c", "d", "e", "f", "g", "h")
-  val data = Vector(true, "123", 5, 22.33, BigDecimal("100"), date, uuid, binary)
+  val columns = Vector("a", "b", "c", "d", "e", "f", "g", "h", "i")
+  val data = Vector(true, "123", 5, 22.33, BigDecimal("100"), date, uuid, binary, null)
 
-  val row = DataRow(columns, data)
+  val row = DefaultDataRow(columns, data)
 
   "DataRow.getBoolean" should {
     "take index" in row.getBoolean(0) === true

@@ -8,7 +8,7 @@ import org.junit.runner.RunWith
 import org.slf4j.LoggerFactory
 import org.specs2.mutable.Specification
 import com.ignition.BeforeAllAfterAll
-import com.ignition.workflow.dstream.basic._
+import com.ignition.workflow.dstream.core._
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])

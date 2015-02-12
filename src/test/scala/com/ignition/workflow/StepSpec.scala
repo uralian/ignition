@@ -15,15 +15,15 @@ class StepSpec extends Specification with ScalaCheck {
 
   "step0 workflow" should {
     "yield the result" in prop { (a: Int) =>
-      val step = new Step0[Int, Unit](_ => a) {}
+      val step = new Step0[Int, Unit] { def compute(ec: Unit) = a }
       step.output === a
     }
   }
 
   "step0 step1 workflow" should {
     "yield the result" in prop { (a: Int) =>
-      val stepA = new Step0[Int, Unit](_ => a) {}
-      val stepB = new Step1[Int, Int, Unit](_ => _ * 2) {}
+      val stepA = new Step0[Int, Unit] { def compute(ec: Unit) = a }
+      val stepB = new Step1[Int, Int, Unit] { def compute(ec: Unit)(arg: Int) = arg * 2 }
       stepB.connectFrom(stepA)
       stepB.output === a * 2
     }
@@ -31,11 +31,11 @@ class StepSpec extends Specification with ScalaCheck {
 
   "step0 step1 step2 workflow" should {
     "yield the result" in prop { (a: Int, b: Int) =>
-      val stepA = new Step0[Int, Unit](_ => a) {}
-      val stepB = new Step0[String, Unit](_ => b.toString) {}
-      val stepC = new Step1[Int, Int, Unit](_ => _ * 3) {}
-      val stepD = new Step1[String, Int, Unit](_ => _.toInt) {}
-      val stepE = new Step2[Int, Int, Int, Unit](_ => _ - _) {}
+      val stepA = new Step0[Int, Unit] { def compute(ec: Unit) = a }
+      val stepB = new Step0[String, Unit] { def compute(ec: Unit) = b.toString }
+      val stepC = new Step1[Int, Int, Unit] { def compute(ec: Unit)(arg: Int) = arg * 3 }
+      val stepD = new Step1[String, Int, Unit] { def compute(ec: Unit)(arg: String) = arg.toInt }
+      val stepE = new Step2[Int, Int, Int, Unit] { def compute(ec: Unit)(arg1: Int, arg2: Int) = arg1 - arg2 }
       stepC.connectFrom(stepA)
       stepD.connectFrom(stepB)
       stepE.connect1From(stepC)
@@ -46,12 +46,12 @@ class StepSpec extends Specification with ScalaCheck {
 
   "step0 stepN workflow" should {
     "yield the result" in prop { (a: Int, b: Int, c: Int, d: Int, e: Int) =>
-      val stepA = new Step0[Int, Unit](_ => a) {}
-      val stepB = new Step0[Int, Unit](_ => b) {}
-      val stepC = new Step0[Int, Unit](_ => c) {}
-      val stepD = new Step0[Int, Unit](_ => d) {}
-      val stepE = new Step0[Int, Unit](_ => e) {}
-      val stepF = new StepN[Int, Int, Unit](_ => _.sum) {}
+      val stepA = new Step0[Int, Unit] { def compute(ec: Unit) = a }
+      val stepB = new Step0[Int, Unit] { def compute(ec: Unit) = b }
+      val stepC = new Step0[Int, Unit] { def compute(ec: Unit) = c }
+      val stepD = new Step0[Int, Unit] { def compute(ec: Unit) = d }
+      val stepE = new Step0[Int, Unit] { def compute(ec: Unit) = e }
+      val stepF = new StepN[Int, Int, Unit] { def compute(ec: Unit)(args: Iterable[Int]) = args.sum }
       stepF.connectFrom(stepA)
       stepF.connectFrom(stepB)
       stepF.connectFrom(stepC)
@@ -63,7 +63,7 @@ class StepSpec extends Specification with ScalaCheck {
 
   "disconnected steps" should {
     "throw an exception when evaluated" in {
-      val step = new Step1[String, String, Unit](_ => identity[String]) {}
+      val step = new Step1[String, String, Unit]{ def compute(ec: Unit)(arg: String) = arg }
       step.output must throwA[WorkflowException]
     }
   }

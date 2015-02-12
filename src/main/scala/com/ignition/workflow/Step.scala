@@ -29,44 +29,50 @@ sealed trait ConnectOut[T, E, X <: Step[T, E]] { self: X =>
 /**
  * Workflow step without any inputs.
  */
-abstract class Step0[T: ClassTag, E](func: E => T) extends Step[T, E] with ConnectOut[T, E, Step0[T, E]] {
-  def output(implicit ec: E) = func(ec)
+trait Step0[T, E] extends Step[T, E] with ConnectOut[T, E, Step0[T, E]] {
+  protected def compute(ec: E): T
+
+  def output(implicit ec: E) = compute(ec)
 }
 
 /**
  * Workflow step with one input.
  */
-abstract class Step1[S: ClassTag, T: ClassTag, E](func: E => S => T) extends Step[T, E] with ConnectOut[T, E, Step1[S, T, E]] {
-  private var in: Option[Step[S, E]] = None
+trait Step1[S, T, E] extends Step[T, E] with ConnectOut[T, E, Step1[S, T, E]] {
+  protected var in: Option[Step[S, E]] = None
+
+  protected def compute(ec: E)(arg: S): T
 
   def connectFrom(source: Step[S, E]) = { in = Some(source) }
-  def output(implicit ec: E) = func(ec)(inputValue(in, "Input"))
+  def output(implicit ec: E) = compute(ec)(inputValue(in, "Input"))
 }
 
 /**
  * Workflow step with two inputs.
  */
-abstract class Step2[S1: ClassTag, S2: ClassTag, T: ClassTag, E](func: E => (S1, S2) => T)
-  extends Step[T, E] with ConnectOut[T, E, Step2[S1, S2, T, E]] {
+trait Step2[S1, S2, T, E] extends Step[T, E] with ConnectOut[T, E, Step2[S1, S2, T, E]] {
 
-  var in1: Option[Step[S1, E]] = None
-  var in2: Option[Step[S2, E]] = None
+  protected var in1: Option[Step[S1, E]] = None
+  protected var in2: Option[Step[S2, E]] = None
+
+  protected def compute(ec: E)(arg1: S1, arg2: S2): T
 
   def connect1From(source: Step[S1, E]) = { in1 = Some(source) }
   def connect2From(source: Step[S2, E]) = { in2 = Some(source) }
 
-  def output(implicit ec: E) = func(ec)(inputValue(in1, "Input1"), inputValue(in2, "Input2"))
+  def output(implicit ec: E) = compute(ec)(inputValue(in1, "Input1"), inputValue(in2, "Input2"))
 }
 
 /**
  * Workflow step with arbitrary number of inputs of the same type.
  */
-abstract class StepN[S: ClassTag, T: ClassTag, E](func: E => Iterable[S] => T)
-  extends Step[T, E] with ConnectOut[T, E, StepN[S, T, E]] {
+trait StepN[S, T, E] extends Step[T, E] with ConnectOut[T, E, StepN[S, T, E]] {
 
-  val ins = collection.mutable.ArrayBuffer[Step[S, E]]()
+  protected val ins = collection.mutable.ArrayBuffer[Step[S, E]]()
+
+  protected def compute(ec: E)(args: Iterable[S]): T
 
   def connectFrom(source: Step[S, E]) = { ins += source }
 
-  def output(implicit ec: E) = func(ec)(ins map (_.output))
+  def output(implicit ec: E) = compute(ec)(ins map (_.output))
 }

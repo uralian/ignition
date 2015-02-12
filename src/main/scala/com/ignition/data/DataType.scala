@@ -27,6 +27,8 @@ sealed trait DataType[T] {
 
   def targetTypeName: String = targetTypeTag.tpe.toString
 
+  def code: String
+
   def convertPF: PartialFunction[Any, T]
 
   def convert(obj: Any): T = {
@@ -64,7 +66,6 @@ sealed trait NullableDataType[T] extends DataType[T] {
  * </ul>
  */
 object DataType {
-
   implicit def boolean2bytes(x: Boolean) = Array(if (x) 1.toByte else 0.toByte)
   implicit def int2bytes(x: Int) = ByteBuffer.allocate(4).putInt(x).array
   implicit def long2bytes(x: Long) = ByteBuffer.allocate(8).putLong(x).array
@@ -77,12 +78,13 @@ object DataType {
     def targetTypeTag = TypeTag.synchronized {
       implicitly[TypeTag[Boolean]]
     }
+    val code = "boolean"
     def convertPF = {
       case x: Boolean => x
       case x: Number => x != 0
       case x: DateTime => x.getMillis != 0
       case x: UUID => x.hashCode != 0
-      case x: Array[Byte] => x.exists(_ != 0)
+      case x: Binary => x.exists(_ != 0)
       case x: String => x.toLowerCase == "true"
     }
   }
@@ -91,8 +93,9 @@ object DataType {
     def targetTypeTag = TypeTag.synchronized {
       implicitly[TypeTag[String]]
     }
+    val code = "string"
     def convertPF = {
-      case x: Array[Byte] => new String(x)
+      case x: Binary => new String(x)
       case x => x.toString
     }
   }
@@ -101,12 +104,13 @@ object DataType {
     def targetTypeTag = TypeTag.synchronized {
       implicitly[TypeTag[Int]]
     }
+    val code = "int"
     def convertPF = {
       case x: Number => x.intValue
       case x: Boolean => if (x) 1 else 0
       case x: DateTime => x.getMillis.toInt
       case x: UUID => x.hashCode
-      case x: Array[Byte] => bytes2buffer(x, 4).getInt
+      case x: Binary => bytes2buffer(x, 4).getInt
       case x: String => x.toInt
     }
   }
@@ -115,27 +119,29 @@ object DataType {
     def targetTypeTag = TypeTag.synchronized {
       implicitly[TypeTag[Double]]
     }
+    val code = "double"
     def convertPF = {
       case x: Number => x.doubleValue
       case x: Boolean => if (x) 1.0 else 0.0
       case x: DateTime => x.getMillis.toDouble
       case x: UUID => x.hashCode
-      case x: Array[Byte] => bytes2buffer(x, 8).getDouble
+      case x: Binary => bytes2buffer(x, 8).getDouble
       case x: String => x.toDouble
     }
   }
 
-  implicit object DecimalDataType extends NullableDataType[scala.math.BigDecimal] {
+  implicit object DecimalDataType extends NullableDataType[Decimal] {
     def targetTypeTag = TypeTag.synchronized {
-      implicitly[TypeTag[BigDecimal]]
+      implicitly[TypeTag[Decimal]]
     }
+    val code = "decimal"
     def convertPF = {
-      case x: BigDecimal => x
+      case x: Decimal => x
       case x: Number => BigDecimal(x.toString)
       case x: Boolean => if (x) 1 else 0
       case x: DateTime => x.getMillis
       case x: UUID => x.hashCode
-      case x: Array[Byte] => bytes2buffer(x, 8).getDouble
+      case x: Binary => bytes2buffer(x, 8).getDouble
       case x: String => BigDecimal(x)
     }
   }
@@ -144,11 +150,12 @@ object DataType {
     def targetTypeTag = TypeTag.synchronized {
       implicitly[TypeTag[DateTime]]
     }
+    val code = "datetime"
     def convertPF = {
       case x: DateTime => x
       case x: Number => new DateTime(x.longValue)
       case x: UUID => new DateTime(x.getTime)
-      case x: Array[Byte] => new DateTime(bytes2buffer(x, 8).getLong)
+      case x: Binary => new DateTime(bytes2buffer(x, 8).getLong)
       case x: String => DateTime.parse(x)
     }
   }
@@ -157,24 +164,26 @@ object DataType {
     def targetTypeTag = TypeTag.synchronized {
       implicitly[TypeTag[UUID]]
     }
+    val code = "uuid"
     def convertPF = {
       case x: UUID => x
       case x: String => new UUID(x)
     }
   }
 
-  implicit object BinaryDataType extends NullableDataType[Array[Byte]] {
+  implicit object BinaryDataType extends NullableDataType[Binary] {
     def targetTypeTag = TypeTag.synchronized {
-      implicitly[TypeTag[Array[Byte]]]
+      implicitly[TypeTag[Binary]]
     }
+    val code = "binary"
     def convertPF = {
-      case x: Array[Byte] => x
-      case x: Boolean => x: Array[Byte]
-      case x: Int => x: Array[Byte]
-      case x: Double => x: Array[Byte]
-      case x: BigDecimal => x.bigDecimal.unscaledValue.toByteArray
-      case x: DateTime => x.getMillis: Array[Byte]
-      case x: UUID => (x.getClockSeqAndNode: Array[Byte]) ++ (x.getTime: Array[Byte])
+      case x: Binary => x
+      case x: Boolean => x: Binary
+      case x: Int => x: Binary
+      case x: Double => x: Binary
+      case x: Decimal => x.bigDecimal.unscaledValue.toByteArray
+      case x: DateTime => x.getMillis: Binary
+      case x: UUID => (x.getClockSeqAndNode: Binary) ++ (x.getTime: Binary)
       case x: String => x.getBytes
     }
   }

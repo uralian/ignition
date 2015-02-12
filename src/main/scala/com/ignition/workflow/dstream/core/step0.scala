@@ -1,4 +1,4 @@
-package com.ignition.workflow.dstream.basic
+package com.ignition.workflow.dstream.core
 
 import scala.collection.mutable.Queue
 import scala.reflect.ClassTag
