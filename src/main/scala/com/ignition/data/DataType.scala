@@ -8,18 +8,19 @@ import scala.reflect.runtime.universe._
 import org.joda.time.DateTime
 import com.eaio.uuid.UUID
 import java.nio.ByteOrder
+import scala.util.control.NonFatal
 
 /**
  * An exception thrown when the data type conversion fails.
  */
-class TypeConversionException(val message: String, cause: Exception = null) extends Exception(message, cause)
+class TypeConversionException(val message: String, cause: Throwable = null) extends Exception(message, cause)
 
 /**
  * Trait responsible for conversion Any data values to the specified data type.
  *
  * @author Vlad Orzhekhovskiy
  */
-sealed trait DataType[T] {
+sealed trait DataType[T] extends Serializable {
 
   type targetType = T
 
@@ -29,14 +30,16 @@ sealed trait DataType[T] {
 
   def code: String
 
-  def convertPF: PartialFunction[Any, T]
+  protected def convertPF: PartialFunction[Any, T]
 
-  def convert(obj: Any): T = {
-    convertPF.applyOrElse(obj, (_: Any) =>
-      if (obj != null)
-        throw new TypeConversionException(s"Cannot convert object $obj of type ${obj.getClass} to $targetTypeName.")
-      else
-        throw new TypeConversionException(s"Cannot convert object $obj to $targetTypeName."))
+  def convert(obj: Any): T = try {
+    convertPF applyOrElse (obj, (_: Any) => obj match {
+      case null => throw new TypeConversionException(s"Cannot convert null to $targetTypeName.")
+      case obj => throw new TypeConversionException(s"Cannot convert object $obj of type ${obj.getClass.getSimpleName} to $targetTypeName.")
+    })
+  } catch {
+    case e: TypeConversionException => throw e
+    case NonFatal(e) => throw new TypeConversionException(e.getMessage, e)
   }
 }
 
@@ -74,12 +77,23 @@ object DataType {
   def bytes2buffer(x: Array[Byte], size: Int): ByteBuffer =
     ByteBuffer.wrap(x.take(size).reverse.padTo(size, 0.toByte)).order(ByteOrder.LITTLE_ENDIAN)
 
+  def withCode(code: String): DataType[_] = code.toLowerCase match {
+    case BooleanDataType.code => BooleanDataType
+    case StringDataType.code => StringDataType
+    case IntDataType.code => IntDataType
+    case DoubleDataType.code => DoubleDataType
+    case DecimalDataType.code => DecimalDataType
+    case DateTimeDataType.code => DateTimeDataType
+    case UUIDDataType.code => UUIDDataType
+    case BinaryDataType.code => BinaryDataType
+  }
+
   implicit object BooleanDataType extends NullableDataType[Boolean] {
     def targetTypeTag = TypeTag.synchronized {
       implicitly[TypeTag[Boolean]]
     }
     val code = "boolean"
-    def convertPF = {
+    protected def convertPF = {
       case x: Boolean => x
       case x: Number => x != 0
       case x: DateTime => x.getMillis != 0
@@ -94,7 +108,7 @@ object DataType {
       implicitly[TypeTag[String]]
     }
     val code = "string"
-    def convertPF = {
+    protected def convertPF = {
       case x: Binary => new String(x)
       case x => x.toString
     }
@@ -105,7 +119,7 @@ object DataType {
       implicitly[TypeTag[Int]]
     }
     val code = "int"
-    def convertPF = {
+    protected def convertPF = {
       case x: Number => x.intValue
       case x: Boolean => if (x) 1 else 0
       case x: DateTime => x.getMillis.toInt
@@ -120,7 +134,7 @@ object DataType {
       implicitly[TypeTag[Double]]
     }
     val code = "double"
-    def convertPF = {
+    protected def convertPF = {
       case x: Number => x.doubleValue
       case x: Boolean => if (x) 1.0 else 0.0
       case x: DateTime => x.getMillis.toDouble
@@ -135,7 +149,7 @@ object DataType {
       implicitly[TypeTag[Decimal]]
     }
     val code = "decimal"
-    def convertPF = {
+    protected def convertPF = {
       case x: Decimal => x
       case x: Number => BigDecimal(x.toString)
       case x: Boolean => if (x) 1 else 0
@@ -151,7 +165,7 @@ object DataType {
       implicitly[TypeTag[DateTime]]
     }
     val code = "datetime"
-    def convertPF = {
+    protected def convertPF = {
       case x: DateTime => x
       case x: Number => new DateTime(x.longValue)
       case x: UUID => new DateTime(x.getTime)
@@ -165,7 +179,7 @@ object DataType {
       implicitly[TypeTag[UUID]]
     }
     val code = "uuid"
-    def convertPF = {
+    protected def convertPF = {
       case x: UUID => x
       case x: String => new UUID(x)
     }
@@ -176,7 +190,7 @@ object DataType {
       implicitly[TypeTag[Binary]]
     }
     val code = "binary"
-    def convertPF = {
+    protected def convertPF = {
       case x: Binary => x
       case x: Boolean => x: Binary
       case x: Int => x: Binary

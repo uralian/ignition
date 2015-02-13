@@ -1,18 +1,15 @@
 package com.ignition.data
 
-import scala.reflect.runtime.universe._
-import scala.xml._
-import org.joda.time.DateTime
-import com.eaio.uuid.UUID
-import com.ignition.data.DataType._
+import scala.xml.{ Elem, Node }
 
 /**
  * Encapsulates information about one column.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class ColumnInfo[T: TypeTag](name: String)(implicit dt: DataType[T]) {
+case class ColumnInfo[T](name: String)(implicit dt: DataType[T]) {
   val dataType = dt
+  override def toString = s"ColumnInfo($name, ${dataType.code})"
 }
 
 /**
@@ -26,6 +23,12 @@ trait RowMetaData {
   def toXml: Elem
 
   def columnCount: Int = columns.size
+
+  def columnNames = columns map (_.name)
+
+  def row(rawData: IndexedSeq[Any]): DefaultDataRow = DefaultDataRow(columnNames, rawData)
+
+  def row(raw: Any*): DefaultDataRow = row(raw.toIndexedSeq)
 }
 
 /**
@@ -35,9 +38,9 @@ trait RowMetaData {
  */
 case class DefaultRowMetaData(columns: IndexedSeq[ColumnInfo[_]]) extends RowMetaData {
 
-  require(columns.map(_.name.toLowerCase).toSet.size == columns.size, "Duplicate column name!")
+  require(columnNames.map(_.toLowerCase).toSet.size == columns.size, "Duplicate column name!")
 
-  private val indexByName: Map[String, Int] = columns.map(_.name).zipWithIndex.toMap
+  private val indexByName: Map[String, Int] = columnNames.zipWithIndex.toMap
 
   def columnIndex(name: String): Int = indexByName.get(name) getOrElse -1
 
@@ -45,12 +48,16 @@ case class DefaultRowMetaData(columns: IndexedSeq[ColumnInfo[_]]) extends RowMet
     <meta>
       { columns map (ci => <col name={ ci.name } type={ ci.dataType.code }/>) }
     </meta>
+
+  def add[T](name: String)(implicit dt: DataType[T]) = copy(columns = columns :+ ColumnInfo(name))
 }
 
 /**
  * RowMetaData companion object.
  */
 object DefaultRowMetaData {
+  def create: DefaultRowMetaData = apply()
+
   def apply(columns: ColumnInfo[_]*): DefaultRowMetaData = this.apply(columns.toVector)
 
   /**
@@ -65,17 +72,8 @@ object DefaultRowMetaData {
   def fromXml(xml: Node): DefaultRowMetaData = {
     val columns = (xml \\ "col") map { node =>
       val name = (node \ "@name").text
-      val cType = (node \ "@type").text.toLowerCase match {
-        case BooleanDataType.code => ColumnInfo[Boolean] _
-        case StringDataType.code => ColumnInfo[String] _
-        case IntDataType.code => ColumnInfo[Int] _
-        case DoubleDataType.code => ColumnInfo[Double] _
-        case DecimalDataType.code => ColumnInfo[Decimal] _
-        case DateTimeDataType.code => ColumnInfo[DateTime] _
-        case UUIDDataType.code => ColumnInfo[UUID] _
-        case BinaryDataType.code => ColumnInfo[Binary] _
-      }
-      cType(name)
+      val dataType = DataType.withCode((node \ "@type").text)
+      ColumnInfo(name)(dataType)
     }
     apply(columns: _*)
   }

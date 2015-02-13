@@ -7,10 +7,11 @@ import com.ignition.data.DataType.{ BinaryDataType, BooleanDataType, DateTimeDat
 
 /**
  * Encapsulates a list of data items with extraction functions for the supported data types.
+ * All get...() method throw TypeConversionException if the conversion fails.
  *
  * @author Vlad Orzhekhovskiy
  */
-trait DataRow {
+trait DataRow extends Serializable {
   def columnNames: IndexedSeq[String]
   def rawData: IndexedSeq[Any]
   def get[T](index: Int)(implicit dataType: DataType[T]): T
@@ -54,7 +55,8 @@ trait DataRow {
  */
 case class DefaultDataRow(columnNames: IndexedSeq[String], rawData: IndexedSeq[Any]) extends DataRow {
 
-  require(columnNames.size == rawData.size)
+  require(columnNames.size == rawData.size, "Column name count and data count do not match")
+  require(columnNames.map(_.toLowerCase).toSet.size == columnNames.size, "Duplicate column name")
 
   def get[T](index: Int)(implicit dataType: DataType[T]): T = dataType.convert(rawData(index))
 }

@@ -1,6 +1,8 @@
 package com.ignition.workflow
 
 import scala.reflect.{ ClassTag, classTag }
+import scala.util.Try
+import scala.util.control.NonFatal
 
 /**
  * Workflow step. Evaluates in an execution context E to a value of type T.
@@ -10,10 +12,25 @@ import scala.reflect.{ ClassTag, classTag }
 sealed trait Step[T, E] {
   implicit def outType: ClassTag[T] = classTag[T]
 
+  /**
+   * Computes the step output value.
+   */
+  @throws(classOf[WorkflowException])
   def output(implicit ec: E): T
 
+  /**
+   * Retrieves the input value.
+   */
   protected def inputValue[S](src: Option[Step[S, E]], name: String)(implicit ec: E): S =
     src map (_.output) getOrElse (throw WorkflowException(s"$name is not connected"))
+
+  /**
+   * Translates exceptions into WorkflowException instances.
+   */
+  protected def wrap[T](body: => T): T = try { body } catch {
+    case e: WorkflowException => throw e
+    case NonFatal(e) => throw WorkflowException("Step computation failed", e)
+  }
 }
 
 /**
@@ -32,7 +49,7 @@ sealed trait ConnectOut[T, E, X <: Step[T, E]] { self: X =>
 trait Step0[T, E] extends Step[T, E] with ConnectOut[T, E, Step0[T, E]] {
   protected def compute(ec: E): T
 
-  def output(implicit ec: E) = compute(ec)
+  def output(implicit ec: E) = wrap(compute(ec))
 }
 
 /**
@@ -44,7 +61,7 @@ trait Step1[S, T, E] extends Step[T, E] with ConnectOut[T, E, Step1[S, T, E]] {
   protected def compute(ec: E)(arg: S): T
 
   def connectFrom(source: Step[S, E]) = { in = Some(source) }
-  def output(implicit ec: E) = compute(ec)(inputValue(in, "Input"))
+  def output(implicit ec: E) = wrap(compute(ec)(inputValue(in, "Input")))
 }
 
 /**
@@ -60,7 +77,9 @@ trait Step2[S1, S2, T, E] extends Step[T, E] with ConnectOut[T, E, Step2[S1, S2,
   def connect1From(source: Step[S1, E]) = { in1 = Some(source) }
   def connect2From(source: Step[S2, E]) = { in2 = Some(source) }
 
-  def output(implicit ec: E) = compute(ec)(inputValue(in1, "Input1"), inputValue(in2, "Input2"))
+  def output(implicit ec: E) = wrap(compute(ec)(
+    inputValue(in1, "Input1"),
+    inputValue(in2, "Input2")))
 }
 
 /**
@@ -74,5 +93,8 @@ trait StepN[S, T, E] extends Step[T, E] with ConnectOut[T, E, StepN[S, T, E]] {
 
   def connectFrom(source: Step[S, E]) = { ins += source }
 
-  def output(implicit ec: E) = compute(ec)(ins map (_.output))
+  def output(implicit ec: E) = if (!ins.isEmpty)
+    wrap(compute(ec)(ins map (_.output)))
+  else
+    throw WorkflowException("No inputs connected")
 }
