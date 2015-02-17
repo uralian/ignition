@@ -1,14 +1,14 @@
-package com.ignition.workflow.rdd.grid
+package com.ignition.workflow.rdd.grid.input
 
-import scala.xml.Elem
+import scala.xml.{ Elem, Node }
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import com.ignition.data.{ DefaultDataRow, DefaultRowMetaData, RowMetaData }
+import com.ignition.data.{ DefaultRowMetaData, RowMetaData }
 import com.ignition.data.DataRow
 import com.ignition.data.DataType.StringDataType
-import com.ignition.workflow.Step0
+import com.ignition.workflow.rdd.grid.{ GridStep0, XmlFactory }
 
 /**
  * Static data grid input.
@@ -16,47 +16,51 @@ import com.ignition.workflow.Step0
  * @author Vlad Orzhekhovskiy
  */
 case class DataGridInput(meta: RowMetaData, rows: Seq[DataRow], numSlices: Option[Int] = None)
-  extends Step0[RDD[DataRow], SparkContext] with MetaDataHolder {
+  extends GridStep0 {
 
   validate
 
-  protected def compute(sc: SparkContext): RDD[DataRow] = {
-    implicit val sparkContext = sc
+  protected def computeRDD(implicit sc: SparkContext): RDD[DataRow] =
     sc parallelize (rows, numSlices getOrElse defaultParallelism)
-  }
 
   val outMetaData: Option[RowMetaData] = Some(meta)
 
   def toXml: Elem =
-    <grid>
+    <grid-input>
       { meta.toXml }
       <rows>
         { rows map rowToXml }
       </rows>
-    </grid>
+    </grid-input>
 
-  private def validate() = {
-    val mdColumnNames = meta.columns.map(_.name)
-    rows foreach { row =>
-      assert(row.columnNames == mdColumnNames, "Grid meta data and column names do not match")
-    }
+  private def validate() = rows foreach { row =>
+    assert(row.columnNames == meta.columnNames, "Grid meta data and column names do not match")
   }
 
   protected def rowToXml(row: DataRow) =
     <row>{ row.rawData map (item => <item>{ StringDataType.convert(item) }</item>) }</row>
 
-  protected def defaultPartitions(implicit sc: SparkContext) = sc.defaultMinPartitions
+  def addRow(row: DataRow): DataGridInput = copy(rows = rows :+ row)
 
-  protected def defaultParallelism(implicit sc: SparkContext) = sc.defaultParallelism
+  def addRow(rawData: IndexedSeq[Any]): DataGridInput = addRow(meta.row(rawData))
+
+  def addRow(raw: Any*): DataGridInput = addRow(raw.toIndexedSeq)
 }
 
 /**
+ * Static data grid companion object.
  */
-object DataGridInput {
+object DataGridInput extends XmlFactory[DataGridInput] {
+
+  /**
+   * Creates a new DataGridInput instance.
+   */
+  def apply(meta: RowMetaData): DataGridInput = apply(meta, Nil)
+
   /**
    * Sample input:
    *
-   * <grid>
+   * <grid-input>
    * 	<meta>...</meta>
    *   	<rows>
    *    	<row>
@@ -70,19 +74,18 @@ object DataGridInput {
    *         	<item>14</item>
    *     	</row>
    *    </rows>
-   * </grid>
+   * </grid-input>
    */
-  def fromXml(xml: Elem) = {
+  def fromXml(xml: Node) = {
     val numSlices = (xml \ "@slices").headOption map (_.text.toInt)
     val meta = DefaultRowMetaData.fromXml((xml \ "meta").head)
-    val columnNames = meta.columns map (_.name)
     val rows = (xml \\ "rows" \ "row") map { node =>
       val items = (node \ "item").zipWithIndex map {
         case (node, index) =>
           val text = if (node.text == "") null else node.text
           meta.columns(index).dataType.convert(text)
       }
-      DefaultDataRow(columnNames, items.toVector)
+      meta.row(items.toIndexedSeq)
     }
     DataGridInput(meta, rows, numSlices)
   }

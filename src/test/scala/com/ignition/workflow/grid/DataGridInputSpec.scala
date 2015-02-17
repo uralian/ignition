@@ -1,38 +1,22 @@
 package com.ignition.workflow.grid
 
-import scala.reflect.runtime.universe
-import scala.reflect.runtime.universe.TypeTag.Int
-
-import org.apache.spark.SparkContext
 import org.junit.runner.RunWith
-import org.slf4j.LoggerFactory
 import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-
 import com.eaio.uuid.UUID
-import com.ignition.BeforeAllAfterAll
+import com.ignition.SparkTestHelper
 import com.ignition.data.ColumnInfo
 import com.ignition.data.DataType.{ IntDataType, StringDataType, UUIDDataType }
+import com.ignition.workflow.rdd.grid.input.DataGridInput
 import com.ignition.data.DefaultDataRow
-import com.ignition.workflow.rdd.grid.DataGridInput
 
 @RunWith(classOf[JUnitRunner])
-class DataGridInputSpec extends Specification with XmlMatchers with BeforeAllAfterAll {
+class DataGridInputSpec extends Specification with XmlMatchers with SparkTestHelper {
   sequential
 
-  val log = LoggerFactory.getLogger(getClass)
-
-  implicit val sc = new SparkContext("local[4]", "test")
-
-  override def afterAll() = {
-    sc.stop
-    System.clearProperty("spark.driver.port")
-    System.clearProperty("spark.master.port")
-  }
-
   lazy val xml =
-    <grid>
+    <grid-input>
       <meta>
         <col name="id" type="uuid"/>
         <col name="label" type="string"/>
@@ -50,7 +34,7 @@ class DataGridInputSpec extends Specification with XmlMatchers with BeforeAllAft
           <item/>
         </row>
       </rows>
-    </grid>
+    </grid-input>
 
   "DataGridInput" should {
     "load from xml" in {

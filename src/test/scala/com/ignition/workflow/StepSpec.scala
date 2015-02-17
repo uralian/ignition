@@ -1,15 +1,12 @@
 package com.ignition.workflow
 
 import org.junit.runner.RunWith
-import org.slf4j.LoggerFactory
 import org.specs2.ScalaCheck
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class StepSpec extends Specification with ScalaCheck {
-
-  val log = LoggerFactory.getLogger(getClass)
 
   implicit val ec: Unit = {}
 
@@ -58,7 +55,7 @@ class StepSpec extends Specification with ScalaCheck {
       stepB.output === a * 2
     }
   }
-  
+
   "step2" should {
     "wrap runtime error into workflow exception" in {
       val stepA = new Step0[Int, Unit] { def compute(ec: Unit) = 1 }
@@ -122,7 +119,7 @@ class StepSpec extends Specification with ScalaCheck {
       stepF.output must throwA[WorkflowException](message = "No inputs connected")
     }
   }
-  
+
   "step0 stepN workflow" should {
     "yield the result" in prop { (a: Int, b: Int, c: Int, d: Int, e: Int) =>
       val stepA = new Step0[Int, Unit] { def compute(ec: Unit) = a }

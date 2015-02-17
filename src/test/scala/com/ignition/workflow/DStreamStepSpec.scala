@@ -1,29 +1,19 @@
 package com.ignition.workflow
 
 import scala.collection.mutable.Queue
-import org.apache.spark.SparkContext
+
 import org.apache.spark.SparkContext.IntAccumulatorParam
 import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
 import org.junit.runner.RunWith
-import org.slf4j.LoggerFactory
 import org.specs2.mutable.Specification
-import com.ignition.BeforeAllAfterAll
-import com.ignition.workflow.dstream.core._
 import org.specs2.runner.JUnitRunner
 
+import com.ignition.SparkTestHelper
+import com.ignition.workflow.dstream.core.{ DStreamFilter, DStreamFlatMap, DStreamJoin, DStreamMap, DStreamQueue, DStreamReduceByKey }
+
 @RunWith(classOf[JUnitRunner])
-class DStreamStepSpec extends Specification with BeforeAllAfterAll {
+class DStreamStepSpec extends Specification with SparkTestHelper {
   sequential
-
-  val log = LoggerFactory.getLogger(getClass)
-
-  implicit val sc = new SparkContext("local[4]", "test")
-
-  override def afterAll() = {
-    sc.stop
-    System.clearProperty("spark.driver.port")
-    System.clearProperty("spark.master.port")
-  }
 
   "DStream Queue + Map + Filter" should {
     "yield the result" in {
