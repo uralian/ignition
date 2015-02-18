@@ -15,7 +15,7 @@ class DataGridInputSpec extends Specification with XmlMatchers with SparkTestHel
   sequential
 
   lazy val xml =
-    <grid-input>
+    <grid-input slices="2">
       <meta>
         <col name="id" type="uuid"/>
         <col name="label" type="string"/>

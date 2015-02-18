@@ -8,6 +8,7 @@ import org.apache.spark.rdd.RDD
 import com.ignition.data.{ DefaultRowMetaData, RowMetaData }
 import com.ignition.data.DataRow
 import com.ignition.data.DataType.StringDataType
+import com.ignition.util.XmlUtils.{ RichNodeSeq, intToText, optToOptText }
 import com.ignition.workflow.rdd.grid.{ GridStep0, XmlFactory }
 
 /**
@@ -26,7 +27,7 @@ case class DataGridInput(meta: RowMetaData, rows: Seq[DataRow], numSlices: Optio
   val outMetaData: Option[RowMetaData] = Some(meta)
 
   def toXml: Elem =
-    <grid-input>
+    <grid-input slices={ numSlices }>
       { meta.toXml }
       <rows>
         { rows map rowToXml }
@@ -77,7 +78,7 @@ object DataGridInput extends XmlFactory[DataGridInput] {
    * </grid-input>
    */
   def fromXml(xml: Node) = {
-    val numSlices = (xml \ "@slices").headOption map (_.text.toInt)
+    val numSlices = (xml \ "@slices").getAsInt
     val meta = DefaultRowMetaData.fromXml((xml \ "meta").head)
     val rows = (xml \\ "rows" \ "row") map { node =>
       val items = (node \ "item").zipWithIndex map {
