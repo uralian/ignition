@@ -8,8 +8,7 @@ import org.specs2.runner.JUnitRunner
 
 import com.eaio.uuid.UUID
 import com.ignition.{ CassandraSpec, SparkTestHelper }
-import com.ignition.data.{ Decimal, DefaultRowMetaData }
-import com.ignition.data.DataType.{ BooleanDataType, DateTimeDataType, DecimalDataType, DoubleDataType, IntDataType, StringDataType, UUIDDataType }
+import com.ignition.data.{ boolean, columnInfo2metaData, datetime, decimal, double, int, string, uuid }
 import com.ignition.workflow.rdd.grid.input.CassandraInput
 
 @RunWith(classOf[JUnitRunner])
@@ -24,9 +23,8 @@ class CassandraInputSpec extends Specification with XmlMatchers with CassandraSp
     super[SparkTestHelper].afterAll
   }
 
-  val meta = DefaultRowMetaData.create.add[UUID]("customer_id")
-    .add[String]("description").add[DateTime]("date").add[Decimal]("total")
-    .add[Int]("items").add[Double]("weight").add[Boolean]("shipped")
+  val meta = uuid("customer_id") ~ string("description") ~ datetime("date") ~
+    decimal("total") ~ int("items") ~ double("weight") ~ boolean("shipped")
 
   "CassandraInput" should {
     "load data without filtering" in {

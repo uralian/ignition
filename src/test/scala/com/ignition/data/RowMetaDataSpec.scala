@@ -1,17 +1,14 @@
 package com.ignition.data
 
-import scala.Array.canBuildFrom
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.scalacheck.{ Arbitrary, Gen }
 import org.slf4j.LoggerFactory
-import org.specs2.ScalaCheck
+import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+
 import com.eaio.uuid.UUID
 import com.ignition.data.DataType.BooleanDataType
-import java.nio.ByteBuffer
-import org.specs2.matcher.XmlMatchers
 
 @RunWith(classOf[JUnitRunner])
 class RowMetaDataSpec extends Specification with XmlMatchers {
@@ -20,8 +17,7 @@ class RowMetaDataSpec extends Specification with XmlMatchers {
 
   "RowMetaData" should {
     "accept column collection" in {
-      val meta = DefaultRowMetaData(ColumnInfo[UUID]("id"), ColumnInfo[String]("name"),
-        ColumnInfo[Decimal]("value"), ColumnInfo[DateTime]("date"))
+      val meta = uuid("id") ~ string("name") ~ decimal("value") ~ datetime("date")
       meta.columnCount == 4
       meta.columnIndex("id") === 0
       meta.columnIndex("name") === 1

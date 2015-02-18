@@ -4,12 +4,11 @@ import org.junit.runner.RunWith
 import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+
 import com.eaio.uuid.UUID
 import com.ignition.SparkTestHelper
-import com.ignition.data.ColumnInfo
-import com.ignition.data.DataType.{ IntDataType, StringDataType, UUIDDataType }
+import com.ignition.data.{ DefaultDataRow, columnInfo2metaData, int, string, uuid }
 import com.ignition.workflow.rdd.grid.input.DataGridInput
-import com.ignition.data.DefaultDataRow
 
 @RunWith(classOf[JUnitRunner])
 class DataGridInputSpec extends Specification with XmlMatchers with SparkTestHelper {
@@ -39,7 +38,7 @@ class DataGridInputSpec extends Specification with XmlMatchers with SparkTestHel
   "DataGridInput" should {
     "load from xml" in {
       val grid = DataGridInput.fromXml(xml)
-      grid.meta.columns === Vector(ColumnInfo[UUID]("id"), ColumnInfo[String]("label"), ColumnInfo[Int]("index"))
+      grid.meta === uuid("id") ~ string("label") ~ int("index")
       grid.rows.size === 2
       grid.rows(0).rawData === Vector(new UUID("d2aa8254-343f-46e2-8a64-7bffad2478de"), "ABC", 52)
       grid.rows(1).rawData === Vector(new UUID("a3fa87b1-ad63-11e4-9d3b-0a0027000000"), "XYZ", null)

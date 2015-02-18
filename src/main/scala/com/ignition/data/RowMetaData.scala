@@ -18,16 +18,40 @@ case class ColumnInfo[T](name: String)(implicit dt: DataType[T]) {
  * @author Vlad Orzhekhovskiy
  */
 trait RowMetaData {
+
+  /**
+   * List of column descriptors.
+   */
   def columns: IndexedSeq[ColumnInfo[_]]
+
+  /**
+   * Retrieves the index of the column by its name.
+   */
   def columnIndex(name: String): Int
+
+  /**
+   * Converts meta data to XML.
+   */
   def toXml: Elem
 
+  /**
+   * Returns the number of columns.
+   */
   def columnCount: Int = columns.size
 
+  /**
+   * Returns the list of column names.
+   */
   def columnNames = columns map (_.name)
 
+  /**
+   * Creates a new data row using this metadata's column names and supplied data.
+   */
   def row(rawData: IndexedSeq[Any]): DefaultDataRow = DefaultDataRow(columnNames, rawData)
 
+  /**
+   * Creates a new data row using this metadata's column names and supplied data.
+   */
   def row(raw: Any*): DefaultDataRow = row(raw.toIndexedSeq)
 }
 
@@ -49,15 +73,25 @@ case class DefaultRowMetaData(columns: IndexedSeq[ColumnInfo[_]]) extends RowMet
       { columns map (ci => <col name={ ci.name } type={ ci.dataType.code }/>) }
     </meta>
 
-  def add[T](name: String)(implicit dt: DataType[T]) = copy(columns = columns :+ ColumnInfo(name))
+  /**
+   * Adds a column to the metadata, returning a new instance.
+   */
+  def ~[T](ci: ColumnInfo[T]): DefaultRowMetaData = copy(columns = columns :+ ci)
+
+  /**
+   * Adds a column to the metadata, returning a new instance.
+   */
+  def add[T](name: String)(implicit dt: DataType[T]): DefaultRowMetaData = this.~(ColumnInfo[T](name))
 }
 
 /**
  * RowMetaData companion object.
  */
 object DefaultRowMetaData {
-  def create: DefaultRowMetaData = apply()
 
+  /**
+   * Creates a new instance of row metadata.
+   */
   def apply(columns: ColumnInfo[_]*): DefaultRowMetaData = this.apply(columns.toVector)
 
   /**
