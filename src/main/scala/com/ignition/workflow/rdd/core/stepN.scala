@@ -1,4 +1,4 @@
-package com.ignition.workflow.rdd.basic
+package com.ignition.workflow.rdd.core
 
 import scala.reflect.ClassTag
 

@@ -13,6 +13,8 @@
 	<logger name="com.datastax" level="ERROR" />
 	<logger name="akka" level="WARN" />
 	<logger name="com.datastax.spark.connector.writer" level="INFO" />
+	<logger name="org.apache.cassandra" level="ERROR" />
+	<logger name="com.datastax.driver.core.ControlConnection" level="OFF" />
 	<root level="INFO">
 		<appender-ref ref="stdout" />
 	</root>

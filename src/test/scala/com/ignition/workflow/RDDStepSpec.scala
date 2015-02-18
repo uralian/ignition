@@ -1,24 +1,14 @@
 package com.ignition.workflow
 
-import org.apache.spark.SparkContext
 import org.junit.runner.RunWith
-import org.slf4j.LoggerFactory
 import org.specs2.mutable.Specification
-import com.ignition.BeforeAllAfterAll
-import com.ignition.workflow.rdd.basic._
 import org.specs2.runner.JUnitRunner
 
+import com.ignition.SparkTestHelper
+import com.ignition.workflow.rdd.core.{ RDDFilter, RDDFlatMap, RDDJoin, RDDMap, RDDReduceByKey, RDDSequence, RDDUnion }
+
 @RunWith(classOf[JUnitRunner])
-class RDDStepSpec extends Specification with BeforeAllAfterAll {
-
-  val log = LoggerFactory.getLogger(getClass)
-
-  implicit val sc = new SparkContext("local[4]", "test")
-
-  override def afterAll() = {
-    sc.stop
-    System.clearProperty("spark.master.port")
-  }
+class RDDStepSpec extends Specification with SparkTestHelper {
 
   "RDD Sequence" should {
     "yield the result" in {
@@ -59,7 +49,7 @@ class RDDStepSpec extends Specification with BeforeAllAfterAll {
       stepE.output.collect.toSet === Set((3, (3, "3")), (4, (4, "4")))
     }
   }
-  
+
   "RDD Sequence + Union" should {
     "yield the result" in {
       val stepA = new RDDSequence(List(1, 3, 4))
