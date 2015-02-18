@@ -6,6 +6,7 @@ import org.apache.spark.rdd.RDD
 import com.ignition.data.{ DataRow, RowMetaData }
 import com.ignition.workflow.Step0
 import com.ignition.workflow.Step1
+import com.ignition.workflow.Step2
 
 /**
  * The base step of the ignition grid framework.
@@ -25,8 +26,6 @@ trait GridStep {
   def toXml: Elem
 
   /* spark helpers */
-
-  protected def defaultPartitions(implicit sc: SparkContext) = sc.defaultMinPartitions
 
   protected def defaultParallelism(implicit sc: SparkContext) = sc.defaultParallelism
 }
@@ -53,6 +52,24 @@ trait GridStep1 extends Step1[RDD[DataRow], RDD[DataRow], SparkContext] with Gri
   protected def inMetaData: Option[RowMetaData] = in flatMap {
     _.asInstanceOf[GridStep].outMetaData
   }
+}
+
+/**
+ * Grid step with two inputs.
+ */
+trait GridStep2 extends Step2[RDD[DataRow], RDD[DataRow], RDD[DataRow], SparkContext] with GridStep {
+
+  protected def computeRDD(rdd1: RDD[DataRow], rdd2: RDD[DataRow]): RDD[DataRow]
+
+  protected def compute(sc: SparkContext)(rdd1: RDD[DataRow], rdd2: RDD[DataRow]): RDD[DataRow] =
+    computeRDD(rdd1, rdd2)
+
+  protected def inMetaData: Option[(RowMetaData, RowMetaData)] = for {
+    input1 <- in1
+    meta1 <- input1.asInstanceOf[GridStep].outMetaData
+    input2 <- in2
+    meta2 <- input2.asInstanceOf[GridStep].outMetaData
+  } yield (meta1, meta2)
 }
 
 /**
