@@ -1,12 +1,12 @@
 package com.ignition.workflow.rdd.grid
 
 import scala.xml.{ Elem, Node }
+
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+
 import com.ignition.data.{ DataRow, RowMetaData }
-import com.ignition.workflow.Step0
-import com.ignition.workflow.Step1
-import com.ignition.workflow.Step2
+import com.ignition.workflow.{ Step0, Step1, Step2, StepN, WorkflowException }
 
 /**
  * The base step of the ignition grid framework.
@@ -70,6 +70,30 @@ trait GridStep2 extends Step2[RDD[DataRow], RDD[DataRow], RDD[DataRow], SparkCon
     input2 <- in2
     meta2 <- input2.asInstanceOf[GridStep].outMetaData
   } yield (meta1, meta2)
+}
+
+/**
+ * Grid step with N inputs of the same type.
+ */
+trait GridStepN extends StepN[RDD[DataRow], RDD[DataRow], SparkContext] with GridStep {
+
+  protected def computeRDD(rdds: Iterable[RDD[DataRow]])(implicit sc: SparkContext): RDD[DataRow]
+
+  protected def compute(sc: SparkContext)(rdds: Iterable[RDD[DataRow]]): RDD[DataRow] =
+    computeRDD(rdds)(sc)
+
+  protected def inMetaData: Option[RowMetaData] = {
+    def assertAllEqual[T](list: Iterable[T], elem: T) =
+      if (!list.forall(_ == elem)) throw WorkflowException("Input metadata do not match")
+
+    val opts = ins map (_.asInstanceOf[GridStep].outMetaData)
+    if (opts.contains(None))
+      None // if at least one input does not have metadata set
+    else {
+      val metas = opts map (_.get)
+      metas.headOption map { head => assertAllEqual(metas, head); head }
+    }
+  }
 }
 
 /**
