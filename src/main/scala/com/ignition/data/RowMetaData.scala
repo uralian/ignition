@@ -7,9 +7,17 @@ import scala.xml.{ Elem, Node }
  *
  * @author Vlad Orzhekhovskiy
  */
-case class ColumnInfo[T](name: String)(implicit dt: DataType[T]) {
+final case class ColumnInfo[T](name: String)(implicit dt: DataType[T]) {
   val dataType = dt
+
   override def toString = s"ColumnInfo($name, ${dataType.code})"
+
+  override def equals(other: Any) = if (other.isInstanceOf[ColumnInfo[_]]) {
+    val that = other.asInstanceOf[ColumnInfo[_]]
+    this.name == that.name && this.dataType == that.dataType
+  } else false
+
+  override def hashCode = 41 * name.hashCode + dataType.hashCode
 }
 
 /**
