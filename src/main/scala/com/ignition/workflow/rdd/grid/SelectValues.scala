@@ -164,7 +164,6 @@ case class SelectValues(actions: TraversableOnce[SelectAction])
  * Select Values companion object.
  */
 object SelectValues extends XmlFactory[SelectValues] {
-  def create: SelectValues = apply()
   def apply(actions: SelectAction*): SelectValues = apply(actions.toSeq)
   def fromXml(xml: Node): SelectValues = apply(xml.child map SelectAction.fromXml)
 }

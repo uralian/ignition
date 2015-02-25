@@ -23,7 +23,7 @@ object SimpleFlow extends App {
 
   val chksum = AddChecksum("chk", DigestAlgorithm.SHA256, List("name", "weight"))
 
-  val select = SelectValues.create.retype[String]("dob").retain("id", "dob", "chk")
+  val select = SelectValues().retype[String]("dob").retain("id", "dob", "chk")
 
   grid.connectTo(chksum).connectTo(select)
 
