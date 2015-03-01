@@ -28,6 +28,10 @@ trait GridStep {
   /* spark helpers */
 
   protected def defaultParallelism(implicit sc: SparkContext) = sc.defaultParallelism
+
+  /* serialization helpers */
+
+  protected def unserializable = throw new java.io.IOException("Object should not be serialized")
 }
 
 /**
