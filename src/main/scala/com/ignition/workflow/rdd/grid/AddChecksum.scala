@@ -6,11 +6,9 @@ import scala.Array.canBuildFrom
 import scala.collection.TraversableOnce.MonadOps
 import scala.xml.{ Elem, Node }
 
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 import com.ignition.data.{ Binary, DataRow, DefaultDataRow, DefaultRowMetaData, RowMetaData }
-import com.ignition.workflow.Step1
 
 /**
  * Checksum algorithm.
@@ -39,14 +37,19 @@ case class AddChecksum(name: String, algorithm: DigestAlgorithm,
   fields: TraversableOnce[String], outputAsString: Boolean = true)
   extends GridStep1 {
 
-  protected def computeRDD(rdd: RDD[DataRow]): RDD[DataRow] = rdd map { row =>
-    val binary = fields.map(name => algorithm.digest(row.getBinary(name))).foldLeft(Array[Byte]())(_ ++ _)
+  protected def computeRDD(rdd: RDD[DataRow]): RDD[DataRow] = {
+    val name = this.name
+    val fields = this.fields
+    val algorithm = this.algorithm
+    val outputAsString = this.outputAsString
+    rdd map { row =>
+      val binary = fields.map(name => algorithm.digest(row.getBinary(name))).foldLeft(Array[Byte]())(_ ++ _)
+      val chksum: Any = if (outputAsString) binary.map("%02X" format _).mkString else binary
 
-    val chksum: Any = if (outputAsString) binary.map("%02X" format _).mkString else binary
-
-    val newColumnNames = row.columnNames :+ name
-    val newData = row.rawData :+ chksum
-    DefaultDataRow(newColumnNames, newData)
+      val newColumnNames = row.columnNames :+ name
+      val newData = row.rawData :+ chksum
+      DefaultDataRow(newColumnNames, newData)
+    }
   }
 
   def outMetaData: Option[RowMetaData] = inMetaData map { mdIn =>
@@ -60,6 +63,8 @@ case class AddChecksum(name: String, algorithm: DigestAlgorithm,
         fields map (field => <col name={ field }/>)
       }
     </add-checksum>
+
+  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**
