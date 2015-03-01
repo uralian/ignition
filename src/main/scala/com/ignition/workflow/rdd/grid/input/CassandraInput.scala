@@ -76,8 +76,9 @@ case class CassandraInput(keyspace: String, table: String, meta: RowMetaData,
   protected def computeRDD(implicit sc: SparkContext): RDD[DataRow] = {
     val rows = sc.cassandraTable[CassandraRow](keyspace, table).select(meta.columnNames: _*)
     val rdd = where map (w => rows.where(w.cql, w.arguments: _*)) getOrElse rows
+    val md = this.meta
     rdd map { row =>
-      val values = meta.columns map { ci =>
+      val values = md.columns map { ci =>
         ci.dataType match {
           case BooleanDataType => row.getBooleanOption(ci.name) getOrElse null
           case StringDataType => row.getStringOption(ci.name) getOrElse null
@@ -89,7 +90,7 @@ case class CassandraInput(keyspace: String, table: String, meta: RowMetaData,
           case BinaryDataType => row.getBytesOption(ci.name) map (_.array) getOrElse null
         }
       }
-      meta.row(values)
+      md.row(values)
     }
   }
 
@@ -102,6 +103,8 @@ case class CassandraInput(keyspace: String, table: String, meta: RowMetaData,
         where map (_.toXml) toList
       }
     </cassandra-input>
+
+  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

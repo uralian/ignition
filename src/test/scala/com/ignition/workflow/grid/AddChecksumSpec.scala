@@ -37,6 +37,7 @@ class AddChecksumSpec extends Specification with XmlMatchers with SparkTestHelpe
       grid.connectTo(step)
       val expectedMeta = meta.add[Binary]("chk")
       step.outMetaData === Some(expectedMeta)
+      step.output.collect.iterator.next.columnNames === Vector("a", "b", "c", "chk")
     }
   }
 }

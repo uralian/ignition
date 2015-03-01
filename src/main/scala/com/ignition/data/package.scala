@@ -25,13 +25,18 @@ package object data {
   def binary(name: String) = ColumnInfo[Binary](name)
 
   implicit def columnInfo2metaData(ci: ColumnInfo[_]): DefaultRowMetaData = DefaultRowMetaData(ci)
-  
+
   /* data row builder */
   implicit class RichStringList(val names: Vector[String]) extends AnyVal {
     def ~(name: String): RichStringList = new RichStringList(names :+ name)
     def row(raw: IndexedSeq[Any]): DefaultDataRow = DefaultDataRow(names, raw)
     def row(raw: Any*): DefaultDataRow = row(raw.toIndexedSeq)
   }
-  
+
   implicit def string2richList(str: String): RichStringList = new RichStringList(Vector(str))
+
+  /* ternary condition evaluation */
+  implicit class RichBoolean(val cond: Boolean) extends AnyVal {
+    def ?[T](t: => T, f: => T): T = if (cond) t else f
+  }
 }

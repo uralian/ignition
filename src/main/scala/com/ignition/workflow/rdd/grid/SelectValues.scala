@@ -144,8 +144,10 @@ case class SelectValues(actions: TraversableOnce[SelectAction])
 
   import SelectAction._
 
-  protected def computeRDD(rdd: RDD[DataRow]): RDD[DataRow] =
+  protected def computeRDD(rdd: RDD[DataRow]): RDD[DataRow] = {
+    val actions = this.actions
     rdd map { actions.foldLeft(_)((row, action) => action(row)) }
+  }
 
   def outMetaData: Option[RowMetaData] = inMetaData map {
     actions.foldLeft(_)((meta, action) => action(meta))
@@ -158,13 +160,14 @@ case class SelectValues(actions: TraversableOnce[SelectAction])
   def remove(names: String*) = copy(actions = actions.toSeq :+ Remove(names.toSeq))
   def retype[T](name: String)(implicit dt: DataType[T]) = copy(actions = actions.toSeq :+ Retype(name -> dt))
   def retype(pairs: (String, DataType[_])*) = copy(actions = actions.toSeq :+ Retype(pairs.toMap))
+
+  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**
  * Select Values companion object.
  */
 object SelectValues extends XmlFactory[SelectValues] {
-  def create: SelectValues = apply()
   def apply(actions: SelectAction*): SelectValues = apply(actions.toSeq)
   def fromXml(xml: Node): SelectValues = apply(xml.child map SelectAction.fromXml)
 }

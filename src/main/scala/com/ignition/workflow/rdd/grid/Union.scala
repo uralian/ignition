@@ -22,6 +22,8 @@ case class Union() extends GridStepN {
   def outMetaData: Option[RowMetaData] = inMetaData
 
   def toXml: Elem = <union/>
+
+  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

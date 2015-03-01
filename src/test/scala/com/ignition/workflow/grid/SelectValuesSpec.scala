@@ -145,8 +145,7 @@ class SelectValuesSpec extends Specification with XmlMatchers with SparkTestHelp
   "SelectValues" should {
     "process action chain" in {
       val grid = DataGridInput(meta, Seq(row))
-      val select = SelectValues.create.
-        rename("a" -> "x").retype[Decimal]("x").remove("b", "c")
+      val select = SelectValues().rename("a" -> "x").retype[Decimal]("x").remove("b", "c")
       grid.connectTo(select)
       select.outMetaData === Some(decimal("x"): RowMetaData)
       select.output.collect.toSet === Set(DefaultDataRow(Vector("x"), Vector(BigDecimal("25.2"))))

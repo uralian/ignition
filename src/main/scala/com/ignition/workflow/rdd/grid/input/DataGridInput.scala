@@ -46,6 +46,8 @@ case class DataGridInput(meta: RowMetaData, rows: Seq[DataRow], numSlices: Optio
   def addRow(rawData: IndexedSeq[Any]): DataGridInput = addRow(meta.row(rawData))
 
   def addRow(raw: Any*): DataGridInput = addRow(raw.toIndexedSeq)
+  
+  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**
