@@ -7,6 +7,7 @@ import com.ignition.data.{ columnInfo2metaData, decimal, double, int, string }
 import com.ignition.scripting.RichString
 import com.ignition.workflow.rdd.grid.{ Formula, SelectValues }
 import com.ignition.workflow.rdd.grid.input.DataGridInput
+import com.ignition.workflow.rdd.grid.output.DebugOutput
 
 object ScriptingFlow extends App {
 
@@ -28,11 +29,9 @@ object ScriptingFlow extends App {
 
   val select = SelectValues().retain("code", "totalWithTax")
 
-  grid.connectTo(formula1).connectTo(formula2).connectTo(select)
+  val debug = DebugOutput()
 
-  println("Output meta: " + select.outMetaData)
-  println("Output data:")
-  select.output foreach println
+  grid.connectTo(formula1).connectTo(formula2).connectTo(select).connectTo(debug).output
 
   sc.stop
 }

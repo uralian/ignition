@@ -3,11 +3,11 @@ package com.ignition.samples
 import org.apache.spark.SparkContext
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
-
 import com.eaio.uuid.UUID
 import com.ignition.data._
 import com.ignition.workflow.rdd.grid._
 import com.ignition.workflow.rdd.grid.input._
+import com.ignition.workflow.rdd.grid.output.DebugOutput
 
 object UnionFlow extends App {
 
@@ -34,10 +34,9 @@ object UnionFlow extends App {
   union.connectFrom(grid1)
   union.connectFrom(grid2)
   union.connectFrom(grid3)
-
-  println("Output meta: " + union.outMetaData)
-  println("Output data:")
-  union.output foreach println
+  
+  val debug = DebugOutput()
+  union.connectTo(debug).output
   
   sc.stop
   

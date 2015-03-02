@@ -1,7 +1,6 @@
 package com.ignition.workflow.grid
 
 import org.junit.runner.RunWith
-import org.slf4j.LoggerFactory
 import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -14,7 +13,6 @@ import com.ignition.workflow.rdd.grid.input.DataGridInput
 
 @RunWith(classOf[JUnitRunner])
 class UnionSpec extends Specification with XmlMatchers with SparkTestHelper {
-  val log = LoggerFactory.getLogger(getClass)
 
   val meta = string("a") ~ int("b") ~ boolean("c")
 
