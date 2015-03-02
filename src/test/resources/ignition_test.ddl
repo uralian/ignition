@@ -1,12 +1,21 @@
 CREATE TABLE IF NOT EXISTS orders (
-        customer_id uuid,
-        date timestamp,
-        description text,
-        items int,
-        total decimal,
-        weight double,
-        shipped boolean,
-        PRIMARY KEY (customer_id, date)
+	customer_id uuid,
+	date timestamp,
+	description text,
+	items int,
+	total decimal,
+	weight double,
+	shipped boolean,
+	PRIMARY KEY (customer_id, date)
+);
+
+CREATE TABLE IF NOT EXISTS shipments (
+	customer_id uuid,
+	date timestamp,
+	items int,
+	total decimal,
+	weight double,
+	PRIMARY KEY (customer_id, date)
 );
 
 CREATE INDEX order_description ON orders(description);
