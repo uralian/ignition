@@ -7,6 +7,7 @@ import com.eaio.uuid.UUID
 import com.ignition.data._
 import com.ignition.workflow.rdd.grid.{ AddChecksum, DigestAlgorithm, SelectValues }
 import com.ignition.workflow.rdd.grid.input.DataGridInput
+import com.ignition.workflow.rdd.grid.output.DebugOutput
 
 object SimpleFlow extends App {
   val log = LoggerFactory.getLogger(getClass)
@@ -24,12 +25,10 @@ object SimpleFlow extends App {
   val chksum = AddChecksum("chk", DigestAlgorithm.SHA256, List("name", "weight"))
 
   val select = SelectValues().retype[String]("dob").retain("id", "dob", "chk")
+  
+  val debug = DebugOutput()
 
-  grid.connectTo(chksum).connectTo(select)
-
-  println("Output meta: " + select.outMetaData)
-  println("Output data:")
-  select.output foreach println
+  grid.connectTo(chksum).connectTo(select).connectTo(debug).output
 
   sc.stop
 
