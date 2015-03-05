@@ -59,4 +59,19 @@ case class DefaultDataRow(columnNames: IndexedSeq[String], rawData: IndexedSeq[A
   require(columnNames.map(_.toLowerCase).toSet.size == columnNames.size, "Duplicate column name")
 
   def get[T](index: Int)(implicit dataType: DataType[T]): T = dataType.convert(rawData(index))
+
+  def row(columnNames: Iterable[String]) = DefaultDataRow.subrow(this, columnNames)
+}
+
+/**
+ * DataRow companion object.
+ */
+object DefaultDataRow {
+  /**
+   * Extracts only the specified columns from the row.
+   */
+  def subrow(row: DataRow, columnNames: Iterable[String]) = {
+    val data = columnNames.toIndexedSeq map row.getRaw
+    DefaultDataRow(columnNames.toIndexedSeq, data)
+  }
 }
