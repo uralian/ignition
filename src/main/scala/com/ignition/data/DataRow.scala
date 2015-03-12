@@ -61,6 +61,12 @@ case class DefaultDataRow(columnNames: IndexedSeq[String], rawData: IndexedSeq[A
   def get[T](index: Int)(implicit dataType: DataType[T]): T = dataType.convert(rawData(index))
 
   def row(columnNames: Iterable[String]) = DefaultDataRow.subrow(this, columnNames)
+
+  def select(columnNames: Iterable[String]) = DefaultDataRow.select(this, columnNames)
+
+  def ~(name: String, data: Any) = DefaultDataRow(columnNames :+ name, rawData :+ data)
+
+  def ~~(row: DataRow) = DefaultDataRow(columnNames ++ row.columnNames, rawData ++ row.rawData)
 }
 
 /**
@@ -68,10 +74,15 @@ case class DefaultDataRow(columnNames: IndexedSeq[String], rawData: IndexedSeq[A
  */
 object DefaultDataRow {
   /**
-   * Extracts only the specified columns from the row.
+   * Creates a new DataRow by extracting only the specified columns from the row.
    */
   def subrow(row: DataRow, columnNames: Iterable[String]) = {
     val data = columnNames.toIndexedSeq map row.getRaw
     DefaultDataRow(columnNames.toIndexedSeq, data)
   }
+
+  /**
+   * Extracts the values from the selected columns.
+   */
+  def select(row: DataRow, columnNames: Iterable[String]) = columnNames.toList map row.getRaw
 }
