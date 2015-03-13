@@ -29,6 +29,8 @@ case class Intersection(numPartitions: Option[Int] = None) extends GridStep2 {
   }
 
   def toXml: Elem = <intersection partitions={ numPartitions }/>
+  
+  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

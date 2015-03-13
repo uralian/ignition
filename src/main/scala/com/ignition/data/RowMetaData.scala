@@ -43,6 +43,16 @@ trait RowMetaData {
   def toXml: Elem
 
   /**
+   * Retrieves the column at the specified index.
+   */
+  def apply(index: Int): ColumnInfo[_] = columns(index)
+
+  /**
+   * Retrieves the column under the specified name.
+   */
+  def apply(name: String): ColumnInfo[_] = columns(columnIndex(name))
+
+  /**
    * Returns the number of columns.
    */
   def columnCount: Int = columns.size
@@ -85,6 +95,16 @@ case class DefaultRowMetaData(columns: IndexedSeq[ColumnInfo[_]]) extends RowMet
    * Adds a column to the metadata, returning a new instance.
    */
   def ~[T](ci: ColumnInfo[T]): DefaultRowMetaData = copy(columns = columns :+ ci)
+
+  /**
+   * Adds a collection of columns to the metadata, returning a new instance.
+   */
+  def ~~(cis: Iterable[ColumnInfo[_]]): DefaultRowMetaData = copy(columns ++ cis)
+
+  /**
+   * Adds another metadata to the metadata, returning a new instance.
+   */
+  def ~~(other: RowMetaData): DefaultRowMetaData = this ~~ other.columns
 
   /**
    * Adds a column to the metadata, returning a new instance.
