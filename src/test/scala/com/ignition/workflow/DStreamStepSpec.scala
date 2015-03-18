@@ -33,7 +33,7 @@ class DStreamStepSpec extends Specification with SparkTestHelper {
       stepC.output.foreachRDD { rdd => rdd foreach { accum += _ } }
 
       ssc.start
-      ssc.awaitTermination(300)
+      ssc.awaitTerminationOrTimeout(300)
       ssc.stop(false)
 
       accum.value === 30
@@ -66,7 +66,7 @@ class DStreamStepSpec extends Specification with SparkTestHelper {
       }
 
       ssc.start
-      ssc.awaitTermination(200)
+      ssc.awaitTerminationOrTimeout(200)
       ssc.stop(false)
 
       accum.value === 22
