@@ -28,7 +28,7 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends Producer with Xm
     ctx.createDataFrame(rdd, schema)
   }
 
-  def outputSchema: Option[StructType] = Some(schema)
+  protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
 
   def toXml: Elem =
     <datagrid>

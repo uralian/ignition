@@ -1,19 +1,19 @@
 package com.ignition.flow
 
-import org.apache.spark.sql.{DataFrame, Row, SQLContext}
+import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.sql.types.StructType
 import org.junit.runner.RunWith
-import org.scalacheck.{Arbitrary, Prop}
+import org.scalacheck.{ Arbitrary, Prop }
 import org.specs2.ScalaCheck
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import com.ignition.SparkTestHelper
-import com.ignition.types.{fieldToStruct, int}
+import com.ignition.types.{ fieldToStruct, int }
 
 @RunWith(classOf[JUnitRunner])
 class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
-  
+
   val schema = int("a").schema
 
   val dfIntGen = Arbitrary.arbitrary[Int] map { x =>
@@ -24,14 +24,19 @@ class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
   def throwRT() = throw new RuntimeException("runtime")
   def throwWF() = throw FlowExecutionException("workflow")
 
-  trait TestStubs { self: Step =>
-    def outputSchema: Option[StructType] = Some(schema)
+  abstract class ProducerAdapter extends Producer {
+    protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
+  }
+  abstract class TransformerAdapter extends Transformer {
+    protected def computeSchema(inSchema: Option[StructType])(implicit ctx: SQLContext) = Some(schema)
+  }
+  abstract class SplitterAdapter extends Splitter(2) {
+    protected def computeSchema(inSchema: Option[StructType], index: Int)(implicit ctx: SQLContext) = Some(schema)
   }
 
-  abstract class ProducerAdapter extends Producer with TestStubs
-  abstract class TransformerAdapter extends Transformer with TestStubs
-  abstract class SplitterAdapter extends Splitter(2) with TestStubs
-  abstract class MergerAdapter extends Merger(2) with TestStubs
+  abstract class MergerAdapter extends Merger(2) {
+    protected def computeSchema(inSchemas: Array[Option[StructType]])(implicit ctx: SQLContext) = Some(schema)
+  }
 
   private def createDF(value: Int) = {
     val schema = int("a").schema
@@ -103,7 +108,7 @@ class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
       step1.output(0) must throwA[FlowExecutionException](message = "Input0 is not connected")
     }
   }
-  
+
   "Merger" should {
     "yield output" in Prop.forAll(dfIntGen) { df =>
       val step0 = new ProducerAdapter { def compute(implicit ctx: SQLContext) = df }

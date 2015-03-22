@@ -2,7 +2,6 @@ package com.ignition.flow
 
 import java.sql.Date
 
-import scala.Array.canBuildFrom
 import scala.xml.{ Elem, Node }
 import scala.xml.NodeSeq.seqToNodeSeq
 
@@ -77,8 +76,8 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
     }
     ctx.createDataFrame(rdd, schema)
   }
-
-  def outputSchema: Option[StructType] = Some(schema)
+  
+  protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
 
   def toXml: Elem =
     <cassandra-input keyspace={ keyspace } table={ table }>

@@ -77,6 +77,5 @@ class CassandraInputSpec extends Specification with CassandraSpec with XmlMatche
     }
   }
 
-  protected def javaDate(year: Int, month: Int, day: Int) =
-    java.sql.Date.valueOf(s"$year-$month-$day")
+  protected def javaDate(year: Int, month: Int, day: Int) = java.sql.Date.valueOf(s"$year-$month-$day")
 }
