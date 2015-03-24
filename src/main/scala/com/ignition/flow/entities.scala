@@ -124,13 +124,13 @@ abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends S
  */
 trait SingleOutput { self: AbstractStep =>
   def to(step: Transformer) = { step.connectFrom(0, this, 0); step }
-  def ->(step: Transformer) = to(step)
+  def -->(step: Transformer) = to(step)
 
   def to(step: Splitter) = { step.connectFrom(0, this, 0); step }
-  def ->(step: Splitter) = to(step)
+  def -->(step: Splitter) = to(step)
 
   def to(step: Merger) = { step.connectFrom(0, this, 0); step }
-  def ->(step: Merger) = to(step)
+  def -->(step: Merger) = to(step)
 
   def output(implicit ctx: SQLContext): DataFrame = output(0)(ctx)
   def outputSchema(implicit ctx: SQLContext): Option[StructType] = outputSchema(0)(ctx)

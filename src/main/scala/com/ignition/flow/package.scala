@@ -8,7 +8,7 @@ package com.ignition
 package object flow {
 
   implicit class RichProduct(val product: Product) extends AnyVal {
-    def ->(step: Merger) = {
+    def -->(step: Merger) = {
       product.productIterator.zipWithIndex foreach {
         case (s, index) => step.connectFrom(index, s.asInstanceOf[Step], 0)
       }

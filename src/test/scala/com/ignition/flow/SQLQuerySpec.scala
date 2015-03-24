@@ -37,7 +37,7 @@ class SQLQuerySpec extends Specification with XmlMatchers with SparkTestHelper {
   "SQLQuery" should {
     "yield result from one source" in {
       val query = SQLQuery("SELECT order_date, SUM(amount) AS total FROM input0 GROUP BY order_date")
-      orderGrid -> query
+      orderGrid --> query
       val output = query.output
       output.count === 4
       query.output.collect.map(_.toSeq).toSet === Set(
@@ -53,7 +53,7 @@ class SQLQuerySpec extends Specification with XmlMatchers with SparkTestHelper {
           JOIN input1 o
           ON o.name = c.name
           ORDER BY c.name, total""")
-      (customerGrid, orderGrid) -> query
+      (customerGrid, orderGrid) --> query
       query.output.show
       query.output.collect.map(_.toSeq).toSet === Set(
         Seq(javaDate(2010, 3, 10), javaBD(42.85), "jack", 74.15, javaBD("117.00")),

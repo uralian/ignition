@@ -68,13 +68,13 @@ class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
     "yield output" in Prop.forAll(dfIntGen) { df =>
       val step0 = new ProducerAdapter { def compute(implicit ctx: SQLContext) = df }
       val step1 = new TransformerAdapter { def compute(arg: DataFrame)(implicit ctx: SQLContext) = arg }
-      step0 -> step1
+      step0 --> step1
       step1.output === df
     }
     "fail for output(!=0)" in Prop.forAll(dfIntGen) { df =>
       val step0 = new ProducerAdapter { def compute(implicit ctx: SQLContext) = df }
       val step1 = new TransformerAdapter { def compute(arg: DataFrame)(implicit ctx: SQLContext) = arg }
-      step0 -> step1
+      step0 --> step1
       step1.output(2) must throwA[FlowExecutionException]
     }
     "throw exception when not connected" in Prop.forAll(dfIntGen) { df =>
@@ -89,7 +89,7 @@ class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
       val step1 = new SplitterAdapter {
         protected def compute(arg: DataFrame, index: Int)(implicit ctx: SQLContext) = arg
       }
-      step0 -> step1
+      step0 --> step1
       step1.output(0) === df
       step1.output(1) === df
     }
@@ -98,7 +98,7 @@ class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
       val step1 = new SplitterAdapter {
         protected def compute(arg: DataFrame, index: Int)(implicit ctx: SQLContext) = arg
       }
-      step0 -> step1
+      step0 --> step1
       step1.output(2) must throwA[FlowExecutionException]
     }
     "throw exception when not connected" in Prop.forAll(dfIntGen) { df =>
@@ -116,7 +116,7 @@ class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
       val step2 = new MergerAdapter {
         protected def compute(args: Array[DataFrame])(implicit ctx: SQLContext): DataFrame = args(0)
       }
-      (step0, step1) -> step2
+      (step0, step1) --> step2
       step2.output === df
     }
     "fail for output(!=0)" in Prop.forAll(dfIntGen) { df =>
@@ -125,7 +125,7 @@ class StepSpec extends Specification with ScalaCheck with SparkTestHelper {
       val step2 = new MergerAdapter {
         protected def compute(args: Array[DataFrame])(implicit ctx: SQLContext): DataFrame = args(0)
       }
-      (step0, step1) -> step2
+      (step0, step1) --> step2
       step2.output(1) must throwA[FlowExecutionException]
     }
     "throw exception when not connected" in Prop.forAll(dfIntGen) { df =>
