@@ -7,6 +7,10 @@ package com.ignition
  */
 package object flow {
 
+  /**
+   * An extension of Scala product (a, b, ...) object to help connect a set of steps
+   * to a merger step.
+   */
   implicit class RichProduct(val product: Product) extends AnyVal {
     def -->(step: Merger) = {
       product.productIterator.zipWithIndex foreach {

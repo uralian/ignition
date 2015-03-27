@@ -3,9 +3,11 @@ package com.ignition.types
 import java.sql.{ Date, Timestamp }
 import java.text.SimpleDateFormat
 
+import scala.Array.canBuildFrom
 import scala.xml.{ NodeSeq, Text }
 
-import org.apache.spark.sql.types.{ BinaryType, BooleanType, ByteType, DataType, DateType, Decimal, DoubleType, FloatType, IntegerType, LongType, ShortType, StringType, TimestampType }
+import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.sql.types._
 
 import com.ignition.util.XmlUtils.RichNodeSeq
 
@@ -89,7 +91,7 @@ object TypeUtils {
     case LongType => xml.getAsInt map (_.toLong) orNull
     case FloatType => xml.getAsDouble map (_.toFloat) orNull
     case DoubleType => xml.getAsDouble orNull
-    case DecType => xml.getAsString map Decimal.apply orNull
+    case _: DecimalType => xml.getAsString map Decimal.apply orNull
     case DateType => xml.getAsString map parseDate orNull
     case TimestampType => xml.getAsString map parseTimestamp orNull
     case _ => throw new IllegalArgumentException(s"Invalid data type: $dataType")

@@ -43,7 +43,7 @@ trait XmlExport {
 /**
  * An abstract implementation base class for Step trait.
  * The following members need to be implemented by subclasses:
- * +outputSchema: Option[StructType]
+ * +computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType]
  * +compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame
  */
 abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends Step {
