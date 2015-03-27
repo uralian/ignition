@@ -1,22 +1,15 @@
 package com.ignition.flow
 
-import java.io.{ ByteArrayOutputStream, IOException, ObjectOutputStream }
-
-import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.sql.types.Decimal
 import org.junit.runner.RunWith
-import org.specs2.matcher.XmlMatchers
-import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import com.eaio.uuid.UUID
-import com.ignition.{ CassandraSpec, SparkTestHelper }
-import com.ignition.types.{ RichStructType, decimal, double, fieldToStruct, int, string, timestamp }
+import com.ignition.CassandraSpec
+import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
-class CassandraOutputSpec extends Specification with CassandraSpec with XmlMatchers with SparkTestHelper {
-  import ctx.implicits._
-
+class CassandraOutputSpec extends FlowSpecification with CassandraSpec {
   sequential
 
   val keySpace = "ignition"
@@ -24,7 +17,7 @@ class CassandraOutputSpec extends Specification with CassandraSpec with XmlMatch
 
   override def afterAll = {
     super[CassandraSpec].afterAll
-    super[SparkTestHelper].afterAll
+    super[FlowSpecification].afterAll
   }
 
   val schema = string("customer_id") ~ timestamp("date") ~ decimal("total") ~ int("items") ~ double("weight")
@@ -46,7 +39,6 @@ class CassandraOutputSpec extends Specification with CassandraSpec with XmlMatch
       rows.get(0).getInt("items") === 3
       rows.get(0).getDecimal("total") === javaBD(123.45)
       rows.get(0).getDouble("weight") === 9.23
-      success
     }
     "save to xml" in {
       val cass = CassandraOutput("keyspace", "table")
@@ -56,15 +48,6 @@ class CassandraOutputSpec extends Specification with CassandraSpec with XmlMatch
       val xml = <cassandra-output keyspace="keyspace" table="table"/>
       CassandraOutput.fromXml(xml) === CassandraOutput("keyspace", "table")
     }
-    "be unserializable" in {
-      val cass = CassandraInput("ignition", "orders", schema)
-      val oos = new ObjectOutputStream(new ByteArrayOutputStream())
-      oos.writeObject(cass) must throwA[IOException]
-    }
+    "be unserializable" in assertUnserializable(CassandraInput("ignition", "orders", schema))
   }
-
-  protected def javaTime(year: Int, month: Int, day: Int, hour: Int, minute: Int) =
-    java.sql.Timestamp.valueOf(s"$year-$month-$day $hour:$minute:00")
-  protected def javaBD(x: Double) = Decimal(x).toJavaBigDecimal
-  protected def javaBD(str: String) = Decimal(str).toJavaBigDecimal
 }

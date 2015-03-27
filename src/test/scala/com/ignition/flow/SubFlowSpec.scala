@@ -1,18 +1,13 @@
 package com.ignition.flow
 
-import java.io.{ ByteArrayOutputStream, IOException, ObjectOutputStream }
-
 import org.apache.spark.sql.types.Decimal
 import org.junit.runner.RunWith
-import org.specs2.matcher.XmlMatchers
-import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.SparkTestHelper
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
-class SubFlowSpec extends Specification with XmlMatchers with SparkTestHelper {
+class SubFlowSpec extends FlowSpecification {
   sequential
 
   val customerSchema = string("name") ~ boolean("local") ~ double("cost")
@@ -51,32 +46,24 @@ class SubFlowSpec extends Specification with XmlMatchers with SparkTestHelper {
       fi.connectFrom(0, testCustomerGrid, 0)
       fi.connectFrom(1, testOrderGrid, 0)
       fo.outputCount === 3
-      fo.output(0).collect.map(_.toSeq) === Array(Seq(javaDate(2015, 3, 3), javaBD(0.99), "jill"))
-      fo.output(1).collect.map(_.toSeq) === Array(Seq("jill", true, 12.34))
-      fo.output(2).collect.map(_.toSeq) === Array(Seq(javaDate(2015, 3, 3), javaBD(0.99), "jill", 12.34, javaBD(13.33)))
+      assertOutput(fo, 0, Seq(javaDate(2015, 3, 3), javaBD(0.99), "jill"))
+      assertOutput(fo, 1, Seq("jill", true, 12.34))
+      assertOutput(fo, 2, Seq(javaDate(2015, 3, 3), javaBD(0.99), "jill", 12.34, javaBD(13.33)))
     }
     "work when connected from outside" in {
       val flow = SubFlow(fi, fo)
       flow.connectFrom(0, customerGrid, 0)
       flow.connectFrom(1, orderGrid, 0)
-      flow.output(2).collect.map(_.toSeq).toSet === Set(
+      assertOutput(flow, 2,
         Seq(javaDate(2010, 3, 10), javaBD(42.85), "jack", 74.15, javaBD("117.00")),
         Seq(javaDate(2010, 1, 3), javaBD(120.55), "john", 25.36, javaBD(145.91)),
         Seq(javaDate(2010, 2, 9), javaBD(44.17), "john", 25.36, javaBD(69.53)),
         Seq(javaDate(2010, 1, 3), javaBD(55.08), "john", 25.36, javaBD(80.44)),
         Seq(javaDate(2010, 5, 10), javaBD(66.99), "jane", 19.99, javaBD(86.98)))
-      flow.outputSchema(2) === Some(orderSchema ~ double("cost") ~ decimal("total"))
-      flow.outputSchema(0) === Some(orderSchema)
-      flow.outputSchema(1) === Some(customerSchema)
+      assertSchema(orderSchema ~ double("cost") ~ decimal("total"), flow, 2)
+      assertSchema(orderSchema, flow, 0)
+      assertSchema(customerSchema, flow, 1)
     }
-    "be unserializable" in {
-      val query = SQLQuery("SELECT * FROM input0")
-      val oos = new ObjectOutputStream(new ByteArrayOutputStream())
-      oos.writeObject(query) must throwA[IOException]
-    }
+    "be unserializable" in assertUnserializable(SQLQuery("SELECT * FROM input0"))
   }
-
-  protected def javaDate(year: Int, month: Int, day: Int) = java.sql.Date.valueOf(s"$year-$month-$day")
-  protected def javaBD(x: Double) = Decimal(x).toJavaBigDecimal
-  protected def javaBD(str: String) = Decimal(str).toJavaBigDecimal
 }

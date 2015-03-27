@@ -1,21 +1,14 @@
 package com.ignition.flow
 
-import java.io.{ ByteArrayOutputStream, IOException, ObjectOutputStream }
-
-import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.sql.types.Decimal
 import org.junit.runner.RunWith
-import org.specs2.matcher.XmlMatchers
-import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.{ CassandraSpec, SparkTestHelper }
+import com.ignition.CassandraSpec
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
-class CassandraInputSpec extends Specification with CassandraSpec with XmlMatchers with SparkTestHelper {
-  import ctx.implicits._
-
+class CassandraInputSpec extends FlowSpecification with CassandraSpec {
   sequential
 
   val keySpace = "ignition"
@@ -23,7 +16,7 @@ class CassandraInputSpec extends Specification with CassandraSpec with XmlMatche
 
   override def afterAll = {
     super[CassandraSpec].afterAll
-    super[SparkTestHelper].afterAll
+    super[FlowSpecification].afterAll
   }
 
   val schema = string("customer_id", false) ~ string("description") ~ date("date", false) ~
@@ -32,7 +25,7 @@ class CassandraInputSpec extends Specification with CassandraSpec with XmlMatche
   "CassandraInput" should {
     "load data without filtering" in {
       val cass = CassandraInput("ignition", "orders", schema)
-      cass.outputSchema === Some(schema)
+      assertSchema(schema, cass)
       val output = cass.output
       output.count === 8
       val row = output.filter("customer_id = 'c7b44cb2-b6bf-11e4-a71e-12e3f512a338'").first
@@ -70,12 +63,6 @@ class CassandraInputSpec extends Specification with CassandraSpec with XmlMatche
       val input2 = CassandraInput.fromXml(xml)
       input === input2
     }
-    "be unserializable" in {
-      val cass = CassandraInput("ignition", "orders", schema)
-      val oos = new ObjectOutputStream(new ByteArrayOutputStream())
-      oos.writeObject(cass) must throwA[IOException]
-    }
+    "be unserializable" in assertUnserializable(CassandraInput("ignition", "orders", schema))
   }
-
-  protected def javaDate(year: Int, month: Int, day: Int) = java.sql.Date.valueOf(s"$year-$month-$day")
 }

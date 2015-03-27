@@ -1,17 +1,12 @@
 package com.ignition.flow
 
-import java.io.{ ByteArrayOutputStream, IOException, ObjectOutputStream }
-
 import org.junit.runner.RunWith
-import org.specs2.matcher.XmlMatchers
-import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.SparkTestHelper
-import com.ignition.types.{ RichStructType, fieldToStruct, int, string }
+import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
-class DataGridSpec extends Specification with XmlMatchers with SparkTestHelper {
+class DataGridSpec extends FlowSpecification {
 
   lazy val xml =
     <datagrid>
@@ -55,13 +50,11 @@ class DataGridSpec extends Specification with XmlMatchers with SparkTestHelper {
     }
     "yield correct metadata" in {
       val grid = DataGrid.fromXml(xml)
-      grid.outputSchema === Some(grid.schema)
+      assertSchema(grid.schema, grid)
     }
     "produce valid DataFrame" in {
       val grid = DataGrid.fromXml(xml)
-      val df = grid.output
-      df.count === 3
-      df.collect.map(_.toSeq).toSet === Set(
+      assertOutput(grid, 0,
         Seq("3815cb50-ccca-11e4-80dc-027f371e36df", "ABC", 52),
         Seq("3815cb50-ccca-11e4-80dc-027f371e36df", null, 3),
         Seq("a3fa87b1-ad63-11e4-9d3b-0a0027000000", "XYZ", null))
@@ -78,10 +71,6 @@ class DataGridSpec extends Specification with XmlMatchers with SparkTestHelper {
       DataGrid(string("a") ~ int("b")).addRow("a", true) must throwA[AssertionError]
       DataGrid(string("a") ~ int("b")).addRow("a", 5.5) must throwA[AssertionError]
     }
-    "be unserializable" in {
-      val grid = DataGrid.fromXml(xml)
-      val oos = new ObjectOutputStream(new ByteArrayOutputStream())
-      oos.writeObject(grid) must throwA[IOException]
-    }
+    "be unserializable" in assertUnserializable(DataGrid.fromXml(xml))
   }
 }
