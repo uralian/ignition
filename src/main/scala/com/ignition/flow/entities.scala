@@ -169,6 +169,9 @@ trait SingleOutput { self: AbstractStep =>
 
   def to(in: MultiInput#InPort): Unit = in.outer.from(in.inIndex, this)
   def -->(in: MultiInput#InPort): Unit = to(in)
+  
+  def to(step: MultiInput): step.type = step.from(0, this)
+  def -->(step: MultiInput): step.type = to(step)
 
   def -->(tgtIndex: Int) = SOutStepInIndex(this, tgtIndex)
 
@@ -208,7 +211,7 @@ trait SingleInput { self: AbstractStep =>
 /* connection classes */
 
 private[flow] case class SOutStepInIndex(srcStep: Step with SingleOutput, inIndex: Int) {
-  def :|(tgtStep: Step with MultiInput) = tgtStep.from(inIndex, srcStep)
+  def :|(tgtStep: Step with MultiInput): tgtStep.type = tgtStep.from(inIndex, srcStep)
 }
 
 private[flow] case class OutInIndices(outIndex: Int, inIndex: Int) {
