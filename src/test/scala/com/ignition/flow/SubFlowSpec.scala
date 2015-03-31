@@ -7,7 +7,7 @@ import org.specs2.runner.JUnitRunner
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
-class SQLQuerySpec extends FlowSpecification {
+class SubFlowSpec extends FlowSpecification {
   sequential
 
   val customerSchema = string("name") ~ boolean("local") ~ double("cost")
@@ -25,43 +25,44 @@ class SQLQuerySpec extends FlowSpecification {
     .addRow(javaDate(2010, 5, 10), Decimal(66.99), "jane")
     .addRow(javaDate(2010, 1, 3), Decimal(55.08), "john")
 
-  "SQLQuery" should {
-    "yield result from one source" in {
-      val query = SQLQuery("SELECT order_date, SUM(amount) AS total FROM input0 GROUP BY order_date")
-      orderGrid --> 0 :| query
-      assertOutput(query, 0,
-        Seq(javaDate(2010, 1, 3), javaBD(175.63)),
-        Seq(javaDate(2010, 2, 9), javaBD(44.17)),
-        Seq(javaDate(2010, 3, 10), javaBD(42.85)),
-        Seq(javaDate(2010, 5, 10), javaBD(66.99)))
-    }
-    "yield result from two joined sources" in {
-      val query = SQLQuery("""
+  val fi = FlowInput(Array(customerSchema, orderSchema))
+  val fo = FlowOutput(3)
+  fo.connectFrom(0, fi, 1)
+  fo.connectFrom(1, fi, 0)
+  val query = SQLQuery("""
           SELECT o.order_date, o.amount, c.name, c.cost, o.amount + c.cost AS total
           FROM input0 c
           JOIN input1 o
           ON o.name = c.name
           ORDER BY c.name, total""")
-      (customerGrid, orderGrid) --> query
-      assertOutput(query, 0,
+  query.connectFrom(0, fi, 0)
+  query.connectFrom(1, fi, 1)
+  fo.connectFrom(2, query, 0)
+
+  "SubFlow" should {
+    "be testable in isolation" in {
+      val testCustomerGrid = DataGrid(customerSchema).addRow("jill", true, 12.34)
+      val testOrderGrid = DataGrid(orderSchema).addRow(javaDate(2015, 3, 3), Decimal(0.99), "jill")
+      fi.connectFrom(0, testCustomerGrid, 0)
+      fi.connectFrom(1, testOrderGrid, 0)
+      fo.outputCount === 3
+      assertOutput(fo, 0, Seq(javaDate(2015, 3, 3), javaBD(0.99), "jill"))
+      assertOutput(fo, 1, Seq("jill", true, 12.34))
+      assertOutput(fo, 2, Seq(javaDate(2015, 3, 3), javaBD(0.99), "jill", 12.34, javaBD(13.33)))
+    }
+    "work when connected from outside" in {
+      val flow = SubFlow(fi, fo)
+      flow.connectFrom(0, customerGrid, 0)
+      flow.connectFrom(1, orderGrid, 0)
+      assertOutput(flow, 2,
         Seq(javaDate(2010, 3, 10), javaBD(42.85), "jack", 74.15, javaBD("117.00")),
         Seq(javaDate(2010, 1, 3), javaBD(120.55), "john", 25.36, javaBD(145.91)),
         Seq(javaDate(2010, 2, 9), javaBD(44.17), "john", 25.36, javaBD(69.53)),
         Seq(javaDate(2010, 1, 3), javaBD(55.08), "john", 25.36, javaBD(80.44)),
         Seq(javaDate(2010, 5, 10), javaBD(66.99), "jane", 19.99, javaBD(86.98)))
-      assertSchema(orderSchema ~ double("cost") ~ decimal("total"), query)
-    }
-    "fail on disconnected inputs" in {
-      val query = SQLQuery("SELECT * FROM input0")
-      query.output must throwA[FlowExecutionException]
-    }
-    "save to xml" in {
-      val query = SQLQuery("SELECT * FROM input0 WHERE amount > 5")
-      <sql>SELECT * FROM input0 WHERE amount > 5</sql> must ==/(query.toXml)
-    }
-    "load from xml" in {
-      SQLQuery.fromXml(<sql>SELECT * FROM input0 WHERE amount > 5</sql>) ===
-        SQLQuery("SELECT * FROM input0 WHERE amount > 5")
+      assertSchema(orderSchema ~ double("cost") ~ decimal("total"), flow, 2)
+      assertSchema(orderSchema, flow, 0)
+      assertSchema(customerSchema, flow, 1)
     }
     "be unserializable" in assertUnserializable(SQLQuery("SELECT * FROM input0"))
   }

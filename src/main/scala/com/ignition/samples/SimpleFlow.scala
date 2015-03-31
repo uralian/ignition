@@ -1,36 +1,32 @@
 package com.ignition.samples
 
-import org.apache.spark.SparkContext
-import org.joda.time.DateTime
-import org.slf4j.LoggerFactory
 import com.eaio.uuid.UUID
-import com.ignition.data._
-import com.ignition.workflow.rdd.grid.{ AddChecksum, DigestAlgorithm, SelectValues }
-import com.ignition.workflow.rdd.grid.input.DataGridInput
-import com.ignition.workflow.rdd.grid.output.DebugOutput
+import com.ignition.SparkPlug
+import com.ignition.flow.{ DataFlow, DataGrid, DebugOutput, SQLQuery }
+import com.ignition.types.{ RichStructType, date, fieldToStruct, int, string }
 
 object SimpleFlow extends App {
-  val log = LoggerFactory.getLogger(getClass)
 
-  implicit val sc = new SparkContext("local[4]", "test")
+  val flow = DataFlow {
+    val grid = DataGrid(string("id") ~ string("name") ~ int("weight") ~ date("dob"))
+      .addRow(newid, "john", 155, dob(1980, 5, 2))
+      .addRow(newid, "jane", 190, dob(1982, 4, 25))
+      .addRow(newid, "jake", 160, dob(1974, 11, 3))
+      .addRow(newid, "josh", 120, dob(1995, 1, 10))
 
-  val meta = uuid("id") ~ string("name") ~ int("weight") ~ datetime("dob")
+    val query = SQLQuery("""
+      SELECT SUM(weight) AS total, AVG(weight) AS mean, MIN(weight) AS low
+      FROM input0
+      WHERE name LIKE 'j%'""")
 
-  val grid = DataGridInput(meta).
-    addRow(new UUID, "john", 155, dob(1980, 5, 2)).
-    addRow(new UUID, "jane", 190, dob(1982, 4, 25)).
-    addRow(new UUID, "jake", 160, dob(1974, 11, 3)).
-    addRow(new UUID, "josh", 120, dob(1995, 1, 10))
+    val debug = DebugOutput()
 
-  val chksum = AddChecksum("chk", DigestAlgorithm.SHA256, List("name", "weight"))
+    grid --> query --> debug
+  }
 
-  val select = SelectValues().retype[String]("dob").retain("id", "dob", "chk")
+  SparkPlug.runDataFlow(flow)
+
+  private def newid = new UUID().toString
   
-  val debug = DebugOutput()
-
-  grid.connectTo(chksum).connectTo(select).connectTo(debug).output
-
-  sc.stop
-
-  def dob(year: Int, month: Int, day: Int) = new DateTime(year, month, day, 0, 0)
+  private def dob(year: Int, month: Int, day: Int) = java.sql.Date.valueOf(s"$year-$month-$day")
 }

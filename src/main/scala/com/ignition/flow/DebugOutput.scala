@@ -3,7 +3,7 @@ package com.ignition.flow
 import scala.xml.{ Elem, Node }
 
 import org.apache.spark.sql.{ DataFrame, SQLContext }
-import org.apache.spark.sql.types.{ DoubleType, IntegerType, StructType }
+import org.apache.spark.sql.types._
 
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optToOptText }
 
@@ -42,10 +42,18 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false, sampleSize
     val data = sampleSize map arg.take getOrElse arg.collect
 
     data foreach { row =>
-      val str = (dataTypes zipWithIndex) zip widths map {
-        case ((IntegerType, index), width) => s"%${width}d".format(row.getInt(index))
-        case ((DoubleType, index), width) => s"%${width}f".format(row.getDouble(index))
-        case ((_, index), width) => s"%${width}s".format(row.getString(index).take(width))
+      val str = (dataTypes zip row.toSeq zip widths) map {
+        case ((BinaryType, obj), width) =>
+          s"%${width}s".format(obj.asInstanceOf[Array[Byte]].map("%02X" format _).mkString)
+        case ((ByteType, obj), width) => s"%${width}d".format(obj)
+        case ((ShortType, obj), width) => s"%${width}d".format(obj)
+        case ((IntegerType, obj), width) => s"%${width}d".format(obj)
+        case ((LongType, obj), width) => s"%${width}d".format(obj)
+        case ((FloatType, obj), width) => s"%${width}f".format(obj)
+        case ((DoubleType, obj), width) => s"%${width}f".format(obj)
+        case ((_: DecimalType, obj), width) =>
+          s"%${width}s".format(obj.asInstanceOf[java.math.BigDecimal].toPlainString)
+        case ((_, obj), width) => s"%${width}s".format(obj.toString.take(width))
       } mkString ("|", "|", "|")
       println(str)
     }

@@ -8,9 +8,7 @@ import org.specs2.runner.JUnitRunner
 import com.ignition.SparkTestHelper
 
 @RunWith(classOf[JUnitRunner])
-class DebugOutputSpec extends Specification with XmlMatchers with SparkTestHelper {
-  import ctx.implicits._
-
+class DebugOutputSpec extends FlowSpecification {
   "DebugOutput" should {
     "save to xml for default values" in {
       val debug = DebugOutput()

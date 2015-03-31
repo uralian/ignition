@@ -43,18 +43,18 @@ trait XmlExport {
 /**
  * An abstract implementation base class for Step trait.
  * The following members need to be implemented by subclasses:
- * +outputSchema: Option[StructType]
+ * +computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType]
  * +compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame
  */
 abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends Step {
-  protected val ins = Array.ofDim[(Step, Int)](inputCount)
+  protected[flow] val ins = Array.ofDim[(Step, Int)](inputCount)
 
-  protected val allInputsRequired: Boolean = true
+  val allInputsRequired: Boolean = true
 
   /**
    * Connects an input port to an output port of another step.
    */
-  def connectFrom(inIndex: Int, step: Step, outIndex: Int): AbstractStep = {
+  private[flow] def connectFrom(inIndex: Int, step: Step, outIndex: Int): this.type = {
     assert(0 until step.outputCount contains outIndex, s"Output index out of range: $outIndex")
     ins(inIndex) = (step, outIndex)
     this
@@ -86,7 +86,7 @@ abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends S
   }
 
   /**
-   * Retrievs the input schemas
+   * Retrieves the input schemas
    */
   protected def inputSchemas(implicit ctx: SQLContext): Array[Option[StructType]] = (ins zipWithIndex) map {
     case ((step, index), _) => step.outputSchema(index)(ctx)
@@ -120,20 +120,110 @@ abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends S
 }
 
 /**
- * Functions for a step with a single output.
+ * A step with multiple output ports.
+ */
+trait MultiOutput { self: AbstractStep =>
+
+  /**
+   * Connects the output ports to multiple single input port nodes:
+   * s to (a, b, c)
+   */
+  def to(tgtSteps: SingleInput*): Unit = tgtSteps.zipWithIndex foreach {
+    case (step: SingleInput, index) => step.from(this, index)
+  }
+
+  /**
+   * Connects the output ports to multiple single input port nodes:
+   * s --> (a, b, c)
+   */
+  def -->(tgtSteps: SingleInput*): Unit = to(tgtSteps: _*)
+
+  /**
+   * Exposes the specified output port.
+   */
+  def out(outIndex: Int): this.OutPort = OutPort(outIndex)
+
+  /**
+   * The output port under the specified index.
+   */
+  protected[flow] case class OutPort(outIndex: Int) {
+    val outer: self.type = self
+
+    def to(step: SingleInput): step.type = step.from(outer, outIndex)
+    def -->(step: SingleInput): step.type = to(step)
+
+    def to(step: MultiInput): step.type = step.from(0, outer, outIndex)
+    def -->(step: MultiInput): step.type = to(step)
+
+    def to(in: MultiInput#InPort): Unit = in.outer.from(in.inIndex, outer, outIndex)
+    def -->(in: MultiInput#InPort): Unit = to(in)
+  }
+}
+
+/**
+ * A step with a single output port.
  */
 trait SingleOutput { self: AbstractStep =>
-  def to(step: Transformer) = { step.connectFrom(0, this, 0); step }
-  def -->(step: Transformer) = to(step)
+  def to(step: SingleInput): step.type = step.from(this)
+  def -->(step: SingleInput): step.type = to(step)
 
-  def to(step: Splitter) = { step.connectFrom(0, this, 0); step }
-  def -->(step: Splitter) = to(step)
+  def to(in: MultiInput#InPort): Unit = in.outer.from(in.inIndex, this)
+  def -->(in: MultiInput#InPort): Unit = to(in)
+  
+  def to(step: MultiInput): step.type = step.from(0, this)
+  def -->(step: MultiInput): step.type = to(step)
 
-  def to(step: Merger) = { step.connectFrom(0, this, 0); step }
-  def -->(step: Merger) = to(step)
+  def -->(tgtIndex: Int) = SOutStepInIndex(this, tgtIndex)
 
   def output(implicit ctx: SQLContext): DataFrame = output(0)(ctx)
   def outputSchema(implicit ctx: SQLContext): Option[StructType] = outputSchema(0)(ctx)
+}
+
+/**
+ * A step with multiple input ports.
+ */
+trait MultiInput { self: AbstractStep =>
+  private[flow] def from(inIndex: Int, step: Step with MultiOutput, outIndex: Int): this.type = connectFrom(inIndex, step, outIndex)
+
+  private[flow] def from(inIndex: Int, step: Step with SingleOutput): this.type = connectFrom(inIndex, step, 0)
+
+  /**
+   * Exposes the input port under the specified index.
+   */
+  def in(inIndex: Int): this.InPort = InPort(inIndex)
+
+  /**
+   * The input port under the specified index.
+   */
+  protected[flow] case class InPort(inIndex: Int) { val outer: self.type = self }
+}
+
+/**
+ * A step with a single input port.
+ */
+trait SingleInput { self: AbstractStep =>
+
+  private[flow] def from(step: Step with MultiOutput, outIndex: Int): this.type = connectFrom(0, step, outIndex)
+
+  private[flow] def from(step: Step with SingleOutput): this.type = connectFrom(0, step, 0)
+}
+
+/* connection classes */
+
+private[flow] case class SOutStepInIndex(srcStep: Step with SingleOutput, inIndex: Int) {
+  def :|(tgtStep: Step with MultiInput): tgtStep.type = tgtStep.from(inIndex, srcStep)
+}
+
+private[flow] case class OutInIndices(outIndex: Int, inIndex: Int) {
+  def :|(tgtStep: Step with MultiInput) = MInStepOutInIndices(outIndex, inIndex, tgtStep)
+}
+
+private[flow] case class MInStepOutInIndices(outIndex: Int, inIndex: Int, tgtStep: Step with MultiInput) {
+  def |:(srcStep: Step with MultiOutput) = tgtStep.from(inIndex, srcStep, outIndex)
+}
+
+private[flow] case class SInStepOutIndex(outIndex: Int, tgtStep: Step with SingleInput) {
+  def |:(srcStep: Step with MultiOutput): tgtStep.type = tgtStep.from(srcStep, outIndex)
 }
 
 /**
@@ -161,7 +251,7 @@ abstract class Producer extends AbstractStep(0, 1) with SingleOutput {
  * +computeSchema(inSchema: Option[StructType])(implicit ctx: SQLContext): Option[StructType]
  * +compute(arg: DataFrame)(implicit ctx: SQLContext): DataFrame
  */
-abstract class Transformer extends AbstractStep(1, 1) with SingleOutput {
+abstract class Transformer extends AbstractStep(1, 1) with SingleInput with SingleOutput {
 
   protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame =
     compute(args(0))(ctx)
@@ -180,38 +270,8 @@ abstract class Transformer extends AbstractStep(1, 1) with SingleOutput {
  * +computeSchema(inSchema: Option[StructType], index: Int)(implicit ctx: SQLContext): Option[StructType]
  * +compute(arg: DataFrame, index: Int)(implicit ctx: SQLContext): DataFrame
  */
-abstract class Splitter(override val outputCount: Int) extends AbstractStep(1, outputCount) {
-
-  def _0_>(step: Transformer) = connectTo(0, step)
-  def _1_>(step: Transformer) = connectTo(1, step)
-  def _2_>(step: Transformer) = connectTo(2, step)
-  def _3_>(step: Transformer) = connectTo(3, step)
-  def _4_>(step: Transformer) = connectTo(4, step)
-  def _5_>(step: Transformer) = connectTo(5, step)
-  def _6_>(step: Transformer) = connectTo(6, step)
-  def _7_>(step: Transformer) = connectTo(7, step)
-  def _8_>(step: Transformer) = connectTo(8, step)
-  def _9_>(step: Transformer) = connectTo(9, step)
-
-  def _0_>(step: Splitter) = connectTo(0, step)
-  def _1_>(step: Splitter) = connectTo(1, step)
-  def _2_>(step: Splitter) = connectTo(2, step)
-  def _3_>(step: Splitter) = connectTo(3, step)
-  def _4_>(step: Splitter) = connectTo(4, step)
-  def _5_>(step: Splitter) = connectTo(5, step)
-  def _6_>(step: Splitter) = connectTo(6, step)
-  def _7_>(step: Splitter) = connectTo(7, step)
-  def _8_>(step: Splitter) = connectTo(8, step)
-  def _9_>(step: Splitter) = connectTo(9, step)
-
-  def to(product: Product) = (product.productIterator.zipWithIndex) foreach {
-    case (step: Transformer, index) => connectTo(index, step)
-    case (step: Splitter, index) => connectTo(index, step)
-  }
-  def -->(product: Product) = to(product)
-
-  def connectTo(index: Int, step: Transformer) = { step.connectFrom(index, this, 0); step }
-  def connectTo(index: Int, step: Splitter) = { step.connectFrom(index, this, 0); step }
+abstract class Splitter(override val outputCount: Int)
+  extends AbstractStep(1, outputCount) with SingleInput with MultiOutput {
 
   protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame =
     compute(args(0), index)(ctx)
@@ -230,7 +290,8 @@ abstract class Splitter(override val outputCount: Int) extends AbstractStep(1, o
  * +computeSchema(inSchemas: Array[Option[StructType]])(implicit ctx: SQLContext): Option[StructType]
  * +compute(args: Array[DataFrame])(implicit ctx: SQLContext): DataFrame
  */
-abstract class Merger(override val inputCount: Int) extends AbstractStep(inputCount, 1) with SingleOutput {
+abstract class Merger(override val inputCount: Int)
+  extends AbstractStep(inputCount, 1) with MultiInput with SingleOutput {
 
   protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame = compute(args)(ctx)
 
@@ -240,4 +301,14 @@ abstract class Merger(override val inputCount: Int) extends AbstractStep(inputCo
     computeSchema(inSchemas)(ctx)
 
   protected def computeSchema(inSchemas: Array[Option[StructType]])(implicit ctx: SQLContext): Option[StructType]
+}
+
+/**
+ * A step with multiple input and output ports.
+ * The following members need to be implemented by subclasses:
+ * +computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType]
+ * +compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame
+ */
+abstract class Module(override val inputCount: Int, override val outputCount: Int)
+  extends AbstractStep(inputCount, outputCount) with MultiInput with MultiOutput {
 }
