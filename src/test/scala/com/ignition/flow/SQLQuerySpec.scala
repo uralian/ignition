@@ -28,9 +28,7 @@ class SQLQuerySpec extends FlowSpecification {
   "SQLQuery" should {
     "yield result from one source" in {
       val query = SQLQuery("SELECT order_date, SUM(amount) AS total FROM input0 GROUP BY order_date")
-      orderGrid --> query
-      val output = query.output
-      output.count === 4
+      orderGrid --> 0 :| query
       assertOutput(query, 0,
         Seq(javaDate(2010, 1, 3), javaBD(175.63)),
         Seq(javaDate(2010, 2, 9), javaBD(44.17)),
@@ -45,7 +43,6 @@ class SQLQuerySpec extends FlowSpecification {
           ON o.name = c.name
           ORDER BY c.name, total""")
       (customerGrid, orderGrid) --> query
-      query.output
       assertOutput(query, 0,
         Seq(javaDate(2010, 3, 10), javaBD(42.85), "jack", 74.15, javaBD("117.00")),
         Seq(javaDate(2010, 1, 3), javaBD(120.55), "john", 25.36, javaBD(145.91)),

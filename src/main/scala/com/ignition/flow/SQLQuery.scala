@@ -16,7 +16,7 @@ import com.ignition.util.XmlUtils.RichNodeSeq
  */
 case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlExport {
 
-  override protected val allInputsRequired = false
+  override val allInputsRequired = false
 
   var schema: Option[StructType] = None
 

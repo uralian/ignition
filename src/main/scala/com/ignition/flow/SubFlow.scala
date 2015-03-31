@@ -6,9 +6,9 @@ import org.apache.spark.sql.types.StructType
 /**
  * Flow input data.
  */
-case class FlowInput(inputMeta: Array[StructType]) extends AbstractStep(inputMeta.size, inputMeta.size) {
+case class FlowInput(inputMeta: Array[StructType]) extends Module(inputMeta.size, inputMeta.size) {
 
-  override protected val allInputsRequired: Boolean = false
+  override val allInputsRequired: Boolean = false
 
   protected def compute(args: Array[DataFrame],
     index: Int)(implicit ctx: SQLContext): DataFrame = args(index)
@@ -22,7 +22,7 @@ case class FlowInput(inputMeta: Array[StructType]) extends AbstractStep(inputMet
 /**
  * Flow output data.
  */
-case class FlowOutput(override val outputCount: Int) extends AbstractStep(outputCount, outputCount) {
+case class FlowOutput(override val outputCount: Int) extends Module(outputCount, outputCount) {
 
   protected def compute(args: Array[DataFrame],
     index: Int)(implicit ctx: SQLContext): DataFrame = args(index)
@@ -36,10 +36,12 @@ case class FlowOutput(override val outputCount: Int) extends AbstractStep(output
 /**
  * Sub-flow.
  */
-case class SubFlow(input: FlowInput, output: FlowOutput) extends AbstractStep(input.inputCount, output.outputCount) {
+case class SubFlow(input: FlowInput, output: FlowOutput) extends Module(input.inputCount, output.outputCount) {
 
-  override def connectFrom(inIndex: Int, step: Step, outIndex: Int): AbstractStep =
+  override def connectFrom(inIndex: Int, step: Step, outIndex: Int): this.type = {
     input.connectFrom(inIndex, step, outIndex)
+    this
+  }
 
   override def output(index: Int)(implicit ctx: SQLContext): DataFrame = output.output(index)
 
