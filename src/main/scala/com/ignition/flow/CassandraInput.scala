@@ -5,7 +5,6 @@ import java.sql.Date
 import scala.xml.{ Elem, Node }
 import scala.xml.NodeSeq.seqToNodeSeq
 
-import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.sql.types._
 
@@ -67,7 +66,7 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
         case (LongType, x) => convert[Long](x)
         case (FloatType, x) => convert[Float](x)
         case (DoubleType, x) => convert[Double](x)
-        case (DecimalType.Unlimited, x) => Decimal(convert[BigDecimal](x))
+        case (_: DecimalType, x) => Decimal(convert[BigDecimal](x))
         case (DateType, x) => new java.sql.Date(convert[Date](x).getTime)
         case (TimestampType, x) => new java.sql.Timestamp(convert[Date](x).getTime)
         case (t @ _, _) => throw new IllegalArgumentException(s"Invalid data type: $t")
@@ -76,7 +75,7 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
     }
     ctx.createDataFrame(rdd, schema)
   }
-  
+
   protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
 
   def toXml: Elem =
