@@ -2,20 +2,21 @@ package com.ignition
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.blocking
-
 import org.cassandraunit.CQLDataLoader
 import org.cassandraunit.dataset.CQLDataSet
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
-
 import com.datastax.driver.core._
 import com.ignition.util.ConfigUtils
+import org.slf4j.LoggerFactory
 
 /**
  * Companion object used to initialize the cassandra cluster and expose on port
  * depending on the configuration settings.
  */
 object CassandraBaseTestHelper {
+  
+  private val log = LoggerFactory.getLogger(getClass)
 
   private val config = ConfigUtils.getConfig("cassandra.test")
 
@@ -24,7 +25,7 @@ object CassandraBaseTestHelper {
   val (host, port, thriftPort) = if (embeddedMode) ("localhost", 9142, 9175) else
     (config.getString("external.host"), config.getInt("external.port"), config.getInt("external.thrift-port"))
 
-  Console.println(s"Using ${if (embeddedMode) "Embedded" else "External"} Cassandra at $host:$port")
+  log.info(s"Using ${if (embeddedMode) "Embedded" else "External"} Cassandra at $host:$port")
 
   val cluster = Cluster.builder()
     .addContactPoints(host)
