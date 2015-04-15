@@ -3,10 +3,8 @@ package com.ignition.types
 import java.sql.{ Date, Timestamp }
 import java.text.SimpleDateFormat
 
-import scala.Array.canBuildFrom
 import scala.xml.{ NodeSeq, Text }
 
-import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.sql.types._
 
 import com.ignition.util.XmlUtils.RichNodeSeq
@@ -17,8 +15,12 @@ import com.ignition.util.XmlUtils.RichNodeSeq
  * @author Vlad Orzhekhovskiy
  */
 object TypeUtils {
-  private val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  private val timeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+  private val dateFormat = new ThreadLocal[SimpleDateFormat]() {
+    override protected def initialValue = new SimpleDateFormat("yyyy-MM-dd")
+  }
+  private val timeFormat = new ThreadLocal[SimpleDateFormat]() {
+    override protected def initialValue = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+  }
 
   /**
    * Resolves a data type from an arbitrary value.
@@ -59,6 +61,25 @@ object TypeUtils {
   }
 
   /**
+   * Parses a string according to the specified data type.
+   */
+  def valueOf(str: String, dt: DataType) = dt match {
+    case BinaryType => parseBinary(str)
+    case BooleanType => str.toBoolean
+    case StringType => str
+    case ByteType => str.toByte
+    case ShortType => str.toShort
+    case IntegerType => str.toInt
+    case LongType => str.toLong
+    case FloatType => str.toFloat
+    case DoubleType => str.toDouble
+    case _: DecimalType => Decimal(str)
+    case DateType => parseDate(str)
+    case TimestampType => parseTimestamp(str)
+    case _ => throw new IllegalArgumentException(s"Invalid data type: $dt")
+  }
+
+  /**
    * Converts a value to XML.
    */
   def valueToXml(obj: Any): NodeSeq = obj match {
@@ -73,8 +94,8 @@ object TypeUtils {
     case x: Float => Text(x.toString)
     case x: Double => Text(x.toString)
     case x: Decimal => Text(x.toString)
-    case x: Date => Text(dateFormat.format(x))
-    case x: Timestamp => Text(timeFormat.format(x))
+    case x: Date => Text(formatDate(x))
+    case x: Timestamp => Text(formatTimestamp(x))
     case _ => throw new IllegalArgumentException(s"Invalid data type: $obj")
   }
 
@@ -98,6 +119,9 @@ object TypeUtils {
   }
 
   private def parseBinary(str: String) = str.split(",").map(_.toByte)
-  private def parseDate(str: String) = new Date(dateFormat.parse(str).getTime)
-  private def parseTimestamp(str: String) = new Timestamp(timeFormat.parse(str).getTime)
+  private def parseDate(str: String) = new Date(dateFormat.get.parse(str).getTime)
+  private def parseTimestamp(str: String) = new Timestamp(timeFormat.get.parse(str).getTime)
+
+  private def formatDate(date: Date) = dateFormat.get.format(date)
+  private def formatTimestamp(time: Timestamp) = timeFormat.get.format(time)
 }

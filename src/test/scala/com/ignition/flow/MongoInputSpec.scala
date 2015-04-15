@@ -1,16 +1,31 @@
 package com.ignition.flow
 
+import scala.annotation.implicitNotFound
+
 import org.junit.runner.RunWith
+import org.specs2.specification.Fragments
 import org.specs2.runner.JUnitRunner
 
 import com.github.athieriot.EmbedConnection
-import com.ignition.types._
+import com.ignition.types.{ RichStructType, boolean, fieldToStruct, string }
 import com.ignition.util.MongoUtils
 import com.mongodb.casbah.Imports.MongoDBObject
 
 @RunWith(classOf[JUnitRunner])
 class MongoInputSpec extends FlowSpecification with EmbedConnection {
   sequential
+
+  override def beforeAll = {
+    super.beforeAll
+    mongodExecutable.start
+  }
+
+  override def afterAll = {
+    mongodExecutable.stop
+    super.afterAll
+  }
+
+  override def map(fs: => Fragments) = super[FlowSpecification].map(fs)
 
   "MongoInput" should {
     "load data without filtering" in {
