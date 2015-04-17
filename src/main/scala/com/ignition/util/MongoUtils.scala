@@ -29,6 +29,10 @@ object MongoUtils {
     def asString(key: String): String = underlying.as[Object](key).toString
 
     def getAsString(key: String) = underlying.getAs[String](key)
+    
+    def asNumber(key: String) = underlying.as[Number](key)
+    
+    def getAsNumber(key: String) = underlying.getAs[Number](key)
 
     def asDouble(key: String) = underlying.as[Double](key)
 
