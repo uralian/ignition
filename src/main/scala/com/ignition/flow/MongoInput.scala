@@ -1,6 +1,7 @@
 package com.ignition.flow
 
-import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
+import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 import org.apache.spark.sql.types._
 
 import com.ignition.types.RichBoolean
@@ -24,7 +25,7 @@ object Page {
 case class SortOrder(field: String, ascending: Boolean = true)
 
 /**
- * Reads documents from MongoDB.
+ * Reads documents from MongoDB. 
  *
  * @author Vlad Orzhekhovskiy
  */
@@ -36,8 +37,10 @@ case class MongoInput(db: String, coll: String, schema: StructType,
 
   protected def compute(implicit ctx: SQLContext): DataFrame = {
     val collection = MongoUtils.collection(db, coll)
-
-    val keys: Map[String, Boolean] = Map("_id" -> false) ++ schema.fieldNames.map(_ -> true)
+    
+    val fields = schema map (f => f.copy(name = f.name.replace('#', '.')))
+    
+    val keys: Map[String, Boolean] = Map("_id" -> false) ++ fields.map(_.name -> true) 
     val query = filterToDBObject(filter)
     val orderBy = sortToDBObject(sort)
 
@@ -46,7 +49,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
     val cursorWithLimit = if (page.limit > 0) cursorWithOffset.limit(page.limit) else cursorWithOffset
 
     val rows = cursorWithLimit map { obj =>
-      val data = schema map { field =>
+      val data = fields map { field =>
         val value = extract(obj, field.name, field.dataType)
         value orElse {
           field.nullable option null
@@ -97,10 +100,10 @@ case class MongoInput(db: String, coll: String, schema: StructType,
     case BinaryType => throw new IllegalArgumentException(s"BinaryType not supported for Mongo")
     case BooleanType => doc getAsBoolean key
     case StringType => doc getAsString key
-    case ByteType => doc getAsInt key map (_.toByte)
-    case ShortType => doc getAsInt key map (_.toShort)
-    case IntegerType => doc getAsInt key
-    case LongType => doc getAsLong key
+    case ByteType => doc getAsNumber key map (_.byteValue)
+    case ShortType => doc getAsNumber key map (_.shortValue)
+    case IntegerType => doc getAsNumber key map (_.intValue)
+    case LongType => doc getAsNumber key map (_.longValue)
     case FloatType => doc getAsDouble key map (_.toFloat)
     case DoubleType => doc getAsDouble key
     case _: DecimalType => doc getAsDouble key map Decimal.apply

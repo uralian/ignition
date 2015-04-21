@@ -36,6 +36,7 @@ object TypeUtils {
     case _: Float => FloatType
     case _: Double => DoubleType
     case _: Decimal => DecType
+    case _: java.math.BigDecimal => DecType
     case _: Date => DateType
     case _: Timestamp => TimestampType
     case _ => throw new IllegalArgumentException(s"Invalid data type: $obj")
@@ -94,6 +95,7 @@ object TypeUtils {
     case x: Float => Text(x.toString)
     case x: Double => Text(x.toString)
     case x: Decimal => Text(x.toString)
+    case x: java.math.BigDecimal => Text(x.toString)
     case x: Date => Text(formatDate(x))
     case x: Timestamp => Text(formatTimestamp(x))
     case _ => throw new IllegalArgumentException(s"Invalid data type: $obj")

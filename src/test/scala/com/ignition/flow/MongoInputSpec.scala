@@ -1,7 +1,5 @@
 package com.ignition.flow
 
-import scala.annotation.implicitNotFound
-
 import org.junit.runner.RunWith
 import org.specs2.specification.Fragments
 import org.specs2.runner.JUnitRunner
