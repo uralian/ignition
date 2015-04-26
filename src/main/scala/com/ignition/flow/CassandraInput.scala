@@ -49,12 +49,13 @@ object Where {
 case class CassandraInput(keyspace: String, table: String, schema: StructType,
   where: Option[Where]) extends Producer with XmlExport {
 
-  protected def compute(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val schema = this.schema
     val dataTypes = schema.fields map (_.dataType)
     val cassRDD = ctx.sparkContext.cassandraTable[CassandraRow](keyspace, table).select(schema.fieldNames: _*)
     val rows = where map (w => cassRDD.where(w.cql, w.values: _*)) getOrElse cassRDD
-    val rdd = rows map { cr =>
+    val limitedRows = limit map (n => ctx.sparkContext.parallelize(rows.take(n))) getOrElse rows
+    val rdd = limitedRows map { cr =>
       @inline def convert[T](x: Any)(implicit tc: TypeConverter[T]) = tc.convert(x)
       val data = dataTypes zip cr.iterator.toArray[Any] map {
         case (BinaryType, x) => convert[Array[Byte]](x)
@@ -66,7 +67,7 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
         case (LongType, x) => convert[Long](x)
         case (FloatType, x) => convert[Float](x)
         case (DoubleType, x) => convert[Double](x)
-        case (_: DecimalType, x) => Decimal(convert[BigDecimal](x))
+        case (_: DecimalType, x) => Decimal(convert[BigDecimal](x)).toJavaBigDecimal
         case (DateType, x) => new java.sql.Date(convert[Date](x).getTime)
         case (TimestampType, x) => new java.sql.Timestamp(convert[Date](x).getTime)
         case (t @ _, _) => throw new IllegalArgumentException(s"Invalid data type: $t")
@@ -76,7 +77,7 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
+  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
 
   def toXml: Elem =
     <cassandra-input keyspace={ keyspace } table={ table }>

@@ -15,12 +15,12 @@ class DebugOutputSpec extends FlowSpecification {
       <debug-output names="true" types="false"/> must ==/(debug.toXml)
     }
     "save to xml for custom values" in {
-      val debug = DebugOutput(false, true, Some(10))
-      <debug-output names="false" types="true" size="10"/> must ==/(debug.toXml)
+      val debug = DebugOutput(false, true)
+      <debug-output names="false" types="true" /> must ==/(debug.toXml)
     }
     "load from xml" in {
-      val xml = <debug-output names="false" types="true" size="1"/>
-      DebugOutput.fromXml(xml) === DebugOutput(false, true, Some(1))
+      val xml = <debug-output names="false" types="true" />
+      DebugOutput.fromXml(xml) === DebugOutput(false, true)
     }
   }
 }

@@ -6,15 +6,15 @@ import org.apache.spark.sql.types.StructType
 /**
  * Flow input data.
  */
-case class FlowInput(inputMeta: Array[StructType]) extends Module(inputMeta.size, inputMeta.size) {
+case class FlowInput(schema: Array[StructType]) extends Module(schema.size, schema.size) {
 
   override val allInputsRequired: Boolean = false
 
   protected def compute(args: Array[DataFrame],
-    index: Int)(implicit ctx: SQLContext): DataFrame = args(index)
+    index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = args(index)
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]],
-    index: Int)(implicit ctx: SQLContext): Option[StructType] = Some(inputMeta(index))
+  protected def computeSchema(inSchemas: Array[StructType], index: Int)(implicit ctx: SQLContext): StructType =
+    schema(index)
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
@@ -25,10 +25,10 @@ case class FlowInput(inputMeta: Array[StructType]) extends Module(inputMeta.size
 case class FlowOutput(override val outputCount: Int) extends Module(outputCount, outputCount) {
 
   protected def compute(args: Array[DataFrame],
-    index: Int)(implicit ctx: SQLContext): DataFrame = args(index)
+    index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = args(index)
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]],
-    index: Int)(implicit ctx: SQLContext): Option[StructType] = inSchemas(index)
+  protected def computeSchema(inSchemas: Array[StructType], index: Int)(implicit ctx: SQLContext): StructType =
+    inSchemas(index)
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
@@ -43,13 +43,17 @@ case class SubFlow(input: FlowInput, output: FlowOutput) extends Module(input.in
     this
   }
 
-  override def output(index: Int)(implicit ctx: SQLContext): DataFrame = output.output(index)
+  override def output(index: Int, limit: Option[Int] = None)(implicit ctx: SQLContext): DataFrame =
+    output.output(index, limit)
 
-  override def outputSchema(index: Int)(implicit ctx: SQLContext): Option[StructType] = output.outputSchema(index)
+  override def outSchema(index: Int)(implicit ctx: SQLContext): StructType =
+    wrap { output.outSchema(index) }
 
-  protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame = ???
+  /* not used */
+  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = ???
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType] = ???
+  /* not used */
+  protected def computeSchema(inSchemas: Array[StructType], index: Int)(implicit ctx: SQLContext): StructType = ???
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

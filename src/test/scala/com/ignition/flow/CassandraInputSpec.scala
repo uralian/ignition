@@ -55,6 +55,10 @@ class CassandraInputSpec extends FlowSpecification with CassandraSpec {
         "c7b44500-b6bf-11e4-a71e-12e3f512a338", javaDate(2015, 1, 1), javaDate(2015, 3, 1), "clothes")
       input.output.count === 2
     }
+    "preview a subset of rows" in {
+      val cass = CassandraInput("ignition", "orders", schema)
+      cass.output(Some(5)).count === 5
+    }
     "save to xml/load from xml" in {
       val input = CassandraInput("ignition", "orders", schema,
         "customer_id=? and date>=? and date<=? and description=?",

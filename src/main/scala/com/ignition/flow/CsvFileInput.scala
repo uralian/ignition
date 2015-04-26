@@ -16,7 +16,7 @@ import com.ignition.types.TypeUtils.valueOf
 case class CsvFileInput(path: String, separator: String, schema: StructType) extends Producer {
   import CsvFileInput._
 
-  protected def compute(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val schema = this.schema
     val separator = this.separator
 
@@ -26,10 +26,12 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
       }
       Row.fromSeq(arr)
     }
-    ctx.createDataFrame(rdd, schema)
+    
+    val df = ctx.createDataFrame(rdd, schema)
+    limit map df.limit getOrElse df
   }
 
-  protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
+  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

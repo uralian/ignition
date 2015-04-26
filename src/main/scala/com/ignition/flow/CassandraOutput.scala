@@ -43,22 +43,20 @@ case class CassandraOutput(keyspace: String, table: String) extends Transformer 
 
   implicit protected def rowWriterFactory(implicit ctx: SQLContext) =
     new RowWriterFactory[Row] {
-      def rowWriter(table: TableDef, columnNames: Seq[String]): RowWriter[Row] = inputSchemas(ctx)(0) match {
-        case Some(schema) => new DataRowWriter(schema, table)
-        case _ => throw new IllegalStateException("Input is not connected")
-      }
+      def rowWriter(table: TableDef, columnNames: Seq[String]) =
+        new DataRowWriter(outSchema(0), table)
     }
 
-  protected def compute(arg: DataFrame)(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val keyspace = this.keyspace
     val table = this.table
     val columns = SomeColumns(arg.columns: _*)
-    arg.rdd.saveToCassandra(keyspace, table, columns)
-    arg
+    val df = limit map arg.limit getOrElse arg
+    df.rdd.saveToCassandra(keyspace, table, columns)
+    df
   }
 
-  protected def computeSchema(inSchema: Option[StructType])(implicit ctx: SQLContext): Option[StructType] =
-    inSchema
+  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
 
   def toXml: Elem = <cassandra-output keyspace={ keyspace } table={ table }/>
 

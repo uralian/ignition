@@ -1,5 +1,6 @@
 package com.ignition.flow
 
+import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
@@ -35,6 +36,13 @@ class DataGridSpec extends FlowSpecification {
     </datagrid>
 
   "DataGrid" should {
+    "produce data frame" in {
+      val grid = DataGrid(string("name") ~ int("age"))
+        .addRow("john", 25).addRow("jane", 33).addRow("jack", 51)
+      assertSchema(string("name") ~ int("age"), grid, 0)
+      assertOutput(grid, 0, Seq("john", 25), Seq("jane", 33), Seq("jack", 51))
+      grid.output(Some(1)).collect.toSet === Set(Row("john", 25))
+    }
     "load from xml" in {
       val grid = DataGrid.fromXml(xml)
       grid.schema === string("id", false) ~ string("label") ~ int("index")

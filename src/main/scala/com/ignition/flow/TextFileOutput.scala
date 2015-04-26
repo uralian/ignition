@@ -18,7 +18,7 @@ case class FieldFormat(name: String, format: String = "%s")
 case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
   separator: String = ",", outputHeader: Boolean = true) extends Transformer {
 
-  protected def compute(arg: DataFrame)(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val out = new PrintWriter(file)
 
     if (outputHeader) {
@@ -30,7 +30,8 @@ case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
 
     val fmts = formats map (_.format) zipWithIndex
 
-    arg.select(columns: _*).collect foreach { row =>
+    val df = limit map arg.limit getOrElse arg
+    df.select(columns: _*).collect foreach { row =>
       val line = fmts map {
         case (fmt, index) => fmt.format(row(index))
       } mkString separator
@@ -39,11 +40,10 @@ case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
 
     out.close
 
-    arg
+    df
   }
-
-  protected def computeSchema(inSchema: Option[StructType])(implicit ctx: SQLContext): Option[StructType] =
-    inSchema
+  
+  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

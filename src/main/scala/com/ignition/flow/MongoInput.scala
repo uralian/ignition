@@ -1,7 +1,7 @@
 package com.ignition.flow
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.sql.{DataFrame, Row, SQLContext}
+import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.sql.types._
 
 import com.ignition.types.RichBoolean
@@ -25,7 +25,7 @@ object Page {
 case class SortOrder(field: String, ascending: Boolean = true)
 
 /**
- * Reads documents from MongoDB. 
+ * Reads documents from MongoDB.
  *
  * @author Vlad Orzhekhovskiy
  */
@@ -35,18 +35,23 @@ case class MongoInput(db: String, coll: String, schema: StructType,
 
   import MongoUtils._
 
-  protected def compute(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val collection = MongoUtils.collection(db, coll)
-    
+
     val fields = schema map (f => f.copy(name = f.name.replace('#', '.')))
-    
-    val keys: Map[String, Boolean] = Map("_id" -> false) ++ fields.map(_.name -> true) 
+
+    val keys: Map[String, Boolean] = Map("_id" -> false) ++ fields.map(_.name -> true)
     val query = filterToDBObject(filter)
     val orderBy = sortToDBObject(sort)
 
     val cursor = collection.find(query, keys).sort(orderBy)
     val cursorWithOffset = if (page.offset > 0) cursor.skip(page.offset) else cursor
-    val cursorWithLimit = if (page.limit > 0) cursorWithOffset.limit(page.limit) else cursorWithOffset
+    val size = limit map { n =>
+      if (page.limit > 0) math.min(n, page.limit) else n
+    } orElse {
+      if (page.limit > 0) Some(page.limit) else None
+    }
+    val cursorWithLimit = size map cursorWithOffset.limit getOrElse cursorWithOffset
 
     val rows = cursorWithLimit map { obj =>
       val data = fields map { field =>
@@ -63,7 +68,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
+  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 
