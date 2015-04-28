@@ -21,6 +21,22 @@ object TypeUtils {
   private val timeFormat = new ThreadLocal[SimpleDateFormat]() {
     override protected def initialValue = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
   }
+  
+  def sampleForType(dt: DataType): Any = dt match {
+    case BinaryType => Array(0.toByte)
+    case BooleanType => true
+    case StringType => "hello"
+    case ByteType => 0.toByte
+    case ShortType => 0.toShort
+    case IntegerType => 0.toInt
+    case LongType => 0.toLong
+    case FloatType => 0.toFloat
+    case DoubleType => 0.toDouble
+    case _: DecimalType => Decimal(0.0).toJavaBigDecimal
+    case DateType => java.sql.Date.valueOf("2011-08-05")
+    case TimestampType => java.sql.Timestamp.valueOf("2013-04-02 04:00:00")
+    case _ => throw new IllegalArgumentException(s"Invalid data type: $dt")
+  }
 
   /**
    * Resolves a data type from an arbitrary value.
@@ -74,7 +90,7 @@ object TypeUtils {
     case LongType => str.toLong
     case FloatType => str.toFloat
     case DoubleType => str.toDouble
-    case _: DecimalType => Decimal(str)
+    case _: DecimalType => Decimal(str).toJavaBigDecimal
     case DateType => parseDate(str)
     case TimestampType => parseTimestamp(str)
     case _ => throw new IllegalArgumentException(s"Invalid data type: $dt")

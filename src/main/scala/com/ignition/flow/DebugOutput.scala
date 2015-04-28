@@ -2,7 +2,7 @@ package com.ignition.flow
 
 import scala.xml.{ Elem, Node }
 
-import org.apache.spark.sql.{ DataFrame, SQLContext }
+import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optToOptText }
@@ -12,10 +12,10 @@ import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optTo
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DebugOutput(names: Boolean = true, types: Boolean = false, sampleSize: Option[Int] = None) extends Transformer with XmlExport {
+case class DebugOutput(names: Boolean = true, types: Boolean = false) extends Transformer with XmlExport {
 
-  protected def compute(arg: DataFrame)(implicit ctx: SQLContext): DataFrame = {
-    val schema = inputSchemas(ctx)(0).get
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+    val schema = arg.schema
     val widths = calculateWidths(schema)
     val delimiter = widths map ("-" * _) mkString ("+", "+", "+")
 
@@ -39,7 +39,7 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false, sampleSize
 
     println(delimiter)
 
-    val data = sampleSize map arg.take getOrElse arg.collect
+    val data = limit map arg.take getOrElse arg.collect
 
     data foreach { row =>
       val str = (dataTypes zip row.toSeq zip widths) map {
@@ -61,11 +61,10 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false, sampleSize
 
     arg
   }
+  
+  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
 
-  protected def computeSchema(inSchema: Option[StructType])(implicit ctx: SQLContext): Option[StructType] =
-    inSchema
-
-  def toXml: Elem = <debug-output names={ names } types={ types } size={ sampleSize }/>
+  def toXml: Elem = <debug-output names={ names } types={ types } />
 
   private def calculateWidths(schema: StructType) = schema.fieldNames map { name =>
     math.max(math.min(name.length, 15), 10)
@@ -81,7 +80,6 @@ object DebugOutput {
   def fromXml(xml: Node) = {
     val names = (xml \ "@names").asBoolean
     val types = (xml \ "@types").asBoolean
-    val sampleSize = (xml \ "@size").getAsInt
-    DebugOutput(names, types, sampleSize)
+    DebugOutput(names, types)
   }
 }

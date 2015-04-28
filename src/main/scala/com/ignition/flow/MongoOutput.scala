@@ -12,11 +12,12 @@ import com.mongodb.casbah.commons.MongoDBObject
  */
 case class MongoOutput(db: String, coll: String) extends Transformer {
 
-  protected def compute(arg: DataFrame)(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val db = this.db
     val coll = this.coll
 
-    arg foreachPartition { rows =>
+    val df = limit map arg.limit getOrElse arg
+    df foreachPartition { rows =>
       val collection = MongoUtils.collection(db, coll)
       rows foreach { row =>
         val data = row.schema zip row.toSeq map {
@@ -27,11 +28,10 @@ case class MongoOutput(db: String, coll: String) extends Transformer {
       }
     }
     
-    arg
+    df
   }
 
-  protected def computeSchema(inSchema: Option[StructType])(implicit ctx: SQLContext): Option[StructType] =
-    inSchema
+  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

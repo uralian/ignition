@@ -18,9 +18,7 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
 
   override val allInputsRequired = false
 
-  var schema: Option[StructType] = None
-
-  protected def compute(args: Array[DataFrame])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     assert(args.exists(_ != null), "No connected inputs")
 
     args.zipWithIndex foreach {
@@ -29,13 +27,12 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
     }
 
     val df = ctx.sql(query)
-    this.schema = Some(df.schema)
-    df
+    limit map df.limit getOrElse df
   }
-
-  protected def computeSchema(inSchemas: Array[Option[StructType]])(implicit ctx: SQLContext) = schema orElse {
-    compute(inputs)(ctx)
-    schema
+  
+  protected def computeSchema(inSchemas: Array[StructType])(implicit ctx: SQLContext): StructType = {
+    val df = compute(inputs(Some(1)), Some(1))(ctx)
+    df.schema
   }
 
   def toXml: Elem = <sql>{ query }</sql>

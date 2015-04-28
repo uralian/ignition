@@ -22,15 +22,17 @@ sealed trait Step {
   def inputCount: Int
 
   /**
-   * Computes a step output value at the specified index.
+   * Computes a step output value at the specified index. The count parameter, if set,
+   * limits the output to the specified number of rows.
+   * @throws FlowExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[FlowExecutionException])
-  def output(index: Int)(implicit ctx: SQLContext): DataFrame
+  def output(index: Int, limit: Option[Int] = None)(implicit ctx: SQLContext): DataFrame
 
   /**
-   * Returns the output schema of the step or None, if not connected.
+   * Returns the output schema of the step.
    */
-  def outputSchema(index: Int)(implicit ctx: SQLContext): Option[StructType]
+  def outSchema(index: Int)(implicit ctx: SQLContext): StructType
 }
 
 /**
@@ -63,24 +65,26 @@ abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends S
   /**
    * Returns the output value at a given index by retrieving inputs and calling compute().
    */
-  def output(index: Int)(implicit ctx: SQLContext): DataFrame = wrap {
+  def output(index: Int, limit: Option[Int] = None)(implicit ctx: SQLContext): DataFrame = wrap {
     assert(0 until outputCount contains index, s"Output index out of range: $index")
-    compute(inputs, index)
+    compute(inputs(limit), index, limit)
   }
 
   /**
-   * Returns the output schema by retrieving the input schemas and calling computeSchema().
+   * Returns the output schema. It is a wrapper around computeSchema() to check the
+   * index and provide error handling.
    */
-  def outputSchema(index: Int)(implicit ctx: SQLContext): Option[StructType] = wrap {
+  def outSchema(index: Int)(implicit ctx: SQLContext): StructType = wrap {
     assert(0 until outputCount contains index, s"Output index out of range: $index")
-    computeSchema(inputSchemas, index)
+    computeSchema(index)
   }
 
   /**
    * Scans the input ports and retrieves the output values of the connectes steps.
+   * The parameter 'limit', if set, specifies how many rows to fetch from each input.
    */
-  protected def inputs(implicit ctx: SQLContext): Array[DataFrame] = (ins zipWithIndex) map {
-    case ((step, index), _) => step.output(index)(ctx)
+  protected def inputs(limit: Option[Int])(implicit ctx: SQLContext): Array[DataFrame] = (ins zipWithIndex) map {
+    case ((step, index), _) => step.output(index, limit)(ctx)
     case (_, i) if allInputsRequired => throw FlowExecutionException(s"Input$i is not connected")
     case (_, _) => null
   }
@@ -88,21 +92,21 @@ abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends S
   /**
    * Retrieves the input schemas
    */
-  protected def inputSchemas(implicit ctx: SQLContext): Array[Option[StructType]] = (ins zipWithIndex) map {
-    case ((step, index), _) => step.outputSchema(index)(ctx)
+  protected def inputSchemas(implicit ctx: SQLContext): Array[StructType] = (ins zipWithIndex) map {
+    case ((step, index), _) => step.outSchema(index)(ctx)
     case (_, i) if allInputsRequired => throw FlowExecutionException(s"Input$i is not connected")
-    case (_, _) => None
+    case (_, _) => null
   }
 
   /**
-   * Computes the output port with the specified index.
+   * Computes the data for output port with the specified index.
    */
-  protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame
+  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame
 
   /**
    * Computes the schema of the specified output.
    */
-  protected def computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType]
+  protected def computeSchema(index: Int)(implicit ctx: SQLContext): StructType
 
   /**
    * Wraps exceptions into FlowExecutionException instances.
@@ -169,14 +173,16 @@ trait SingleOutput { self: AbstractStep =>
 
   def to(in: MultiInput#InPort): Unit = in.outer.from(in.inIndex, this)
   def -->(in: MultiInput#InPort): Unit = to(in)
-  
+
   def to(step: MultiInput): step.type = step.from(0, this)
   def -->(step: MultiInput): step.type = to(step)
 
   def -->(tgtIndex: Int) = SOutStepInIndex(this, tgtIndex)
 
-  def output(implicit ctx: SQLContext): DataFrame = output(0)(ctx)
-  def outputSchema(implicit ctx: SQLContext): Option[StructType] = outputSchema(0)(ctx)
+  def output(implicit ctx: SQLContext): DataFrame = output(None)(ctx)
+  def output(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = output(0, limit)(ctx)
+
+  def outSchema(implicit ctx: SQLContext): StructType = outSchema(0)(ctx)
 }
 
 /**
@@ -234,15 +240,15 @@ private[flow] case class SInStepOutIndex(outIndex: Int, tgtStep: Step with Singl
  */
 abstract class Producer extends AbstractStep(0, 1) with SingleOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame =
-    compute(ctx)
+  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame =
+    compute(limit)(ctx)
 
-  protected def compute(implicit ctx: SQLContext): DataFrame
+  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType] =
+  protected def computeSchema(index: Int)(implicit ctx: SQLContext): StructType =
     computeSchema(ctx)
 
-  protected def computeSchema(implicit ctx: SQLContext): Option[StructType]
+  protected def computeSchema(implicit ctx: SQLContext): StructType
 }
 
 /**
@@ -253,15 +259,15 @@ abstract class Producer extends AbstractStep(0, 1) with SingleOutput {
  */
 abstract class Transformer extends AbstractStep(1, 1) with SingleInput with SingleOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame =
-    compute(args(0))(ctx)
+  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame =
+    compute(args(0), limit)(ctx)
 
-  protected def compute(arg: DataFrame)(implicit ctx: SQLContext): DataFrame
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType] =
-    computeSchema(inSchemas(0))(ctx)
+  protected def computeSchema(index: Int)(implicit ctx: SQLContext): StructType =
+    computeSchema(inputSchemas(ctx)(0))(ctx)
 
-  protected def computeSchema(inSchema: Option[StructType])(implicit ctx: SQLContext): Option[StructType]
+  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType
 }
 
 /**
@@ -273,15 +279,15 @@ abstract class Transformer extends AbstractStep(1, 1) with SingleInput with Sing
 abstract class Splitter(override val outputCount: Int)
   extends AbstractStep(1, outputCount) with SingleInput with MultiOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame =
-    compute(args(0), index)(ctx)
+  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame =
+    compute(args(0), index, limit)(ctx)
 
-  protected def compute(arg: DataFrame, index: Int)(implicit ctx: SQLContext): DataFrame
+  protected def compute(arg: DataFrame, index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType] =
-    computeSchema(inSchemas(0), index)(ctx)
+  protected def computeSchema(index: Int)(implicit ctx: SQLContext): StructType =
+    computeSchema(inputSchemas(ctx)(0), index)(ctx)
 
-  protected def computeSchema(inSchema: Option[StructType], index: Int)(implicit ctx: SQLContext): Option[StructType]
+  protected def computeSchema(inSchema: StructType, index: Int)(implicit ctx: SQLContext): StructType
 }
 
 /**
@@ -293,14 +299,15 @@ abstract class Splitter(override val outputCount: Int)
 abstract class Merger(override val inputCount: Int)
   extends AbstractStep(inputCount, 1) with MultiInput with SingleOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int)(implicit ctx: SQLContext): DataFrame = compute(args)(ctx)
+  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit ctx: SQLContext): DataFrame =
+    compute(args, limit)(ctx)
 
-  protected def compute(args: Array[DataFrame])(implicit ctx: SQLContext): DataFrame
+  protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit ctx: SQLContext): DataFrame
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit ctx: SQLContext): Option[StructType] =
-    computeSchema(inSchemas)(ctx)
+  protected def computeSchema(index: Int)(implicit ctx: SQLContext): StructType =
+    computeSchema(inputSchemas(ctx))(ctx)
 
-  protected def computeSchema(inSchemas: Array[Option[StructType]])(implicit ctx: SQLContext): Option[StructType]
+  protected def computeSchema(inSchemas: Array[StructType])(implicit ctx: SQLContext): StructType
 }
 
 /**
@@ -311,4 +318,9 @@ abstract class Merger(override val inputCount: Int)
  */
 abstract class Module(override val inputCount: Int, override val outputCount: Int)
   extends AbstractStep(inputCount, outputCount) with MultiInput with MultiOutput {
+
+  protected def computeSchema(index: Int)(implicit ctx: SQLContext): StructType =
+    computeSchema(inputSchemas(ctx), index)(ctx)
+
+  protected def computeSchema(inSchemas: Array[StructType], index: Int)(implicit ctx: SQLContext): StructType
 }

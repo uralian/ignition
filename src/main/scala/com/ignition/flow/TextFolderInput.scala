@@ -14,14 +14,15 @@ case class TextFolderInput(path: String, nameField: String = "filename",
 
   val schema = string(nameField) ~ string(dataField)
 
-  protected def compute(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val rdd = ctx.sparkContext.wholeTextFiles(path) map {
       case (fileName, contents) => Row(fileName, contents)
     }
-    ctx.createDataFrame(rdd, schema)
+    val df = ctx.createDataFrame(rdd, schema)
+    limit map df.limit getOrElse df
   }
 
-  protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
+  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

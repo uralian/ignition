@@ -23,12 +23,13 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends Producer with Xm
 
   def addRow(values: Any*): DataGrid = addRow(Row(values: _*))
 
-  protected def compute(implicit ctx: SQLContext): DataFrame = {
-    val rdd = ctx.sparkContext.parallelize(rows)
+  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+    val data = limit map rows.take getOrElse rows
+    val rdd = ctx.sparkContext.parallelize(data)
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext) = Some(schema)
+  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
 
   def toXml: Elem =
     <datagrid>
