@@ -1,13 +1,12 @@
 package com.ignition.flow
 
 import java.io.{ ByteArrayOutputStream, IOException, ObjectOutputStream }
-
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
-
 import com.ignition.{ SparkTestHelper, TestDataHelper }
+import org.apache.spark.sql.Row
 
 /**
  * Base trait for flow spec2 tests, includes some helper functions.
@@ -34,18 +33,20 @@ trait FlowSpecification extends Specification with XmlMatchers with SparkTestHel
   /**
    * Checks if the output is identical to the supplied row set.
    */
-  protected def assertOutput(step: Step, index: Int, rows: Seq[Any]*) =
+  protected def assertOutput(step: Step, index: Int, rows: Row*) =
     assertDataFrame(step.output(index), rows: _*)
 
   /**
    * Checks if the limited output is identical to the supplied row set.
    */
-  protected def assertPreview(step: Step, index: Int, limit: Int, rows: Seq[Any]*) =
+  protected def assertPreview(step: Step, index: Int, limit: Int, rows: Row*) =
     assertDataFrame(step.output(index, Some(limit)), rows: _*)
 
   /**
    * Checks if the data frame is identical to the supplied row set.
    */
-  protected def assertDataFrame(df: DataFrame, rows: Seq[Any]*) =
-    df.collect.map(_.toSeq).toSet === Set(rows: _*)
+  protected def assertDataFrame(df: DataFrame, rows: Row*) =
+    df.collect.toSet === rows.toSet
+
+  protected implicit def anySeqToRows(data: Seq[Any]) = Row.fromSeq(data)
 }
