@@ -37,7 +37,7 @@ libraryDependencies ++= Seq(
   "joda-time"                 % "joda-time"                  % "2.7",
   "org.joda"                  % "joda-convert"               % "1.7",
   "com.squants"              %% "squants"                    % "0.4.2",
-  "org.mvel"                  % "mvel2"                      % "2.2.4.Final",
+  "org.mvel"                  % "mvel2"                      % "2.0",
   "io.gatling"               %% "jsonpath"                   % "0.6.2",
   "ch.qos.logback"            % "logback-classic"            % "1.1.1",
   "org.apache.spark"         %% "spark-core"                 % SPARK_VERSION
