@@ -58,6 +58,7 @@ class FormulaSpec extends FlowSpecification with TestDataHelper {
         apd(row4, "", "c", 2008.565), apd(row5, "<b/>", "2", 1987.8),
         apd(row6, "<b>x</b>", "", 1996.9995), apd(row7, "<b>...</b>", "", 1981.5))
     }
+    "be unserializable" in assertUnserializable(Formula("Y" -> "$.books[1]".json("json")))
   }
 
   private def apd(row: Row, values: Any*) = Row(row.toSeq ++ values: _*)
