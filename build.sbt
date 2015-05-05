@@ -37,6 +37,8 @@ libraryDependencies ++= Seq(
   "joda-time"                 % "joda-time"                  % "2.7",
   "org.joda"                  % "joda-convert"               % "1.7",
   "com.squants"              %% "squants"                    % "0.4.2",
+  "com.stackmob"             %% "newman"                     % "1.3.5"
+		exclude("com.typesafe.akka", "akka-actor_2.10"),
   "org.mvel"                  % "mvel2"                      % "2.0",
   "io.gatling"               %% "jsonpath"                   % "0.6.2",
   "ch.qos.logback"            % "logback-classic"            % "1.1.1",
