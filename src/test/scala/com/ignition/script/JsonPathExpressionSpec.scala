@@ -5,7 +5,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.types.{ fieldToStruct, string }
+import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
 class JsonPathExpressionSpec extends Specification {

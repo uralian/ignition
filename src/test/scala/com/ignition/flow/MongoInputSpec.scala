@@ -5,7 +5,7 @@ import org.specs2.specification.Fragments
 import org.specs2.runner.JUnitRunner
 
 import com.github.athieriot.EmbedConnection
-import com.ignition.types.{ RichStructType, boolean, fieldToStruct, string }
+import com.ignition.types._
 import com.ignition.util.MongoUtils
 import com.mongodb.casbah.Imports.MongoDBObject
 

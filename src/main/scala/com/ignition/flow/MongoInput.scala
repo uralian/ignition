@@ -35,6 +35,12 @@ case class MongoInput(db: String, coll: String, schema: StructType,
 
   import MongoUtils._
 
+  def where(filter: (String, Any)*) = copy(filter = filter.toMap)
+  def sort(sort: Iterable[SortOrder]) = copy(sort = sort)
+  def orderBy(field: String, ascending: Boolean) = copy(sort = sort.toSeq :+ SortOrder(field, ascending))
+  def limit(limit: Int) = copy(page = Page(limit, this.page.offset))
+  def offset(offset: Int) = copy(page = Page(this.page.limit, offset))
+
   protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val collection = MongoUtils.collection(db, coll)
 

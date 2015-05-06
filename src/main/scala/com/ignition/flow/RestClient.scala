@@ -73,9 +73,18 @@ object HttpMethod extends Enumeration {
  *
  * @author Vlad Orzhekhovskiy
  */
-case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[String],
-  headers: Map[String, String], resultField: Option[String] = Some("result"),
+case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[String] = None,
+  headers: Map[String, String] = Map.empty, resultField: Option[String] = Some("result"),
   statusField: Option[String] = Some("status"), headersField: Option[String] = None) extends Transformer {
+
+  def body(body: String): RestClient = copy(body = Some(body))
+  def headers(headers: Map[String, String]) = copy(headers = headers)
+  def header(name: String, value: String) = headers(this.headers + (name -> value))
+  def result(fieldName: String) = copy(resultField = Some(fieldName))
+  def noResult = copy(resultField = None)
+  def status(fieldName: String) = copy(statusField = Some(fieldName))
+  def noStatus = copy(statusField = None)
+  def responseHeaders(fieldName: String) = copy(headersField = Some(fieldName))
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val url = this.url
@@ -107,7 +116,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[S
         }
         frsp
       }
-      
+
       Await.result(Future.sequence(responses), RestClient.maxTimeout)
     }
 

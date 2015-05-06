@@ -9,7 +9,7 @@ import org.scalacheck.{ Arbitrary, Prop }
 import org.specs2.ScalaCheck
 
 import com.ignition.SparkTestHelper
-import com.ignition.types.{ fieldToStruct, int }
+import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
 class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {

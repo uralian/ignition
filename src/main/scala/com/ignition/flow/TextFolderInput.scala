@@ -11,6 +11,9 @@ import com.ignition.types._
  */
 case class TextFolderInput(path: String, nameField: String = "filename",
   dataField: String = "content") extends Producer {
+  
+  def nameField(field: String): TextFolderInput = copy(nameField = field)
+  def dataField(field: String): TextFolderInput = copy(dataField = field)
 
   val schema = string(nameField) ~ string(dataField)
 

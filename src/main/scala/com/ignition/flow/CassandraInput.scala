@@ -48,6 +48,8 @@ object Where {
  */
 case class CassandraInput(keyspace: String, table: String, schema: StructType,
   where: Option[Where]) extends Producer with XmlExport {
+  
+  def where(filter: Where) = copy(where = Some(filter))
 
   protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val schema = this.schema

@@ -3,7 +3,7 @@ package com.ignition.flow
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.types.{ RichStructType, boolean, fieldToStruct, int, string }
+import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
 class UnionSpec extends FlowSpecification {

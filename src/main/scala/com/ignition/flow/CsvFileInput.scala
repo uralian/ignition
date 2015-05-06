@@ -16,6 +16,8 @@ import com.ignition.types.TypeUtils.valueOf
 case class CsvFileInput(path: String, separator: String, schema: StructType) extends Producer {
   import CsvFileInput._
 
+  def separator(sep: String) = copy(separator = sep)
+
   protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val schema = this.schema
     val separator = this.separator
@@ -26,7 +28,7 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
       }
       Row.fromSeq(arr)
     }
-    
+
     val df = ctx.createDataFrame(rdd, schema)
     limit map df.limit getOrElse df
   }
@@ -40,6 +42,12 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
  * CSV Input companion object.
  */
 object CsvFileInput {
+
+  /**
+   * Creates a new CsvFileInput step with "," as the field separator.
+   */
+  def apply(path: String, schema: StructType): CsvFileInput = apply(path, ",", schema)
+
   /**
    * Parses a string and returns a value consistent with the specified data type.
    * If the value cannot be parsed and <tt>nullable</tt> flag is <code>true</code>,

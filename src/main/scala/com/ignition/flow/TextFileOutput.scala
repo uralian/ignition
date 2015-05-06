@@ -18,6 +18,9 @@ case class FieldFormat(name: String, format: String = "%s")
 case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
   separator: String = ",", outputHeader: Boolean = true) extends Transformer {
 
+  def separator(sep: String) = copy(separator = sep)
+  def header(out: Boolean) = copy(outputHeader = out)
+
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val out = new PrintWriter(file)
 
@@ -42,7 +45,7 @@ case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
 
     df
   }
-  
+
   protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
