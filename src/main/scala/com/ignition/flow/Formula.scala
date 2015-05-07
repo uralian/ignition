@@ -11,7 +11,9 @@ import org.apache.spark.sql.types._
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Formula(fields: (String, RowExpression[_ <: DataType])*) extends Transformer {
+case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) extends Transformer {
+  
+  def addField(name: String, expr: RowExpression[_ <: DataType]) = copy(fields = fields.toSeq :+ (name -> expr))
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val df = limit map arg.limit getOrElse arg
@@ -37,4 +39,11 @@ case class Formula(fields: (String, RowExpression[_ <: DataType])*) extends Tran
   }
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
+}
+
+/**
+ * Formula companion object.
+ */
+object Formula {
+  def apply(fields: (String, RowExpression[_ <: DataType])*): Formula = apply(fields)
 }

@@ -36,7 +36,8 @@ package object types {
     def ~~(fields: Seq[StructField]) = addFields(fields)
   }
 
-  implicit def fieldToStruct(field: StructField): RichStructType = StructType(Array(field))
+  implicit def fieldToRichStruct(field: StructField): RichStructType = StructType(Array(field))
+  implicit def fieldToStructType(field: StructField): StructType = StructType(Array(field))
 
   /* boolean to option */
   implicit class RichBoolean(val b: Boolean) extends AnyVal {

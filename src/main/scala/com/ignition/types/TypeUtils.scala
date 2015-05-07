@@ -22,6 +22,9 @@ object TypeUtils {
     override protected def initialValue = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
   }
   
+  /**
+   * Returns a sample value of the specified type.
+   */
   def sampleForType(dt: DataType): Any = dt match {
     case BinaryType => Array(0.toByte)
     case BooleanType => true
@@ -67,7 +70,7 @@ object TypeUtils {
     case 'string => StringType
     case 'byte => ByteType
     case 'short => ShortType
-    case 'integer => IntegerType
+    case 'int | 'integer => IntegerType
     case 'long => LongType
     case 'float => FloatType
     case 'double => DoubleType

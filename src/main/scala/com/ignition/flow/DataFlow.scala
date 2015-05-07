@@ -1,9 +1,10 @@
 package com.ignition.flow
 
 import org.apache.spark.sql.SQLContext
-import scala.concurrent._
 
 /**
+ * Data Flow represents an executable job.
+ *
  * @author Vlad Orzhekhovskiy
  */
 case class DataFlow(targets: Iterable[Step]) {
@@ -11,21 +12,20 @@ case class DataFlow(targets: Iterable[Step]) {
   /**
    * Executes a data flow.
    */
-  def execute(implicit ctx: SQLContext): Unit = for {
+  def execute(implicit ctx: SQLContext): Unit = (for {
     tgt <- targets
     index <- 0 until tgt.outputCount
-  } yield tgt.output(index)
+  } yield (tgt, index)) foreach {
+    case (tgt, index) => tgt.output(index)
+  }
 }
 
+/**
+ * DataFlow companion object.
+ */
 object DataFlow {
-  def apply(step: Step): DataFlow = new DataFlow(Seq(step))
-
-  def apply(steps: Tuple2[Step, Step]): DataFlow =
-    new DataFlow(steps.productIterator.asInstanceOf[Iterator[Step]].toSeq)
-  def apply(steps: Tuple3[Step, Step, Step]): DataFlow =
-    new DataFlow(steps.productIterator.asInstanceOf[Iterator[Step]].toSeq)
-  def apply(steps: Tuple4[Step, Step, Step, Step]): DataFlow =
-    new DataFlow(steps.productIterator.asInstanceOf[Iterator[Step]].toSeq)
-  def apply(steps: Tuple5[Step, Step, Step, Step, Step]): DataFlow =
-    new DataFlow(steps.productIterator.asInstanceOf[Iterator[Step]].toSeq)
+  def apply(steps: Product): DataFlow = steps match {
+    case step: Step => new DataFlow(Seq(step))
+    case _ => new DataFlow(steps.productIterator.asInstanceOf[Iterator[Step]].toSeq)
+  }
 }

@@ -6,7 +6,7 @@ import org.specs2.runner.JUnitRunner
 
 import com.ignition.TestDataHelper
 import com.ignition.script.RichString
-import com.ignition.types.{ RichStructType, date, double, fieldToStruct, string }
+import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
 class FormulaSpec extends FlowSpecification with TestDataHelper {

@@ -7,7 +7,7 @@ import org.specs2.runner.JUnitRunner
 
 import com.eaio.uuid.UUID
 import com.ignition.BeforeAllAfterAll
-import com.ignition.types.{ fieldToStruct, string }
+import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
 class TextFolderInputSpec extends FlowSpecification with BeforeAllAfterAll {
