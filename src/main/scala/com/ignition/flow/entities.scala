@@ -183,6 +183,8 @@ trait SingleOutput { self: AbstractStep =>
   def output(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = output(0, limit)(ctx)
 
   def outSchema(implicit ctx: SQLContext): StructType = outSchema(0)(ctx)
+  
+  protected def input(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = inputs(limit)(ctx)(0)
 }
 
 /**
