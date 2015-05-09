@@ -48,5 +48,7 @@ trait FlowSpecification extends Specification with XmlMatchers with SparkTestHel
   protected def assertDataFrame(df: DataFrame, rows: Row*) =
     df.collect.toSet === rows.toSet
 
-  protected implicit def anySeqToRows(data: Seq[Any]) = Row.fromSeq(data)
+  protected implicit def anySeqToRow(data: Seq[Any]) = Row.fromSeq(data)
+  
+  protected implicit def tupleToRow(tuple: Product) = Row.fromTuple(tuple)
 }
