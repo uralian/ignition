@@ -33,7 +33,7 @@ case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
 
     val fmts = formats map (_.format) zipWithIndex
 
-    val df = limit map arg.limit getOrElse arg
+    val df = optLimit(arg, limit)
     df.select(columns: _*).collect foreach { row =>
       val line = fmts map {
         case (fmt, index) => fmt.format(row(index))

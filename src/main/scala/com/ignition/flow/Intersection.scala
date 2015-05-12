@@ -20,7 +20,7 @@ case class Intersection() extends Merger(Intersection.MAX_INPUTS) {
     val dfs = args filter (_ != null)
     outSchema
     val result = dfs.tail.foldLeft(dfs.head)((acc: DataFrame, df: DataFrame) => acc.intersect(df))
-    limit map result.limit getOrElse result
+    optLimit(result, limit)
   }
 
   protected def computeSchema(inSchemas: Array[StructType])(implicit ctx: SQLContext): StructType = {

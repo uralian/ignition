@@ -39,7 +39,7 @@ case class BasicStats(fields: Map[String, Set[BasicAggregator]] = Map.empty,
     copy(fields = fields + (name -> functions.toSet))
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
-    val df = limit map arg.limit getOrElse arg
+    val df = optLimit(arg, limit)
 
     val groupColumns = groupFields map df.col toSeq
     val aggrColumns = fields.toList flatMap {

@@ -16,7 +16,8 @@ case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) ext
   def addField(name: String, expr: RowExpression[_ <: DataType]) = copy(fields = fields.toSeq :+ (name -> expr))
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
-    val df = limit map arg.limit getOrElse arg
+    val df = optLimit(arg, limit)
+    
     val executors = fields map {
       case (_, expr) => expr.evaluate(df.schema) _
     }

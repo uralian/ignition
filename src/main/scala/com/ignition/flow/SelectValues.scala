@@ -111,7 +111,7 @@ case class SelectValues(actions: Iterable[SelectAction]) extends Transformer {
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val actions = this.actions
 
-    val df = limit map arg.limit getOrElse arg
+    val df = optLimit(arg, limit)
     actions.foldLeft(df)((frame, action) => action(frame))
   }
 

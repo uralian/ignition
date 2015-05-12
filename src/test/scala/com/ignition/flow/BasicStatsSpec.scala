@@ -3,7 +3,6 @@ package com.ignition.flow
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import com.ignition.types._
-import com.eaio.uuid.UUID
 
 @RunWith(classOf[JUnitRunner])
 class BasicStatsSpec extends FlowSpecification {

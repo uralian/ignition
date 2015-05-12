@@ -27,7 +27,7 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
     }
 
     val df = ctx.sql(query)
-    limit map df.limit getOrElse df
+    optLimit(df, limit)
   }
   
   protected def computeSchema(inSchemas: Array[StructType])(implicit ctx: SQLContext): StructType = {

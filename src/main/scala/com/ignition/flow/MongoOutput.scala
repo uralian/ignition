@@ -16,7 +16,7 @@ case class MongoOutput(db: String, coll: String) extends Transformer {
     val db = this.db
     val coll = this.coll
 
-    val df = limit map arg.limit getOrElse arg
+    val df = optLimit(arg, limit)
     df foreachPartition { rows =>
       val collection = MongoUtils.collection(db, coll)
       rows foreach { row =>
@@ -27,7 +27,7 @@ case class MongoOutput(db: String, coll: String) extends Transformer {
         collection.save(doc)
       }
     }
-    
+
     df
   }
 
