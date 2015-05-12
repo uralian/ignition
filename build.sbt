@@ -47,6 +47,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark"         %% "spark-streaming"            % SPARK_VERSION,
   "org.apache.spark"         %% "spark-streaming-kafka"      % SPARK_VERSION,
   "org.apache.spark"         %% "spark-sql"                  % SPARK_VERSION,
+  "org.apache.spark"         %% "spark-mllib"                % SPARK_VERSION,
   "com.datastax.cassandra"    % "cassandra-driver-core"      % "2.1.4",
   "org.apache.cassandra"      % "cassandra-all"              % "2.1.2",
   "com.datastax.spark"       %% "spark-cassandra-connector"  % "1.1.1",
