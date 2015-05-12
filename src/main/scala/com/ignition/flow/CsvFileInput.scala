@@ -30,7 +30,7 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
     }
 
     val df = ctx.createDataFrame(rdd, schema)
-    limit map df.limit getOrElse df
+    optLimit(df, limit)
   }
 
   protected def computeSchema(implicit ctx: SQLContext): StructType = schema

@@ -97,7 +97,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[S
 
     val indices = arg.schema.fieldNames.zipWithIndex.toMap
 
-    val df = limit map arg.limit getOrElse arg
+    val df = optLimit(arg, limit)
 
     val rdd = df mapPartitions { rows =>
       implicit val httpClient = new ApacheHttpClient

@@ -15,7 +15,7 @@ case class Union() extends Merger(Union.MAX_INPUTS) {
   protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val rdd = ctx.sparkContext.union(args filter (_ != null) map (_.rdd))
     val df = ctx.createDataFrame(rdd, outSchema(0))
-    limit map df.limit getOrElse df
+    optLimit(df, limit)
   }
 
   protected def computeSchema(inSchemas: Array[StructType])(implicit ctx: SQLContext): StructType = {

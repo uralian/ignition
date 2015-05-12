@@ -22,7 +22,7 @@ case class TextFolderInput(path: String, nameField: String = "filename",
       case (fileName, contents) => Row(fileName, contents)
     }
     val df = ctx.createDataFrame(rdd, schema)
-    limit map df.limit getOrElse df
+    optLimit(df, limit)
   }
 
   protected def computeSchema(implicit ctx: SQLContext): StructType = schema

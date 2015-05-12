@@ -1,6 +1,7 @@
 package com.ignition
 
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.Row
 
 /**
  * Data types, implicits, aliases for DataFrame-based workflows.
@@ -34,10 +35,36 @@ package object types {
     def ~(field: StructField) = addField(field)
     def addFields(fields: Seq[StructField]) = schema.copy(fields = schema.fields ++ fields)
     def ~~(fields: Seq[StructField]) = addFields(fields)
+    def toRowHelper = RowSchemaHelper(schema)
+    def indexMap = toRowHelper indexMap
   }
 
   implicit def fieldToRichStruct(field: StructField): RichStructType = StructType(Array(field))
   implicit def fieldToStructType(field: StructField): StructType = StructType(Array(field))
+
+  /* Row enhancemenets */
+
+  implicit class RichRow(val row: Row) extends AnyVal {
+    def get(implicit rsh: RowSchemaHelper) = rsh.get(row)
+    def isNullAt(implicit rsh: RowSchemaHelper) = rsh.isNullAt(row)
+    def getBoolean(implicit rsh: RowSchemaHelper) = rsh.getBoolean(row)
+    def getByte(implicit rsh: RowSchemaHelper) = rsh.getByte(row)
+    def getShort(implicit rsh: RowSchemaHelper) = rsh.getShort(row)
+    def getInt(implicit rsh: RowSchemaHelper) = rsh.getInt(row)
+    def getLong(implicit rsh: RowSchemaHelper) = rsh.getLong(row)
+    def getFloat(implicit rsh: RowSchemaHelper) = rsh.getFloat(row)
+    def getDouble(implicit rsh: RowSchemaHelper) = rsh.getDouble(row)
+    def getString(implicit rsh: RowSchemaHelper) = rsh.getString(row)
+    def getDecimal(implicit rsh: RowSchemaHelper) = rsh.getDecimal(row)
+    def getDate(implicit rsh: RowSchemaHelper) = rsh.getDate(row)
+    def getTimestamp(implicit rsh: RowSchemaHelper) = rsh.getTimestamp(row)
+
+    def subrow(indices: Int*): Row = Row.fromSeq(indices map row.get)
+    def subrow(names: String*)(implicit rsh: RowSchemaHelper): Row = {
+      val indices = names map rsh.indexMap.apply
+      subrow(indices: _*)
+    }
+  }
 
   /* boolean to option */
   implicit class RichBoolean(val b: Boolean) extends AnyVal {

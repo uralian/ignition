@@ -117,6 +117,11 @@ abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends S
   }
 
   /**
+   * Optionally limits the data frame.
+   */
+  protected def optLimit(df: DataFrame, limit: Option[Int]) = limit map df.limit getOrElse df
+
+  /**
    * Serialization helper. Used by subclasses in writeObject() method to explicitly
    * prohibit serialization.
    */
@@ -183,7 +188,7 @@ trait SingleOutput { self: AbstractStep =>
   def output(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = output(0, limit)(ctx)
 
   def outSchema(implicit ctx: SQLContext): StructType = outSchema(0)(ctx)
-  
+
   protected def input(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = inputs(limit)(ctx)(0)
 }
 

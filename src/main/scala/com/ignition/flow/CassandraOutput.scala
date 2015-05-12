@@ -51,7 +51,7 @@ case class CassandraOutput(keyspace: String, table: String) extends Transformer 
     val keyspace = this.keyspace
     val table = this.table
     val columns = SomeColumns(arg.columns: _*)
-    val df = limit map arg.limit getOrElse arg
+    val df = optLimit(arg, limit)
     df.rdd.saveToCassandra(keyspace, table, columns)
     df
   }
