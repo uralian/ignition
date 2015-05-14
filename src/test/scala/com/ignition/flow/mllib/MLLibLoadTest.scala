@@ -19,6 +19,7 @@ object MLLibLoadTest extends App with TestDataHelper {
 
   testColumnStats(100, 100000)
   testCorrelation(100, 100000)
+  testRegression(100, 10000)
 
   /**
    * MLLib ColumnStats
@@ -45,7 +46,7 @@ object MLLibLoadTest extends App with TestDataHelper {
       stats.output
     }
   }
-  
+
   /**
    * MLLib Correlation.
    */
@@ -69,6 +70,33 @@ object MLLibLoadTest extends App with TestDataHelper {
 
     benchmark(f"Correlation for $rowCount%,d rows and $keyCount%,d keys") {
       stats.output
+    }
+  }
+
+  def testRegression(keyCount: Int, rowCount: Int) = {
+    val schema = string("key1") ~ int("key2") ~
+      double("label") ~ double("feature1") ~ double("feature2")
+
+    println("Regression - preparing data...")
+    val keys = (1 to keyCount) map (_ => (Random.nextLong.toString, Random.nextInt))
+    assert(keys.size == keyCount)
+
+    val rows = (1 to rowCount) map { _ =>
+      val key = keys(Random.nextInt(keys.size))
+      val (f1, f2) = (randomDouble, randomDouble)
+      val label = 3 * f1 + 2 * f2
+
+      Row(key._1, key._2, label, f1, f2)
+    }
+    assert(rows.size == rowCount)
+
+    val grid = DataGrid(schema, rows)
+    val reg = Regression("label") columns ("feature1", "feature2") groupBy ("key1", "key2")
+    grid --> reg
+    println("Regression - computing...")
+
+    benchmark(f"Regression for $rowCount%,d rows and $keyCount%,d keys") {
+      reg.output
     }
   }
 
