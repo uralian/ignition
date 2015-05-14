@@ -4,6 +4,7 @@ import org.apache.spark.sql.{ DataFrame, SQLContext, Row }
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.mllib.stat.Statistics
 
+import com.ignition.flow.Transformer
 import com.ignition.types.double
 
 /**
@@ -18,21 +19,21 @@ object CorrelationMethod extends Enumeration {
 import CorrelationMethod._
 
 /**
- * Computes the correlation between data series.
+ * Computes the correlation between data series using MLLib library.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Correlation(fields: Iterable[String] = Nil, groupFields: Iterable[String] = Nil,
-  method: CorrelationMethod = PEARSON) extends AbstractMLStep {
+case class Correlation(dataFields: Iterable[String] = Nil, groupFields: Iterable[String] = Nil,
+  method: CorrelationMethod = PEARSON) extends Transformer with MLFunctions {
 
-  def columns(fields: String*) = copy(fields = fields)
+  def columns(fields: String*) = copy(dataFields = fields)
   def groupBy(fields: String*) = copy(groupFields = fields)
   def method(method: CorrelationMethod) = copy(method = method)
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
     val df = optLimit(arg, limit)
 
-    val rdd = partitionByKey(df, fields, groupFields)
+    val rdd = toVectors(df, dataFields, groupFields)
     rdd.persist
 
     val keys = rdd.keys.distinct.collect
@@ -41,17 +42,17 @@ case class Correlation(fields: Iterable[String] = Nil, groupFields: Iterable[Str
       val matrix = Statistics.corr(slice)
 
       val data = for {
-        rowIdx <- 0 until fields.size
-        colIdx <- rowIdx + 1 until fields.size
+        rowIdx <- 0 until dataFields.size
+        colIdx <- rowIdx + 1 until dataFields.size
       } yield matrix(rowIdx, colIdx)
       Row.fromSeq(key.toSeq ++ data)
     }
 
     val targetRDD = ctx.sparkContext.parallelize(rows)
-    val fieldSeq = fields.toSeq
+    val fieldSeq = dataFields.toSeq
     val targetFields = (groupFields map df.schema.apply toSeq) ++ (for {
-      rowIdx <- 0 until fields.size
-      colIdx <- rowIdx + 1 until fields.size
+      rowIdx <- 0 until dataFields.size
+      colIdx <- rowIdx + 1 until dataFields.size
     } yield double(s"corr_${fieldSeq(rowIdx)}_${fieldSeq(colIdx)}"))
     val schema = StructType(targetFields)
 

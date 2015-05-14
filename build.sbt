@@ -4,7 +4,7 @@ val SCALA_VERSION = "2.10.4"
 
 val APP_VERSION = "1.0.0-SNAPSHOT"
 
-val SPARK_VERSION = "1.3.0"
+val SPARK_VERSION = "1.3.1"
 
 // settings
 
@@ -48,6 +48,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark"         %% "spark-streaming-kafka"      % SPARK_VERSION,
   "org.apache.spark"         %% "spark-sql"                  % SPARK_VERSION,
   "org.apache.spark"         %% "spark-mllib"                % SPARK_VERSION,
+  "org.apache.commons"        % "commons-math3"              % "3.5",
   "com.datastax.cassandra"    % "cassandra-driver-core"      % "2.1.4",
   "org.apache.cassandra"      % "cassandra-all"              % "2.1.2",
   "com.datastax.spark"       %% "spark-cassandra-connector"  % "1.1.1",
