@@ -1,6 +1,7 @@
 package com.ignition
 
 import org.apache.spark.{ SparkConf, SparkContext }
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SQLContext
 
 import com.ignition.flow.DataFlow
@@ -35,8 +36,30 @@ object SparkPlug {
 
   implicit protected lazy val sc = new SparkContext(sparkConf)
   implicit protected lazy val ctx = new SQLContext(sc)
+  implicit protected lazy val runtime = new SparkRuntime(ctx)
 
-  def runDataFlow(flow: DataFlow) = flow.execute
+  def runDataFlow(flow: DataFlow,
+    vars: Map[String, Any] = Map.empty,
+    accs: Map[String, Any] = Map.empty,
+    args: Array[String] = Array.empty) = {
+
+    vars foreach {
+      case (name, value) => runtime.vars(name) = value
+    }
+
+    accs foreach {
+      case (name, value: Int) => runtime.accs(name) = value
+      case (name, value: Long) => runtime.accs(name) = value
+      case (name, value: Float) => runtime.accs(name) = value
+      case (name, value: Double) => runtime.accs(name) = value
+    }
+
+    (args zipWithIndex) foreach {
+      case (arg, index) => runtime.vars(s"arg$index") = arg
+    }
+
+    flow.execute
+  }
 
   def shutdown() = sc.stop
 }
