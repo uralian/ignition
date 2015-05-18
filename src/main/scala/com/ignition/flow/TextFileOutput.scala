@@ -1,9 +1,12 @@
 package com.ignition.flow
 
-import java.io.File
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
-import java.io.PrintWriter
+import java.io.{File, PrintWriter}
+
+import org.apache.spark.annotation.{DeveloperApi, Experimental}
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
+
+import com.ignition.SparkRuntime
 
 /**
  * Specifies the field output format.
@@ -21,7 +24,7 @@ case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
   def separator(sep: String) = copy(separator = sep)
   def header(out: Boolean) = copy(outputHeader = out)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val out = new PrintWriter(file)
 
     if (outputHeader) {
@@ -46,7 +49,7 @@ case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
     df
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

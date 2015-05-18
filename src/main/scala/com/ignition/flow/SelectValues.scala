@@ -3,6 +3,7 @@ package com.ignition.flow
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 import com.ignition.types.TypeUtils
+import com.ignition.SparkRuntime
 
 /**
  * Action performed by SelectValues step.
@@ -108,14 +109,14 @@ case class SelectValues(actions: Iterable[SelectAction]) extends Transformer {
   def remove(names: String*) = copy(actions = actions.toSeq :+ Remove(names.toSeq))
   def retype(pairs: (String, String)*) = copy(actions = actions.toSeq :+ Retype(pairs: _*))
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val actions = this.actions
 
     val df = optLimit(arg, limit)
     actions.foldLeft(df)((frame, action) => action(frame))
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType =
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     actions.foldLeft(inSchema)((schema, action) => action(schema))
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable

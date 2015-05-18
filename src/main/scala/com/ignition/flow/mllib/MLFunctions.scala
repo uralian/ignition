@@ -3,12 +3,15 @@ package com.ignition.flow.mllib
 import scala.reflect.ClassTag
 
 import org.apache.spark.HashPartitioner
+import org.apache.spark.annotation.Experimental
 import org.apache.spark.mllib.linalg.{ Vector, Vectors }
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.rdd.RDD
 import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
-import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
+import org.apache.spark.sql.{ DataFrame, Row }
 
+import com.ignition.SparkRuntime
+import com.ignition.flow.AbstractStep
 import com.ignition.types.{ RichRow, RichStructType }
 
 /**
@@ -16,13 +19,14 @@ import com.ignition.types.{ RichRow, RichStructType }
  *
  * @author Vlad Orzhekhovskiy
  */
-trait MLFunctions {
+trait MLFunctions { self: AbstractStep =>
+
   /**
    * Converts a data frame into a pair RDD[(key, data)], where key is the row key as defined
    * by the set of grouping fields, and data is a data Vector, as defined by fields.
    */
   protected def toVectors(df: DataFrame, dataFields: Iterable[String],
-    groupFields: Iterable[String])(implicit ctx: SQLContext): RDD[(Row, Vector)] = {
+    groupFields: Iterable[String])(implicit runtime: SparkRuntime): RDD[(Row, Vector)] = {
 
     val indexMap = df.schema.indexMap
     val fieldIndices = dataFields map indexMap toSeq
@@ -41,7 +45,7 @@ trait MLFunctions {
    * by the set of grouping fields, and data is a LabeledPoint, as defined by label and fields.
    */
   protected def toLabeledPoints(df: DataFrame, labelField: String, dataFields: Iterable[String],
-    groupFields: Iterable[String])(implicit ctx: SQLContext): RDD[(Row, LabeledPoint)] = {
+    groupFields: Iterable[String])(implicit runtime: SparkRuntime): RDD[(Row, LabeledPoint)] = {
 
     val indexMap = df.schema.indexMap
 
@@ -64,7 +68,7 @@ trait MLFunctions {
    * field indices, and value is computed for each row by the supplied function.
    */
   private def partitionByKey[T: ClassTag](df: DataFrame, groupIndices: Seq[Int],
-    func: Row => T)(implicit ctx: SQLContext): RDD[(Row, T)] = df mapPartitions { rows =>
+    func: Row => T)(implicit runtime: SparkRuntime): RDD[(Row, T)] = df mapPartitions { rows =>
     rows map { row =>
       val key = row.subrow(groupIndices: _*)
       val value = func(row)

@@ -6,9 +6,12 @@ import org.apache.spark.mllib.optimization._
 import org.apache.spark.sql.{ DataFrame, SQLContext, Row }
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.rdd.RDD
+
 import com.ignition.flow.Transformer
 import com.ignition.types._
 import com.ignition.util.ConfigUtils._
+import com.ignition.SparkRuntime
+
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 
 /**
@@ -79,7 +82,7 @@ case class Regression(labelField: String, dataFields: Iterable[String] = Nil,
   def step(num: Double) = copy(config = config.step(num))
   def intercept(flag: Boolean) = copy(config = config.intercept(flag))
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val df = optLimit(arg, limit)
 
     val rdd = toLabeledPoints(df, labelField, dataFields, groupFields)
@@ -110,7 +113,7 @@ case class Regression(labelField: String, dataFields: Iterable[String] = Nil,
     ctx.createDataFrame(targetRDD, schema)
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType =
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     compute(input(Some(100)), Some(100)) schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable

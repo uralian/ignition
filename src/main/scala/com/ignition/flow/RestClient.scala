@@ -10,6 +10,7 @@ import org.apache.spark.sql.{ DataFrame, SQLContext }
 import org.apache.spark.sql.types.StructType
 import com.ignition.types.{ int, string }
 import com.ignition.util.ConfigUtils.{ RichConfig, getConfig }
+import com.ignition.SparkRuntime
 import com.stackmob.newman._
 import com.stackmob.newman.dsl.HeaderBuilder
 import com.stackmob.newman.response.HttpResponse
@@ -86,7 +87,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[S
   def noStatus = copy(statusField = None)
   def responseHeaders(fieldName: String) = copy(headersField = Some(fieldName))
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val url = this.url
     val method = this.method
     val body = this.body
@@ -123,7 +124,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[S
     ctx.createDataFrame(rdd, outSchema)
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = {
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = {
     val fields = inSchema ++ resultField.map(string(_)) ++ statusField.map(int(_)) ++ headersField.map(string(_))
     StructType(fields)
   }

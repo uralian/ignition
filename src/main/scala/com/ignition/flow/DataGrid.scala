@@ -9,6 +9,8 @@ import org.apache.spark.sql.types.{ StructField, StructType }
 import com.ignition.types.TypeUtils.{ typeForName, typeForValue, valueToXml, xmlToValue }
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText }
 
+import com.ignition.SparkRuntime
+
 /**
  * Static data grid input.
  *
@@ -31,14 +33,14 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends Producer with Xm
     copy(rows = rs)
   }
 
-  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val data = limit map rows.take getOrElse rows
     val rdd = ctx.sparkContext.parallelize(data)
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
-
+  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+  
   def toXml: Elem =
     <datagrid>
       { schemaToXml(schema) }

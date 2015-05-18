@@ -13,6 +13,8 @@ import com.datastax.spark.connector.types.TypeConverter
 import com.ignition.types.TypeUtils.{ typeForName, typeForValue, valueToXml, xmlToValue }
 import com.ignition.util.XmlUtils.RichNodeSeq
 
+import com.ignition.SparkRuntime
+
 /**
  * CQL WHERE clause.
  */
@@ -51,7 +53,7 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
   
   def where(filter: Where) = copy(where = Some(filter))
 
-  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val schema = this.schema
     val dataTypes = schema.fields map (_.dataType)
     val cassRDD = ctx.sparkContext.cassandraTable[CassandraRow](keyspace, table).select(schema.fieldNames: _*)
@@ -79,7 +81,7 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
+  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
 
   def toXml: Elem =
     <cassandra-input keyspace={ keyspace } table={ table }>

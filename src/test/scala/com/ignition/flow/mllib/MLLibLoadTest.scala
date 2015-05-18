@@ -1,21 +1,21 @@
 package com.ignition.flow.mllib
 
-import org.apache.spark._
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions._
-import com.ignition.flow._
-import com.ignition.types._
-import org.apache.spark.mllib.linalg._
-import org.apache.spark.mllib.stat._
-import com.ignition.TestDataHelper
 import scala.util.Random
+
+import org.apache.spark.SparkContext
+import org.apache.spark.annotation.{ DeveloperApi, Experimental }
+import org.apache.spark.sql.{ Row, SQLContext }
+
+import com.ignition.{ SparkRuntime, TestDataHelper }
+import com.ignition.flow.DataGrid
+import com.ignition.types.{ RichStructType, double, fieldToRichStruct, int, long, string }
 
 object MLLibLoadTest extends App with TestDataHelper {
 
   val sc = new SparkContext("local[4]", "test")
   implicit val ctx = new SQLContext(sc)
   import ctx.implicits._
+  implicit val runtime = new SparkRuntime(ctx)
 
   testColumnStats(100, 100000)
   testCorrelation(100, 100000)

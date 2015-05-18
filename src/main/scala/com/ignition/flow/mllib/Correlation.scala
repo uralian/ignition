@@ -6,6 +6,7 @@ import org.apache.spark.mllib.stat.Statistics
 
 import com.ignition.flow.Transformer
 import com.ignition.types.double
+import com.ignition.SparkRuntime
 
 /**
  * Correlation methods.
@@ -30,7 +31,7 @@ case class Correlation(dataFields: Iterable[String] = Nil, groupFields: Iterable
   def groupBy(fields: String*) = copy(groupFields = fields)
   def method(method: CorrelationMethod) = copy(method = method)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val df = optLimit(arg, limit)
 
     val rdd = toVectors(df, dataFields, groupFields)
@@ -59,7 +60,7 @@ case class Correlation(dataFields: Iterable[String] = Nil, groupFields: Iterable
     ctx.createDataFrame(targetRDD, schema)
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType =
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     compute(input(Some(100)), Some(100)) schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable

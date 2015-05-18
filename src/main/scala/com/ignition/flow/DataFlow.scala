@@ -1,6 +1,6 @@
 package com.ignition.flow
 
-import org.apache.spark.sql.SQLContext
+import com.ignition.SparkRuntime
 
 /**
  * Data Flow represents an executable job.
@@ -12,7 +12,7 @@ case class DataFlow(targets: Iterable[Step]) {
   /**
    * Executes a data flow.
    */
-  def execute(implicit ctx: SQLContext): Unit = (for {
+  def execute(implicit runtime: SparkRuntime): Unit = (for {
     tgt <- targets
     index <- 0 until tgt.outputCount
   } yield (tgt, index)) foreach {
