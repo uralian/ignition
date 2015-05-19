@@ -1,7 +1,8 @@
-![alt tag](https://travis-ci.org/uralian/ignition.svg?branch=master)
-
-# Ignition
+# ignition
 Creating reusable workflows for Apache Spark
+
+![alt tag](https://travis-ci.org/uralian/ignition.svg?branch=master)
+[![Coverage Status](https://coveralls.io/repos/uralian/ignition/badge.svg)](https://coveralls.io/r/uralian/ignition)
 
 ## Scripting
 

@@ -1,15 +1,22 @@
- language: scala
- scala:
-   - "2.10.4"
- jdk:
-   - oraclejdk7
+language: scala
+
+scala:
+ - "2.10.4"
+ 
+jdk:
+ - oraclejdk7
+ 
 branches:
-  only:
+ only:
   - master
+  
 notifications:
-  email:
-    recipients:
-    - vlad@uralian.com
+ email:
+  recipients:
+   - vlad@uralian.com
+   
 script:
-- sbt clean coverage test
-- sbt coveralls
+ - sbt clean coverage test
+ 
+after_success: 
+ - sbt coveralls
