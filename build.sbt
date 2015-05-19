@@ -30,6 +30,8 @@ unmanagedSourceDirectories in Test <<= (scalaSource in Test)(Seq(_))
 
 EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
+ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := false
+
 libraryDependencies ++= Seq(
   "org.scala-lang"            % "scala-reflect"              % SCALA_VERSION,
   "com.typesafe"              % "config"                     % "1.2.1",
