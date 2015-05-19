@@ -1,3 +1,5 @@
+![alt tag](https://travis-ci.org/uralian/ignition.svg?branch=master)
+
 # Ignition
 Creating reusable workflows for Apache Spark
 
