@@ -7,6 +7,7 @@ import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.sql.types.{ DataType, StructType }
 
 import com.ignition.types.TypeUtils.valueOf
+import com.ignition.SparkRuntime
 
 /**
  * Reads CSV files.
@@ -18,9 +19,11 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
 
   def separator(sep: String) = copy(separator = sep)
 
-  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val schema = this.schema
     val separator = this.separator
+    
+    val path = (injectEnvironment _ andThen injectVariables)(this.path)
 
     val rdd = ctx.sparkContext.textFile(path) map { line =>
       val arr = line.split(separator) zip schema map {
@@ -33,7 +36,7 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
     optLimit(df, limit)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
+  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

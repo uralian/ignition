@@ -11,6 +11,8 @@ import com.datastax.spark.connector.cql.TableDef
 import com.datastax.spark.connector.toRDDFunctions
 import com.datastax.spark.connector.writer.{ RowWriter, RowWriterFactory }
 
+import com.ignition.SparkRuntime
+
 /**
  * Cassandra row writer for DataFrame objects.
  */
@@ -41,13 +43,13 @@ case class DataRowWriter(schema: StructType, tableDef: TableDef) extends RowWrit
  */
 case class CassandraOutput(keyspace: String, table: String) extends Transformer with XmlExport {
 
-  implicit protected def rowWriterFactory(implicit ctx: SQLContext) =
+  implicit protected def rowWriterFactory(implicit runtime: SparkRuntime) =
     new RowWriterFactory[Row] {
       def rowWriter(table: TableDef, columnNames: Seq[String]) =
         new DataRowWriter(outSchema(0), table)
     }
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val keyspace = this.keyspace
     val table = this.table
     val columns = SomeColumns(arg.columns: _*)
@@ -56,7 +58,7 @@ case class CassandraOutput(keyspace: String, table: String) extends Transformer 
     df
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
 
   def toXml: Elem = <cassandra-output keyspace={ keyspace } table={ table }/>
 

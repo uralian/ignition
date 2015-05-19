@@ -1,11 +1,12 @@
 package com.ignition.flow.mllib
 
-import org.apache.spark.sql.{ DataFrame, SQLContext, Row }
+import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.mllib.stat.Statistics
 
 import com.ignition.flow.Transformer
 import com.ignition.types._
+import com.ignition.SparkRuntime
 
 /**
  * Calculates column-based statistics using MLLib library.
@@ -18,7 +19,7 @@ case class ColumnStats(dataFields: Iterable[String] = Nil, groupFields: Iterable
   def columns(fields: String*) = copy(dataFields = fields)
   def groupBy(fields: String*) = copy(groupFields = fields)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val df = optLimit(arg, limit)
 
     val rdd = toVectors(df, dataFields, groupFields)
@@ -48,7 +49,7 @@ case class ColumnStats(dataFields: Iterable[String] = Nil, groupFields: Iterable
     ctx.createDataFrame(targetRDD, schema)
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType =
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     compute(input(Some(1)), Some(1)) schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable

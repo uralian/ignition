@@ -2,7 +2,10 @@ package com.ignition.flow
 
 import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.sql.types.StructType
+
 import com.ignition.util.MongoUtils
+import com.ignition.SparkRuntime
+
 import com.mongodb.casbah.commons.MongoDBObject
 
 /**
@@ -12,7 +15,7 @@ import com.mongodb.casbah.commons.MongoDBObject
  */
 case class MongoOutput(db: String, coll: String) extends Transformer {
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val db = this.db
     val coll = this.coll
 
@@ -31,7 +34,7 @@ case class MongoOutput(db: String, coll: String) extends Transformer {
     df
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

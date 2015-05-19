@@ -10,6 +10,8 @@ import com.ignition.util.MongoUtils.DBObjectHelper
 import com.mongodb.DBObject
 import com.mongodb.casbah.Imports._
 
+import com.ignition.SparkRuntime
+
 /**
  * Used to limit the results returned from data store queries.
  */
@@ -41,7 +43,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
   def limit(limit: Int) = copy(page = Page(limit, this.page.offset))
   def offset(offset: Int) = copy(page = Page(this.page.limit, offset))
 
-  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val collection = MongoUtils.collection(db, coll)
 
     val fields = schema map (f => f.copy(name = f.name.replace('#', '.')))
@@ -74,7 +76,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
+  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 

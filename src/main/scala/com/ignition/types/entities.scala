@@ -8,6 +8,7 @@ import org.apache.spark.sql.types.StructType
  */
 case class RowSchemaHelper(schema: StructType) {
   val indexMap = schema.fieldNames.zipWithIndex.toMap
+  val fieldNames = schema.fieldNames
 
   def get(row: Row) = indexMap.apply _ andThen row.get
   def isNullAt(row: Row) = indexMap.apply _ andThen row.isNullAt

@@ -23,7 +23,7 @@ class TextFileOutputSpec extends FlowSpecification {
   "TextFileOutput" should {
     "work for string data" in {
       val file = createTestFile
-      val csv = TextFileOutput(file, "ssn" -> "%12s", "name" -> "%-5s", "name" -> "%s")
+      val csv = TextFileOutput(file.getPath, "ssn" -> "%12s", "name" -> "%-5s", "name" -> "%s")
         .copy(separator = "|", outputHeader = false)
       grid --> csv
       csv.output
@@ -36,7 +36,7 @@ class TextFileOutputSpec extends FlowSpecification {
     }
     "work for numeric data" in {
       val file = createTestFile
-      val csv = TextFileOutput(file, "age" -> "%03d", "balance" -> "%10.2f", "weight" -> "%.3f")
+      val csv = TextFileOutput(file.getPath, "age" -> "%03d", "balance" -> "%10.2f", "weight" -> "%.3f")
       grid --> csv
       csv.output
 
@@ -48,7 +48,7 @@ class TextFileOutputSpec extends FlowSpecification {
     }
     "work for time data" in {
       val file = createTestFile
-      val csv = TextFileOutput(file, "date" -> "%s", "time" -> "%s").copy(separator = "|")
+      val csv = TextFileOutput(file.getPath, "date" -> "%s", "time" -> "%s").copy(separator = "|")
       grid --> csv
       csv.output
 
@@ -60,7 +60,7 @@ class TextFileOutputSpec extends FlowSpecification {
     }
     "work for mixed data" in {
       val file = createTestFile
-      val csv = TextFileOutput(file, "name" -> "\"%-5s\"", "ssn" -> "%s", "weight" -> "%6.2f")
+      val csv = TextFileOutput(file.getPath, "name" -> "\"%-5s\"", "ssn" -> "%s", "weight" -> "%6.2f")
       grid --> csv
       csv.output
 

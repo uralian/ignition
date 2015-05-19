@@ -1,8 +1,10 @@
 package com.ignition.flow
 
-import org.apache.spark.sql.{Column, DataFrame, SQLContext}
+import org.apache.spark.sql.{ Column, DataFrame, SQLContext }
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.functions._
+
+import com.ignition.SparkRuntime
 
 /**
  * Basic aggregate functions.
@@ -38,7 +40,7 @@ case class BasicStats(fields: Map[String, Set[BasicAggregator]] = Map.empty,
   def aggr(name: String, functions: BasicAggregator*) =
     copy(fields = fields + (name -> functions.toSet))
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val df = optLimit(arg, limit)
 
     val groupColumns = groupFields map df.col toSeq
@@ -49,7 +51,7 @@ case class BasicStats(fields: Map[String, Set[BasicAggregator]] = Map.empty,
     df.groupBy(groupColumns: _*).agg(columns.head, columns.tail: _*)
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType =
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     compute(input(Some(1)), Some(1)) schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable

@@ -7,6 +7,7 @@ import org.apache.spark.sql.{ DataFrame, SQLContext }
 import org.apache.spark.sql.types.StructType
 
 import com.ignition.util.XmlUtils.RichNodeSeq
+import com.ignition.SparkRuntime
 
 /**
  * Executes an SQL statement against the inputs. Each input is injected as a table
@@ -18,7 +19,7 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
 
   override val allInputsRequired = false
 
-  protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     assert(args.exists(_ != null), "No connected inputs")
 
     args.zipWithIndex foreach {
@@ -26,12 +27,14 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
       case _ => /* do nothing */
     }
 
+    val query = (injectEnvironment _ andThen injectVariables)(this.query)
+    
     val df = ctx.sql(query)
     optLimit(df, limit)
   }
-  
-  protected def computeSchema(inSchemas: Array[StructType])(implicit ctx: SQLContext): StructType = {
-    val df = compute(inputs(Some(1)), Some(1))(ctx)
+
+  protected def computeSchema(inSchemas: Array[StructType])(implicit runtime: SparkRuntime): StructType = {
+    val df = compute(inputs(Some(1)), Some(1))(runtime)
     df.schema
   }
 

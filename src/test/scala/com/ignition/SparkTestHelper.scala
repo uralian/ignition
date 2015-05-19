@@ -11,7 +11,7 @@ import com.ignition.util.ConfigUtils
  * @author Vlad Orzhekhovskiy
  */
 trait SparkTestHelper extends BeforeAllAfterAll {
-  
+
   private val config = ConfigUtils.getConfig("spark.test")
 
   protected def sparkConf = new SparkConf(true).
@@ -25,6 +25,8 @@ trait SparkTestHelper extends BeforeAllAfterAll {
 
   implicit protected val ctx = new SQLContext(sc)
   import ctx.implicits._
+
+  implicit protected val rt = new SparkRuntime(ctx)
 
   protected def clearContext = blocking {
     sc.stop

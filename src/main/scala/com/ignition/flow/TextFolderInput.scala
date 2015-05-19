@@ -3,6 +3,7 @@ package com.ignition.flow
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 import com.ignition.types._
+import com.ignition.SparkRuntime
 
 /**
  * Reads a folder of text files.
@@ -17,7 +18,9 @@ case class TextFolderInput(path: String, nameField: String = "filename",
 
   val schema = string(nameField) ~ string(dataField)
 
-  protected def compute(limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+    val path = (injectEnvironment _ andThen injectVariables)(this.path)
+    
     val rdd = ctx.sparkContext.wholeTextFiles(path) map {
       case (fileName, contents) => Row(fileName, contents)
     }
@@ -25,7 +28,7 @@ case class TextFolderInput(path: String, nameField: String = "filename",
     optLimit(df, limit)
   }
 
-  protected def computeSchema(implicit ctx: SQLContext): StructType = schema
+  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

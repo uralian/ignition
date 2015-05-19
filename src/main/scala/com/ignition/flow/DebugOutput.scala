@@ -6,6 +6,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optToOptText }
+import com.ignition.SparkRuntime
 
 /**
  * Prints out data on the standard output.
@@ -14,7 +15,7 @@ import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optTo
  */
 case class DebugOutput(names: Boolean = true, types: Boolean = false) extends Transformer with XmlExport {
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit ctx: SQLContext): DataFrame = {
+  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val schema = arg.schema
     val widths = calculateWidths(schema)
     val delimiter = widths map ("-" * _) mkString ("+", "+", "+")
@@ -62,7 +63,7 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false) extends Tr
     arg
   }
   
-  protected def computeSchema(inSchema: StructType)(implicit ctx: SQLContext): StructType = inSchema
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
 
   def toXml: Elem = <debug-output names={ names } types={ types } />
 
