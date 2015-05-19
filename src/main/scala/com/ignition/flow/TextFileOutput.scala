@@ -1,8 +1,8 @@
 package com.ignition.flow
 
-import java.io.{File, PrintWriter}
+import java.io.{ File, PrintWriter }
 
-import org.apache.spark.annotation.{DeveloperApi, Experimental}
+import org.apache.spark.annotation.{ DeveloperApi, Experimental }
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 
@@ -18,14 +18,15 @@ case class FieldFormat(name: String, format: String = "%s")
  *
  * @author Vlad Orzhekhovskiy
  */
-case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
+case class TextFileOutput(filename: String, formats: Iterable[FieldFormat],
   separator: String = ",", outputHeader: Boolean = true) extends Transformer {
 
   def separator(sep: String) = copy(separator = sep)
   def header(out: Boolean) = copy(outputHeader = out)
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val out = new PrintWriter(file)
+    val filename = (injectEnvironment _ andThen injectVariables)(this.filename)
+    val out = new PrintWriter(filename)
 
     if (outputHeader) {
       val header = formats map (_.name) mkString separator
@@ -58,10 +59,6 @@ case class TextFileOutput(file: File, formats: Iterable[FieldFormat],
  * CSV output companion object.
  */
 object TextFileOutput {
-
-  def apply(file: File, formats: (String, String)*): TextFileOutput =
-    apply(file, formats.map(f => FieldFormat(f._1, f._2)))
-
   def apply(filename: String, formats: (String, String)*): TextFileOutput =
-    apply(new File(filename), formats.map(f => FieldFormat(f._1, f._2)))
+    apply(filename, formats.map(f => FieldFormat(f._1, f._2)))
 }

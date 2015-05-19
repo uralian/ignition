@@ -8,7 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, MILLISECONDS }
 import org.apache.spark.sql.{ DataFrame, SQLContext }
 import org.apache.spark.sql.types.StructType
-import com.ignition.types.{ int, string }
+import com.ignition.types._
 import com.ignition.util.ConfigUtils.{ RichConfig, getConfig }
 import com.ignition.SparkRuntime
 import com.stackmob.newman._
@@ -96,7 +96,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[S
     val statusField = this.statusField
     val headersField = this.headersField
 
-    val indices = arg.schema.fieldNames.zipWithIndex.toMap
+    val indexMap = arg.schema.indexMap
 
     val df = optLimit(arg, limit)
 
@@ -104,9 +104,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[S
       implicit val httpClient = new ApacheHttpClient
 
       val responses = rows map { row =>
-        val rowUrl = indices.foldLeft(url) {
-          case (result, (name, index)) => result.replace("${" + name + "}", row.getString(index))
-        }
+        val rowUrl = injectAll(row, indexMap)(url)
         val ri = RequestInfo(new URL(rowUrl), body, headers)
         val frsp = method.invoke(ri) map { rsp =>
           val result = rsp.bodyString

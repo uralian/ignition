@@ -27,10 +27,12 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
       case _ => /* do nothing */
     }
 
+    val query = (injectEnvironment _ andThen injectVariables)(this.query)
+    
     val df = ctx.sql(query)
     optLimit(df, limit)
   }
-  
+
   protected def computeSchema(inSchemas: Array[StructType])(implicit runtime: SparkRuntime): StructType = {
     val df = compute(inputs(Some(1)), Some(1))(runtime)
     df.schema

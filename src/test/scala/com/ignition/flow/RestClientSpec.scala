@@ -17,7 +17,9 @@ class RestClientSpec extends FlowSpecification {
 
   "RestClient" should {
     "return valid result and status" in {
-      val url = "http://api.openweathermap.org/data/2.5/weather?q=${city},${country}"
+      System.setProperty("weather_url", "http://api.openweathermap.org/data/2.5/weather")
+      rt.vars("query") = "q"
+      val url = "#{weather_url}?%{query}=${city},${country}"
       val client = RestClient(url, HttpMethod.GET, None, Map.empty, Some("result"), Some("status"), None)
       grid --> client
 

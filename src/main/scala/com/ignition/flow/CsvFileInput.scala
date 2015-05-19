@@ -22,6 +22,8 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val schema = this.schema
     val separator = this.separator
+    
+    val path = (injectEnvironment _ andThen injectVariables)(this.path)
 
     val rdd = ctx.sparkContext.textFile(path) map { line =>
       val arr = line.split(separator) zip schema map {
