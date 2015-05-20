@@ -164,8 +164,8 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
       val step1 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = createDF(y) }
       val step2 = new ModuleAdapter {
         def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = index match {
-          case 0 => args(1).select(($"a" / 2).cast("int").as("y2"))
-          case 1 => args(0).select(($"a" / 4).cast("int").as("x4"))
+          case 0 => args(1).select((args(1).col("a") / 2).cast("int").as("y2"))
+          case 1 => args(0).select((args(0).col("a") / 4).cast("int").as("x4"))
           case 2 => args(0).unionAll(args(1))
         }
       }

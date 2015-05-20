@@ -39,6 +39,13 @@ package object flow {
   }
 
   /**
+   * An implicit conversion of $"..." literals into FieldLiteral instances.
+   */
+  implicit class StringToFieldLiteral(val sc: StringContext) {
+    def $(args: Any*): FieldLiteral = FieldLiteral(sc.parts.head)
+  }
+
+  /**
    * Injects row fields, environment settings and variables into the string.
    */
   def injectAll(row: Row, indexMap: Map[String, Int])(expr: String)(implicit runtime: SparkRuntime) =
