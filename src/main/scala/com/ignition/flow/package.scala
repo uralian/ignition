@@ -39,10 +39,15 @@ package object flow {
   }
 
   /**
-   * An implicit conversion of $"..." literals into FieldLiteral instances.
+   * An implicit conversion of:
+   * $"..." literals into FieldLiteral instances,
+   * v"..." into VarLiteral instances,
+   * e"..." into EnvLiteral instances.
    */
-  implicit class StringToFieldLiteral(val sc: StringContext) {
+  implicit class StringToLiteral(val sc: StringContext) {
     def $(args: Any*): FieldLiteral = FieldLiteral(sc.parts.head)
+    def v(args: Any*): VarLiteral = VarLiteral(sc.parts.head)
+    def e(args: Any*): EnvLiteral = EnvLiteral(sc.parts.head)
   }
 
   /**

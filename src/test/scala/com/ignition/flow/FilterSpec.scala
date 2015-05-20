@@ -161,7 +161,7 @@ class FilterSpec extends FlowSpecification {
     ("john", "john q", 25, 15.5), ("jake", "jake", 13, 13.0),
     ("jane", "Jane", 9, 0.5), ("jack", "j j", 7, 12.3))
 
-  "Filter for dual-field expressions" should {
+  "Filter for field-field expressions" should {
     "evaluate numeric fields" in {
       val f = Filter($"item" > $"score")
       grid3 --> f
@@ -173,4 +173,34 @@ class FilterSpec extends FlowSpecification {
       assertOutput(f, 0, ("jake", "jake", 13, 13.0))
     }
   }
+
+  "Filter for field-var expressions" should {
+    "evaluate numeric fields" in {
+      val sv = SetVariables("threshold" -> 80)
+      val f = Filter($"score" > v"threshold")
+      grid --> sv --> f
+      assertOutput(f, 0, ("jane", 2, 85.0), ("john", 3, 95.0))
+    }
+    "evaluate string fields" in {
+      val sv = SetVariables("pattern" -> "ja.*")
+      val f = Filter($"name" ~ v"pattern")
+      grid --> sv --> f
+      assertOutput(f, 0, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
+    }
+  }
+  
+  "Filter for field-env expressions" should {
+    "evaluate numeric fields" in {
+      System.setProperty("threshold", "80")
+      val f = Filter($"score" > e"threshold")
+      grid --> f
+      assertOutput(f, 0, ("jane", 2, 85.0), ("john", 3, 95.0))
+    }
+    "evaluate string fields" in {
+      System.setProperty("pattern", "ja.*")
+      val f = Filter($"name" ~ e"pattern")
+      grid --> f
+      assertOutput(f, 0, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
+    }
+  }  
 }
