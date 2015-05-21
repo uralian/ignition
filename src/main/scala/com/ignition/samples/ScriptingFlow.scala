@@ -1,37 +1,40 @@
 package com.ignition.samples
 
-import org.apache.spark.SparkContext
-import org.slf4j.LoggerFactory
+import org.apache.spark.sql._
+import org.apache.spark.sql.types.Decimal
 
-import com.ignition.data.{ columnInfo2metaData, decimal, double, int, string }
-import com.ignition.scripting.RichString
-import com.ignition.workflow.rdd.grid.{ Formula, SelectValues }
-import com.ignition.workflow.rdd.grid.input.DataGridInput
-import com.ignition.workflow.rdd.grid.output.DebugOutput
+import com.ignition.SparkPlug
+import com.ignition.flow._
+import com.ignition.types._
+import com.ignition.flow._
+import com.ignition.script._
 
 object ScriptingFlow extends App {
 
-  val log = LoggerFactory.getLogger(getClass)
+  val flow = DataFlow {
+    val schema = string("info") ~ string("data") ~ decimal("price") ~ int("count") ~ double("discount")
+    val rows = (1 to 10) map (n =>
+      Row(
+        s"<all><item>$n</item></all>",
+        s"""{"data": {"code": $n}}""",
+        Decimal(n * 5 / 10.0),
+        n,
+        1.0 / n))
+    val grid = DataGrid(schema, rows)
 
-  implicit val sc = new SparkContext("local[4]", "test")
+    val formula1 = Formula(
+      "total" -> "price * count * (1 - discount)".mvel,
+      "item" -> "item".xpath("info"),
+      "code" -> "$.data.code".json("data"))
 
-  val meta = string("info") ~ string("data") ~ decimal("price") ~ int("count") ~ double("discount")
-  val rows = (1 to 10) map (n =>
-    meta.row(<all><item>{ n }</item></all>, s"""{"data": {"code": $n}}""", BigDecimal(n * 5 / 10.0), n, 1.0 / n))
-  val grid = DataGridInput(meta, rows)
+    val formula2 = Formula("totalWithTax" -> "total * 1.1".mvel)
 
-  val formula1 = Formula(
-    "total" -> "price * count * (1 - discount)".mvel[BigDecimal],
-    "item" -> "item".xpath("info"),
-    "code" -> "$.data.code".json("data"))
+    val select = SelectValues() retain ("code", "totalWithTax")
 
-  val formula2 = Formula("totalWithTax" -> "total * 1.1".mvel[BigDecimal])
+    val debug = DebugOutput()
 
-  val select = SelectValues().retain("code", "totalWithTax")
+    grid --> formula1 --> formula2 --> select --> debug
+  }
 
-  val debug = DebugOutput()
-
-  grid.connectTo(formula1).connectTo(formula2).connectTo(select).connectTo(debug).output
-
-  sc.stop
+  SparkPlug.runDataFlow(flow)
 }
