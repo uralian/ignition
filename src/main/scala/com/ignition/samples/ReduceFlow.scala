@@ -1,64 +1,45 @@
 package com.ignition.samples
 
-import org.apache.spark.SparkContext
-import org.slf4j.LoggerFactory
-
-import com.ignition.data.{ columnInfo2metaData, int, string }
-import com.ignition.workflow.rdd.grid.input.DataGridInput
-import com.ignition.workflow.rdd.grid.output.DebugOutput
-import com.ignition.workflow.rdd.grid.pair.Reduce
-import com.ignition.workflow.rdd.grid.pair.ReduceOp.{ MAX, SUM }
+import com.ignition.SparkPlug
+import com.ignition.flow._
+import com.ignition.types._
+import com.ignition.flow._
 
 object ReduceFlow extends App {
+  import com.ignition.flow.ReduceOp._
 
-  val log = LoggerFactory.getLogger(getClass)
+  val flow = DataFlow {
+    val schema = string("id") ~ int("hour") ~ string("task") ~ int("points")
 
-  implicit val sc = new SparkContext("local[4]", "test")
+    val john = "john"
+    val jack = "jack"
+    val jane = "jane"
 
-  val meta = string("id") ~ int("hour") ~ string("task") ~ int("points")
+    val coding = "coding"
+    val design = "design"
+    val support = "support"
 
-  val john = "john"
-  val jack = "jack"
-  val jane = "jane"
+    val grid = DataGrid(schema) rows (
+      (john, 5, coding, 3), (john, 3, support, 2), (john, 3, coding, 1),
+      (john, 5, support, 2), (john, 1, design, 2), (jack, 1, design, 3),
+      (jack, 1, coding, 2), (jack, 3, design, 1), (jack, 3, design, 4),
+      (jane, 2, support, 2), (jane, 3, support, 3), (jane, 1, support, 1),
+      (jane, 2, coding, 1), (jane, 2, coding, 4))
 
-  val coding = "coding"
-  val design = "design"
-  val support = "support"
+    val sumPtsByIdHour = Reduce("points" -> SUM) groupBy ("id", "hour")
+    val maxPtsByIdTask = Reduce("points" -> MAX) groupBy ("id", "task")
+    val allByIdHour = Reduce("task" -> CONCAT, "points" -> SUM) groupBy ("id", "hour")
+    val ptsByTask = Reduce("points" -> SUM) groupBy ("task")
 
-  val grid = DataGridInput(meta)
-    .addRow(john, 5, coding, 3)
-    .addRow(john, 3, support, 2)
-    .addRow(john, 3, coding, 1)
-    .addRow(john, 5, support, 2)
-    .addRow(john, 1, design, 2)
+    val (debug1, debug2, debug3, debug4) = (DebugOutput(), DebugOutput(), DebugOutput(), DebugOutput())
 
-    .addRow(jack, 1, design, 3)
-    .addRow(jack, 1, coding, 2)
-    .addRow(jack, 3, design, 1)
-    .addRow(jack, 3, design, 4)
+    grid --> sumPtsByIdHour --> debug1
+    grid --> maxPtsByIdTask --> debug2
+    grid --> allByIdHour --> debug3
+    grid --> ptsByTask --> debug4
 
-    .addRow(jane, 2, support, 2)
-    .addRow(jane, 3, support, 3)
-    .addRow(jane, 1, support, 1)
-    .addRow(jane, 2, coding, 1)
-    .addRow(jane, 2, coding, 4)
+    (debug1, debug2, debug3, debug4)
+  }
 
-  val sumPtsByIdHour = Reduce(Set("id", "hour"), Map("points" -> SUM))
-  val maxPtsByIdTask = Reduce(Set("id", "task"), Map("points" -> MAX))
-  val allByIdHour = Reduce(Set("id", "hour"), Map("task" -> SUM, "points" -> SUM))
-  val ptsByTask = Reduce(Set("task"), Map("points" -> SUM))
-
-  println("SUM(points) by (id, hour):")
-  grid connectTo sumPtsByIdHour connectTo DebugOutput() output
-
-  println("MAX(points) by (id, task):")
-  grid connectTo maxPtsByIdTask connectTo DebugOutput() output
-
-  println("SUM(task), SUM(points) by (id, hour):")
-  grid connectTo allByIdHour connectTo DebugOutput() output
-
-  println("SUM(points) by (task):")
-  grid connectTo ptsByTask connectTo DebugOutput() output
-
-  sc.stop
+  SparkPlug.runDataFlow(flow)
 }
