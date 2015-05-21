@@ -66,8 +66,9 @@ package object types {
     }
   }
 
-  /* boolean to option */
+  /* boolean to option etc. */
   implicit class RichBoolean(val b: Boolean) extends AnyVal {
     final def option[A](a: => A): Option[A] = if (b) Some(a) else None
+    final def ?[T](t: => T, f: => T): T = if (b) t else f
   }
 }

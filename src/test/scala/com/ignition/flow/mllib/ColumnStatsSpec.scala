@@ -36,7 +36,7 @@ class ColumnStatsSpec extends FlowSpecification {
       row.getDouble(2) === 46.0
       row.getDouble(3) === 72.5
     }
-    "compute stats without grouping" in {
+    "compute stats with grouping" in {
       val stats = ColumnStats() columns ("score", "item") groupBy ("name")
       grid --> stats
 
