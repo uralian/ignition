@@ -2,7 +2,7 @@
 
 val SCALA_VERSION = "2.10.4"
 
-val APP_VERSION = "1.0.0-SNAPSHOT"
+val APP_VERSION = "0.1.0-SNAPSHOT"
 
 val SPARK_VERSION = "1.3.1"
 

@@ -202,5 +202,9 @@ class FilterSpec extends FlowSpecification {
       grid --> f
       assertOutput(f, 0, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
     }
-  }  
+  }
+  
+  "Filter" should {
+    "be unserializable" in assertUnserializable(Filter($"item" == 1))
+  }
 }
