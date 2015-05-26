@@ -32,6 +32,39 @@ EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
 ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := false
 
+publishMavenStyle := true
+
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+}
+
+pomIncludeRepository := { _ => false }
+
+pomExtra := (
+  <url>http://uralian.com/ignition</url>
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>http://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>https://github.com/uralian/ignition.git</url>
+    <connection>scm:https://github.com/uralian/ignition.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>uralian</id>
+      <name>Vlad Orzhekhovskiy</name>
+      <url>http://uralian.com</url>
+    </developer>
+  </developers>)
+
 libraryDependencies ++= Seq(
   "org.scala-lang"            % "scala-reflect"              % SCALA_VERSION,
   "com.typesafe"              % "config"                     % "1.2.1",
