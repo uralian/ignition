@@ -7,10 +7,10 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.scalacheck.{ Arbitrary, Prop }
 import org.specs2.ScalaCheck
-
 import com.ignition.SparkTestHelper
 import com.ignition.types._
 import com.ignition.SparkRuntime
+import com.ignition.ExecutionException
 
 @RunWith(classOf[JUnitRunner])
 class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
@@ -26,7 +26,7 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
   }
 
   def throwRT() = throw new RuntimeException("runtime")
-  def throwWF() = throw FlowExecutionException("workflow")
+  def throwWF() = throw ExecutionException("workflow")
 
   abstract class ProducerAdapter extends Producer {
     protected def computeSchema(implicit runtime: SparkRuntime) = schema
@@ -41,11 +41,11 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
   }
 
   abstract class MergerAdapter extends Merger(2) {
-    protected def computeSchema(inSchemas: Array[StructType])(implicit runtime: SparkRuntime) = schema
+    protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime) = schema
   }
 
   abstract class ModuleAdapter extends Module(2, 3) {
-    protected def computeSchema(inSchemas: Array[StructType], index: Int)(implicit runtime: SparkRuntime) = schema
+    protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime) = schema
   }
 
   private def createDF(value: Int) = {
@@ -65,15 +65,15 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
     }
     "fail for output(!=0)" in Prop.forAll(dfIntGen) { df =>
       val step = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = df }
-      step.output(2) must throwA[FlowExecutionException]
+      step.output(2) must throwA[ExecutionException]
     }
     "wrap runtime error into workflow exception" in {
       val step = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = throwRT }
-      step.output must throwA[FlowExecutionException](message = "Step computation failed")
+      step.output must throwA[ExecutionException](message = "Step computation failed")
     }
     "propagate workflow exception" in {
       val step = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = throwWF }
-      step.output must throwA[FlowExecutionException](message = "workflow")
+      step.output must throwA[ExecutionException](message = "workflow")
     }
   }
 
@@ -92,11 +92,11 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
       val step0 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = df }
       val step1 = new TransformerAdapter { def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime) = arg }
       step0 --> step1
-      step1.output(2) must throwA[FlowExecutionException]
+      step1.output(2) must throwA[ExecutionException]
     }
     "throw exception when not connected" in Prop.forAll(dfIntGen) { df =>
       val step1 = new TransformerAdapter { def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime) = arg }
-      step1.output must throwA[FlowExecutionException](message = "Input0 is not connected")
+      step1.output must throwA[ExecutionException](message = "Input0 is not connected")
     }
   }
 
@@ -119,13 +119,13 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
         protected def compute(arg: DataFrame, index: Int, limit: Option[Int])(implicit runtime: SparkRuntime) = arg
       }
       step0 --> step1
-      step1.output(2) must throwA[FlowExecutionException]
+      step1.output(2) must throwA[ExecutionException]
     }
     "throw exception when not connected" in Prop.forAll(dfIntGen) { df =>
       val step1 = new SplitterAdapter {
         protected def compute(arg: DataFrame, index: Int, limit: Option[Int])(implicit runtime: SparkRuntime) = arg
       }
-      step1.output(0) must throwA[FlowExecutionException](message = "Input0 is not connected")
+      step1.output(0) must throwA[ExecutionException](message = "Input0 is not connected")
     }
   }
 
@@ -134,7 +134,7 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
       val step0 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = df }
       val step1 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = df }
       val step2 = new MergerAdapter {
-        protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
+        protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
           limit map args(0).limit getOrElse args(0)
       }
       (step0, step1) --> step2
@@ -145,16 +145,16 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
       val step0 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = df }
       val step1 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = df }
       val step2 = new MergerAdapter {
-        protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = args(0)
+        protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = args(0)
       }
       (step0, step1) --> step2
-      step2.output(1) must throwA[FlowExecutionException]
+      step2.output(1) must throwA[ExecutionException]
     }
     "throw exception when not connected" in Prop.forAll(dfIntGen) { df =>
       val step2 = new MergerAdapter {
-        protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = args(0)
+        protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = args(0)
       }
-      step2.output must throwA[FlowExecutionException](message = "Input0 is not connected")
+      step2.output must throwA[ExecutionException](message = "Input0 is not connected")
     }
   }
 
@@ -163,7 +163,7 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
       val step0 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = createDF(x) }
       val step1 = new ProducerAdapter { def compute(limit: Option[Int])(implicit runtime: SparkRuntime) = createDF(y) }
       val step2 = new ModuleAdapter {
-        def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = index match {
+        def compute(args: Seq[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = index match {
           case 0 => args(1).select((args(1).col("a") / 2).cast("int").as("y2"))
           case 1 => args(0).select((args(0).col("a") / 4).cast("int").as("x4"))
           case 2 => args(0).unionAll(args(1))
@@ -185,7 +185,7 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
     val t2 = new TransformerAdapter { val name = "t2"; def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime) = ??? }
     val t3 = new TransformerAdapter { val name = "t3"; def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime) = ??? }
     val s2 = new SplitterAdapter { def compute(arg: DataFrame, index: Int, limit: Option[Int])(implicit runtime: SparkRuntime) = ??? }
-    val m2 = new MergerAdapter { def compute(args: Array[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = ??? }
+    val m2 = new MergerAdapter { def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = ??? }
     "connect producers and transformers with `to`" in {
       (p1 to t1 to t2 to t3) === t3
       t1.ins(0) === Tuple2(p1, 0)

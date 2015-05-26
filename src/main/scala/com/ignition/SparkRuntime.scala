@@ -1,19 +1,22 @@
 package com.ignition
 
 import scala.reflect.ClassTag
+
 import org.apache.spark.{ Accumulator, AccumulatorParam, SparkContext }
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.streaming.StreamingContext
 
 /**
- * Encapsulates the spark context and SQL context and provides helper
+ * Encapsulates the spark context, streaming context and SQL context and provides helper
  * functions to manage Spark runtime environment.
- * 
+ *
  * @author Vlad Orzhekhovskiy
  */
-class SparkRuntime(@transient val ctx: SQLContext) extends Serializable {
-  
-  @transient val sc = ctx.sparkContext
+trait SparkRuntime extends Serializable {
+  def sc: SparkContext
+  def ctx: SQLContext
+  def ssc: StreamingContext
 
   /**
    * Set once, read-only variables.
@@ -37,7 +40,7 @@ class SparkRuntime(@transient val ctx: SQLContext) extends Serializable {
       bcMap.get(name) foreach (_.destroy)
       bcMap -= name
     }
-    
+
     def -= = drop _
   }
 
@@ -68,4 +71,15 @@ class SparkRuntime(@transient val ctx: SQLContext) extends Serializable {
 
     def drop(name: String): Unit = acMap -= name
   }
+}
+
+/**
+ * The default implementation of SparkRuntime.
+ *
+ * @author Vlad Orzhekhovskiy
+ */
+class DefaultSparkRuntime(@transient val ctx: SQLContext, @transient val ssc: StreamingContext)
+  extends SparkRuntime {
+
+  @transient val sc = ctx.sparkContext
 }

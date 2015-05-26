@@ -1,41 +1,19 @@
 package com.ignition.flow
 
+import scala.reflect.{ ClassTag, classTag }
+
 import scala.util.control.NonFatal
 import scala.xml.Elem
-
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.StructType
-
-import com.ignition.SparkRuntime
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
+import com.ignition._
+import com.ignition.types._
+import scala.reflect.ClassTag
 
 /**
- * A workflow step. It can have an arbitrary number of inputs and outputs.
+ * Workflow step that emits DataFrame as the output.
  */
-sealed trait Step {
-
-  /**
-   * The number of output ports.
-   */
-  def outputCount: Int
-
-  /**
-   * The maximum number of input ports.
-   */
-  def inputCount: Int
-
-  /**
-   * Computes a step output value at the specified index. The count parameter, if set,
-   * limits the output to the specified number of rows.
-   * @throws FlowExecutionException in case of an error, or if the step is not connected.
-   */
-  @throws(classOf[FlowExecutionException])
-  def output(index: Int, limit: Option[Int] = None)(implicit runtime: SparkRuntime): DataFrame
-
-  /**
-   * Returns the output schema of the step.
-   */
-  def outSchema(index: Int)(implicit runtime: SparkRuntime): StructType
-}
+sealed trait Step extends XStep[DataFrame]
 
 /**
  * XML serialization.
@@ -47,97 +25,26 @@ trait XmlExport {
 /**
  * An abstract implementation base class for Step trait.
  * The following members need to be implemented by subclasses:
- * +computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
- * +compute(args: Array[DataFrame], index: Int)(implicit runtime: SparkRuntime): DataFrame
+ * +computeSchema(inSchemas: Seq[Option[StructType]], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
+ * +compute(args: Seq[DataFrame], index: Int)(implicit runtime: SparkRuntime): DataFrame
  */
-abstract class AbstractStep(val inputCount: Int, val outputCount: Int) extends Step {
-  protected[flow] val ins = Array.ofDim[(Step, Int)](inputCount)
-
-  val allInputsRequired: Boolean = true
-
-  /**
-   * Connects an input port to an output port of another step.
-   */
-  private[flow] def connectFrom(inIndex: Int, step: Step, outIndex: Int): this.type = {
-    assert(0 until step.outputCount contains outIndex, s"Output index out of range: $outIndex")
-    ins(inIndex) = (step, outIndex)
-    this
-  }
-
-  /**
-   * Returns the output value at a given index by retrieving inputs and calling compute().
-   */
-  def output(index: Int, limit: Option[Int] = None)(implicit runtime: SparkRuntime): DataFrame = wrap {
-    assert(0 until outputCount contains index, s"Output index out of range: $index")
-    compute(inputs(limit), index, limit)
-  }
-
-  /**
-   * Returns the output schema. It is a wrapper around computeSchema() to check the
-   * index and provide error handling.
-   */
-  def outSchema(index: Int)(implicit runtime: SparkRuntime): StructType = wrap {
-    assert(0 until outputCount contains index, s"Output index out of range: $index")
-    computeSchema(index)
-  }
-
-  /**
-   * Scans the input ports and retrieves the output values of the connectes steps.
-   * The parameter 'limit', if set, specifies how many rows to fetch from each input.
-   */
-  protected def inputs(limit: Option[Int])(implicit runtime: SparkRuntime): Array[DataFrame] = (ins zipWithIndex) map {
-    case ((step, index), _) => step.output(index, limit)(runtime)
-    case (_, i) if allInputsRequired => throw FlowExecutionException(s"Input$i is not connected")
-    case (_, _) => null
-  }
-
-  /**
-   * Retrieves the input schemas
-   */
-  protected def inputSchemas(implicit runtime: SparkRuntime): Array[StructType] = (ins zipWithIndex) map {
-    case ((step, index), _) => step.outSchema(index)(runtime)
-    case (_, i) if allInputsRequired => throw FlowExecutionException(s"Input$i is not connected")
-    case (_, _) => null
-  }
-
-  /**
-   * Computes the data for output port with the specified index.
-   */
-  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame
-
-  /**
-   * Computes the schema of the specified output.
-   */
-  protected def computeSchema(index: Int)(implicit runtime: SparkRuntime): StructType
-
-  /**
-   * Wraps exceptions into FlowExecutionException instances.
-   */
-  protected def wrap[T](body: => T): T = try { body } catch {
-    case e: FlowExecutionException => throw e
-    case NonFatal(e) => throw FlowExecutionException("Step computation failed", e)
-  }
+abstract class AbstractStep(inputCount: Int, outputCount: Int)
+  extends AbstractXStep[DataFrame](inputCount, outputCount) with Step {
 
   /**
    * Returns the implicit SQLContext.
    */
   protected def ctx(implicit runtime: SparkRuntime) = runtime.ctx
-  
+
   /**
    * Returns the implicit SparkContext.
    */
-  protected def sparkContext(implicit runtime: SparkRuntime) = runtime.ctx.sparkContext
+  protected def sparkContext(implicit runtime: SparkRuntime) = runtime.sc
 
   /**
    * Optionally limits the data frame.
    */
   protected def optLimit(df: DataFrame, limit: Option[Int]) = limit map df.limit getOrElse df
-
-  /**
-   * Serialization helper. Used by subclasses in writeObject() method to explicitly
-   * prohibit serialization.
-   */
-  protected def unserializable = throw new java.io.IOException("Object should not be serialized")
 }
 
 /**
@@ -259,7 +166,7 @@ private[flow] case class SInStepOutIndex(outIndex: Int, tgtStep: Step with Singl
  */
 abstract class Producer extends AbstractStep(0, 1) with SingleOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
+  protected def compute(args: Seq[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
     compute(limit)(runtime)
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame
@@ -278,7 +185,7 @@ abstract class Producer extends AbstractStep(0, 1) with SingleOutput {
  */
 abstract class Transformer extends AbstractStep(1, 1) with SingleInput with SingleOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
+  protected def compute(args: Seq[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
     compute(args(0), limit)(runtime)
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame
@@ -298,7 +205,7 @@ abstract class Transformer extends AbstractStep(1, 1) with SingleInput with Sing
 abstract class Splitter(override val outputCount: Int)
   extends AbstractStep(1, outputCount) with SingleInput with MultiOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
+  protected def compute(args: Seq[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
     compute(args(0), index, limit)(runtime)
 
   protected def compute(arg: DataFrame, index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame
@@ -312,28 +219,28 @@ abstract class Splitter(override val outputCount: Int)
 /**
  * A step that has many inputs and one output.
  * The following members need to be implemented by subclasses:
- * +computeSchema(inSchemas: Array[Option[StructType]])(implicit runtime: SparkRuntime): Option[StructType]
- * +compute(args: Array[DataFrame])(implicit runtime: SparkRuntime): DataFrame
+ * +computeSchema(inSchemas: Seq[Option[StructType]])(implicit runtime: SparkRuntime): Option[StructType]
+ * +compute(args: Seq[DataFrame])(implicit runtime: SparkRuntime): DataFrame
  */
 abstract class Merger(override val inputCount: Int)
   extends AbstractStep(inputCount, 1) with MultiInput with SingleOutput {
 
-  protected def compute(args: Array[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
+  protected def compute(args: Seq[DataFrame], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame =
     compute(args, limit)(runtime)
 
-  protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame
+  protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame
 
   protected def computeSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
     computeSchema(inputSchemas(runtime))(runtime)
 
-  protected def computeSchema(inSchemas: Array[StructType])(implicit runtime: SparkRuntime): StructType
+  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType
 }
 
 /**
  * A step with multiple input and output ports.
  * The following members need to be implemented by subclasses:
- * +computeSchema(inSchemas: Array[Option[StructType]], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
- * +compute(args: Array[DataFrame], index: Int)(implicit runtime: SparkRuntime): DataFrame
+ * +computeSchema(inSchemas: Seq[Option[StructType]], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
+ * +compute(args: Seq[DataFrame], index: Int)(implicit runtime: SparkRuntime): DataFrame
  */
 abstract class Module(override val inputCount: Int, override val outputCount: Int)
   extends AbstractStep(inputCount, outputCount) with MultiInput with MultiOutput {
@@ -341,5 +248,5 @@ abstract class Module(override val inputCount: Int, override val outputCount: In
   protected def computeSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
     computeSchema(inputSchemas(runtime), index)(runtime)
 
-  protected def computeSchema(inSchemas: Array[StructType], index: Int)(implicit runtime: SparkRuntime): StructType
+  protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): StructType
 }

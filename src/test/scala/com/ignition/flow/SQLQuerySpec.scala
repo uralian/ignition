@@ -3,8 +3,8 @@ package com.ignition.flow
 import org.apache.spark.sql.types.Decimal
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 import com.ignition.types._
+import com.ignition.ExecutionException
 
 @RunWith(classOf[JUnitRunner])
 class SQLQuerySpec extends FlowSpecification {
@@ -53,7 +53,7 @@ class SQLQuerySpec extends FlowSpecification {
     }
     "fail on disconnected inputs" in {
       val query = SQLQuery("SELECT * FROM input0")
-      query.output must throwA[FlowExecutionException]
+      query.output must throwA[ExecutionException]
     }
     "save to xml" in {
       val query = SQLQuery("SELECT * FROM input0 WHERE amount > 5")

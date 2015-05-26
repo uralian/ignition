@@ -1,12 +1,11 @@
 package com.ignition.flow
 
-import scala.Array.canBuildFrom
 import scala.xml.{ Elem, Node }
 
 import org.apache.spark.sql.{ DataFrame, SQLContext }
 import org.apache.spark.sql.types.StructType
 
-import com.ignition.util.XmlUtils.RichNodeSeq
+import com.ignition.util.XmlUtils._
 import com.ignition.SparkRuntime
 
 /**
@@ -19,7 +18,7 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
 
   override val allInputsRequired = false
 
-  protected def compute(args: Array[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     assert(args.exists(_ != null), "No connected inputs")
 
     args.zipWithIndex foreach {
@@ -33,7 +32,7 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
     optLimit(df, limit)
   }
 
-  protected def computeSchema(inSchemas: Array[StructType])(implicit runtime: SparkRuntime): StructType = {
+  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType = {
     val df = compute(inputs(Some(1)), Some(1))(runtime)
     df.schema
   }

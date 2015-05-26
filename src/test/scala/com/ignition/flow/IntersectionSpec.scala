@@ -2,8 +2,8 @@ package com.ignition.flow
 
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 import com.ignition.types._
+import com.ignition.ExecutionException
 
 @RunWith(classOf[JUnitRunner])
 class IntersectionSpec extends FlowSpecification {
@@ -61,13 +61,13 @@ class IntersectionSpec extends FlowSpecification {
       val inter = Intersection()
       (grid1, grid2, gridX) --> inter
 
-      inter.outSchema must throwA[FlowExecutionException]
-      inter.output.collect must throwA[FlowExecutionException]
+      inter.outSchema must throwA[ExecutionException]
+      inter.output.collect must throwA[ExecutionException]
     }
     "fail for unconnected inputs" in {
       val inter = Intersection()
-      inter.outSchema must throwA[FlowExecutionException]
-      inter.output.collect must throwA[FlowExecutionException]
+      inter.outSchema must throwA[ExecutionException]
+      inter.output.collect must throwA[ExecutionException]
     }
     "be unserializable" in assertUnserializable(Intersection())
   }

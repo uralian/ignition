@@ -1,21 +1,19 @@
 package com.ignition.flow.mllib
 
 import scala.util.Random
-
 import org.apache.spark.SparkContext
-import org.apache.spark.annotation.{ DeveloperApi, Experimental }
 import org.apache.spark.sql.{ Row, SQLContext }
-
-import com.ignition.{ SparkRuntime, TestDataHelper }
+import com.ignition.{ DefaultSparkRuntime, TestDataHelper }
 import com.ignition.flow.DataGrid
 import com.ignition.types.{ RichStructType, double, fieldToRichStruct, int, long, string }
+import org.apache.spark.streaming.StreamingContext
 
 object MLLibLoadTest extends App with TestDataHelper {
 
   val sc = new SparkContext("local[4]", "test")
   implicit val ctx = new SQLContext(sc)
   import ctx.implicits._
-  implicit val runtime = new SparkRuntime(ctx)
+  implicit val runtime = new DefaultSparkRuntime(ctx, null.asInstanceOf[StreamingContext])
 
   testColumnStats(100, 100000)
   testCorrelation(100, 100000)

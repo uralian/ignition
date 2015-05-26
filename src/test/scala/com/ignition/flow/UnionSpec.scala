@@ -2,8 +2,8 @@ package com.ignition.flow
 
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 import com.ignition.types._
+import com.ignition.ExecutionException
 
 @RunWith(classOf[JUnitRunner])
 class UnionSpec extends FlowSpecification {
@@ -40,13 +40,13 @@ class UnionSpec extends FlowSpecification {
       val union = Union()
       (grid1, grid2, gridX) --> union
 
-      union.outSchema must throwA[FlowExecutionException]
-      union.output.collect must throwA[FlowExecutionException]
+      union.outSchema must throwA[ExecutionException]
+      union.output.collect must throwA[ExecutionException]
     }
     "fail for unconnected inputs" in {
       val union = Union()
-      union.outSchema must throwA[FlowExecutionException]
-      union.output.collect must throwA[FlowExecutionException]
+      union.outSchema must throwA[ExecutionException]
+      union.output.collect must throwA[ExecutionException]
     }
     "be unserializable" in assertUnserializable(Union())
   }
