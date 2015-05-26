@@ -6,7 +6,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ DataFrame, Row }
 
 import com.ignition.SparkRuntime
-import com.ignition.flow.{ AbstractStep, PairFunctions }
+import com.ignition.flow.{ FlowStep, PairFunctions }
 import com.ignition.types.{ RichRow, RichStructType }
 
 /**
@@ -14,7 +14,7 @@ import com.ignition.types.{ RichRow, RichStructType }
  *
  * @author Vlad Orzhekhovskiy
  */
-trait MLFunctions extends PairFunctions { self: AbstractStep =>
+trait MLFunctions extends PairFunctions { self: FlowStep =>
 
   /**
    * Converts a data frame into a pair RDD[(key, data)], where key is the row key as defined

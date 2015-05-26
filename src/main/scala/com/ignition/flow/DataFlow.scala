@@ -1,13 +1,15 @@
 package com.ignition.flow
 
 import com.ignition.SparkRuntime
+import com.ignition.XStep
+import org.apache.spark.sql.DataFrame
 
 /**
  * Data Flow represents an executable job.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DataFlow(targets: Iterable[Step]) {
+case class DataFlow(targets: Iterable[FlowStep]) {
 
   /**
    * Executes a data flow.
@@ -25,7 +27,7 @@ case class DataFlow(targets: Iterable[Step]) {
  */
 object DataFlow {
   def apply(steps: Product): DataFlow = steps match {
-    case step: Step => new DataFlow(Seq(step))
-    case _ => new DataFlow(steps.productIterator.asInstanceOf[Iterator[Step]].toSeq)
+    case step: FlowStep => new DataFlow(Seq(step))
+    case _ => new DataFlow(steps.productIterator.asInstanceOf[Iterator[FlowStep]].toSeq)
   }
 }

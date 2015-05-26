@@ -40,9 +40,9 @@ object SparkPlug {
   implicit protected lazy val ctx = new SQLContext(sc)
   implicit protected lazy val ssc = {
     val streamCfg = ConfigUtils.getConfig("spark.streaming")
-    val ms = config.getDuration("batch-duration", TimeUnit.MILLISECONDS)
+    val ms = streamCfg.getDuration("batch-duration", TimeUnit.MILLISECONDS)
     val ssc = new StreamingContext(sc, Milliseconds(ms))
-    val checkpointDir = config.getString("checkpoint-dir")
+    val checkpointDir = streamCfg.getString("checkpoint-dir")
     ssc.checkpoint(checkpointDir)
     ssc
   }

@@ -1,16 +1,14 @@
 package com.ignition.flow
 
-import org.apache.spark.annotation.{ DeveloperApi, Experimental }
-import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
+import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
 import org.scalacheck.{ Arbitrary, Prop }
 import org.specs2.ScalaCheck
-import com.ignition.SparkTestHelper
-import com.ignition.types._
-import com.ignition.SparkRuntime
-import com.ignition.ExecutionException
+import org.specs2.runner.JUnitRunner
+
+import com.ignition._
+import com.ignition.types.{ fieldToRichStruct, int }
 
 @RunWith(classOf[JUnitRunner])
 class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {

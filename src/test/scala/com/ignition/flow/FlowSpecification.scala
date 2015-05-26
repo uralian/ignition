@@ -1,12 +1,13 @@
 package com.ignition.flow
 
 import java.io.{ ByteArrayOutputStream, IOException, ObjectOutputStream }
-import org.apache.spark.sql.DataFrame
+
+import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
-import com.ignition.{ SparkTestHelper, TestDataHelper }
-import org.apache.spark.sql.Row
+
+import com.ignition.{ ExecutionException, SparkTestHelper, TestDataHelper, XStep }
 
 /**
  * Base trait for flow spec2 tests, includes some helper functions.
@@ -27,19 +28,19 @@ trait FlowSpecification extends Specification with XmlMatchers with SparkTestHel
   /**
    * Checks if the output schema for a given port index is identical to the supplied schema.
    */
-  protected def assertSchema(schema: StructType, step: Step, index: Int = 0) =
+  protected def assertSchema(schema: StructType, step: XStep[_], index: Int = 0) =
     step.outSchema(index) === schema
 
   /**
    * Checks if the output is identical to the supplied row set.
    */
-  protected def assertOutput(step: Step, index: Int, rows: Row*) =
+  protected def assertOutput(step: FlowStep, index: Int, rows: Row*) =
     assertDataFrame(step.output(index), rows: _*)
 
   /**
    * Checks if the limited output is identical to the supplied row set.
    */
-  protected def assertPreview(step: Step, index: Int, limit: Int, rows: Row*) =
+  protected def assertPreview(step: FlowStep, index: Int, limit: Int, rows: Row*) =
     assertDataFrame(step.output(index, Some(limit)), rows: _*)
 
   /**
@@ -49,6 +50,6 @@ trait FlowSpecification extends Specification with XmlMatchers with SparkTestHel
     df.collect.toSet === rows.toSet
 
   protected implicit def anySeqToRow(data: Seq[Any]) = Row.fromSeq(data)
-  
+
   protected implicit def tupleToRow(tuple: Product) = Row.fromTuple(tuple)
 }

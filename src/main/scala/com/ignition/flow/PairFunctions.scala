@@ -15,7 +15,7 @@ import com.ignition.types.{ RichRow, RichStructType }
  *
  * @author Vlad Orzhekhovskiy
  */
-trait PairFunctions { self: AbstractStep =>
+trait PairFunctions { self: FlowStep =>
 
   /**
    * Converts a data frame into a pair RDD[(key, data)], where key is the row key as defined
