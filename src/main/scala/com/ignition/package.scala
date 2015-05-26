@@ -15,7 +15,7 @@ package object ignition {
    */
   implicit class RichInt(val outIndex: Int) extends AnyVal {
     def -->(inIndex: Int) = OutInIndices(outIndex, inIndex)
-    def -->[T](tgtStep: XStep[T] with SingleInput[T]) = SInStepOutIndex(outIndex, tgtStep)
+    def -->[T](tgtStep: Step[T] with SingleInput[T]) = SInStepOutIndex(outIndex, tgtStep)
   }
 
   /**
@@ -25,12 +25,12 @@ package object ignition {
    * (a, b, c) --> d  // connect the outputs of a, b, and c to the inputs of d
    */
   implicit class RichProduct(val product: Product) extends AnyVal {
-    def to[T](tgtStep: XStep[T] with MultiInput[T]): tgtStep.type = {
+    def to[T](tgtStep: Step[T] with MultiInput[T]): tgtStep.type = {
       product.productIterator.zipWithIndex foreach {
-        case (srcStep: XStep[T] with SingleOutput[T], index) => tgtStep.from(index, srcStep)
+        case (srcStep: Step[T] with SingleOutput[T], index) => tgtStep.from(index, srcStep)
       }
       tgtStep
     }
-    def -->[T](tgtStep: XStep[T] with MultiInput[T]): tgtStep.type = to(tgtStep)
+    def -->[T](tgtStep: Step[T] with MultiInput[T]): tgtStep.type = to(tgtStep)
   }
 }

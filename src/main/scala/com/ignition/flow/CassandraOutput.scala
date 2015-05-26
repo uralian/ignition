@@ -2,7 +2,7 @@ package com.ignition.flow
 
 import scala.xml.{ Elem, Node }
 
-import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
+import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 
 import com.datastax.driver.core.{ BoundStatement, PreparedStatement, ProtocolVersion }
@@ -10,8 +10,7 @@ import com.datastax.spark.connector.SomeColumns
 import com.datastax.spark.connector.cql.TableDef
 import com.datastax.spark.connector.toRDDFunctions
 import com.datastax.spark.connector.writer.{ RowWriter, RowWriterFactory }
-
-import com.ignition.SparkRuntime
+import com.ignition.{ SparkRuntime, XmlExport }
 
 /**
  * Cassandra row writer for DataFrame objects.
@@ -41,7 +40,7 @@ case class DataRowWriter(schema: StructType, tableDef: TableDef) extends RowWrit
  *
  * @author Vlad Orzhekhovskiy
  */
-case class CassandraOutput(keyspace: String, table: String) extends Transformer with XmlExport {
+case class CassandraOutput(keyspace: String, table: String) extends FlowTransformer with XmlExport {
 
   implicit protected def rowWriterFactory(implicit runtime: SparkRuntime) =
     new RowWriterFactory[Row] {

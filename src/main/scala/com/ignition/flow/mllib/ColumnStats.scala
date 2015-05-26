@@ -4,7 +4,7 @@ import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.mllib.stat.Statistics
 
-import com.ignition.flow.Transformer
+import com.ignition.flow.FlowTransformer
 import com.ignition.types._
 import com.ignition.SparkRuntime
 
@@ -14,7 +14,7 @@ import com.ignition.SparkRuntime
  * @author Vlad Orzhekhovskiy
  */
 case class ColumnStats(dataFields: Iterable[String] = Nil, groupFields: Iterable[String] = Nil)
-  extends Transformer with MLFunctions {
+  extends FlowTransformer with MLFunctions {
 
   def columns(fields: String*) = copy(dataFields = fields)
   def groupBy(fields: String*) = copy(groupFields = fields)

@@ -11,7 +11,7 @@ import com.ignition.SparkRuntime
  * @author Vlad Orzhekhovskiy
  */
 case class TextFolderInput(path: String, nameField: String = "filename",
-  dataField: String = "content") extends Producer {
+  dataField: String = "content") extends FlowProducer {
   
   def nameField(field: String): TextFolderInput = copy(nameField = field)
   def dataField(field: String): TextFolderInput = copy(dataField = field)

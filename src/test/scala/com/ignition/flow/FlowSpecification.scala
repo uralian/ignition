@@ -7,7 +7,7 @@ import org.apache.spark.sql.types.StructType
 import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
 
-import com.ignition.{ ExecutionException, SparkTestHelper, TestDataHelper, XStep }
+import com.ignition.{ ExecutionException, SparkTestHelper, TestDataHelper, Step }
 
 /**
  * Base trait for flow spec2 tests, includes some helper functions.
@@ -28,7 +28,7 @@ trait FlowSpecification extends Specification with XmlMatchers with SparkTestHel
   /**
    * Checks if the output schema for a given port index is identical to the supplied schema.
    */
-  protected def assertSchema(schema: StructType, step: XStep[_], index: Int = 0) =
+  protected def assertSchema(schema: StructType, step: Step[_], index: Int = 0) =
     step.outSchema(index) === schema
 
   /**

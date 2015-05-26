@@ -1,6 +1,7 @@
 package com.ignition
 
 import scala.util.control.NonFatal
+import scala.xml.Elem
 
 import org.apache.spark.sql.types.StructType
 
@@ -8,7 +9,7 @@ import org.apache.spark.sql.types.StructType
  * A workflow step. It can have an arbitrary number of inputs and outputs.
  * @param T the type parameter encapsulating the data that is passed between steps.
  */
-trait XStep[T] {
+trait Step[T] {
 
   /**
    * The number of output ports.
@@ -40,18 +41,18 @@ trait XStep[T] {
  * +computeSchema(inSchemas: Seq[Option[StructType]], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
  * +compute(args: Seq[DataFrame], index: Int)(implicit runtime: SparkRuntime): T
  */
-abstract class AbstractXStep[T](val inputCount: Int, val outputCount: Int) extends XStep[T] {
-  protected[ignition] val ins = Array.ofDim[(XStep[T], Int)](inputCount)
+abstract class AbstractStep[T](val inputCount: Int, val outputCount: Int) extends Step[T] {
+  protected[ignition] val ins = Array.ofDim[(Step[T], Int)](inputCount)
 
   val allInputsRequired: Boolean = true
 
   /**
    * Connects an input port to an output port of another step.
    */
-  protected[ignition] def connectFrom(inIndex: Int, step: XStep[T], outIndex: Int): this.type = {
+  def connectFrom(inIndex: Int, step: Step[T], outIndex: Int): AbstractStep.this.type = {
     assert(0 until step.outputCount contains outIndex, s"Output index out of range: $outIndex")
     ins(inIndex) = (step, outIndex)
-    this
+    AbstractStep.this
   }
 
   /**
@@ -118,7 +119,7 @@ abstract class AbstractXStep[T](val inputCount: Int, val outputCount: Int) exten
 /**
  * A step with multiple output ports.
  */
-trait MultiOutput[T] { self: AbstractXStep[T] =>
+trait MultiOutput[T] { self: AbstractStep[T] =>
 
   /**
    * Connects the output ports to multiple single input port nodes:
@@ -159,7 +160,7 @@ trait MultiOutput[T] { self: AbstractXStep[T] =>
 /**
  * A step with a single output port.
  */
-trait SingleOutput[T] { self: AbstractXStep[T] =>
+trait SingleOutput[T] { self: AbstractStep[T] =>
   def to(step: SingleInput[T]): step.type = step.from(this)
   def -->(step: SingleInput[T]): step.type = to(step)
 
@@ -182,10 +183,10 @@ trait SingleOutput[T] { self: AbstractXStep[T] =>
 /**
  * A step with multiple input ports.
  */
-trait MultiInput[T] { self: AbstractXStep[T] =>
-  private[ignition] def from(inIndex: Int, step: XStep[T] with MultiOutput[T], outIndex: Int): this.type = connectFrom(inIndex, step, outIndex)
+trait MultiInput[T] { self: AbstractStep[T] =>
+  private[ignition] def from(inIndex: Int, step: Step[T] with MultiOutput[T], outIndex: Int): this.type = connectFrom(inIndex, step, outIndex)
 
-  private[ignition] def from(inIndex: Int, step: XStep[T] with SingleOutput[T]): this.type = connectFrom(inIndex, step, 0)
+  private[ignition] def from(inIndex: Int, step: Step[T] with SingleOutput[T]): this.type = connectFrom(inIndex, step, 0)
 
   /**
    * Exposes the input port under the specified index.
@@ -201,29 +202,29 @@ trait MultiInput[T] { self: AbstractXStep[T] =>
 /**
  * A step with a single input port.
  */
-trait SingleInput[T] { self: AbstractXStep[T] =>
+trait SingleInput[T] { self: AbstractStep[T] =>
 
-  private[ignition] def from(step: XStep[T] with MultiOutput[T], outIndex: Int): this.type = connectFrom(0, step, outIndex)
+  private[ignition] def from(step: Step[T] with MultiOutput[T], outIndex: Int): this.type = connectFrom(0, step, outIndex)
 
-  private[ignition] def from(step: XStep[T] with SingleOutput[T]): this.type = connectFrom(0, step, 0)
+  private[ignition] def from(step: Step[T] with SingleOutput[T]): this.type = connectFrom(0, step, 0)
 }
 
 /* connection classes */
 
-private[ignition] case class SOutStepInIndex[T](srcStep: XStep[T] with SingleOutput[T], inIndex: Int) {
-  def :|(tgtStep: XStep[T] with MultiInput[T]): tgtStep.type = tgtStep.from(inIndex, srcStep)
+private[ignition] case class SOutStepInIndex[T](srcStep: Step[T] with SingleOutput[T], inIndex: Int) {
+  def :|(tgtStep: Step[T] with MultiInput[T]): tgtStep.type = tgtStep.from(inIndex, srcStep)
 }
 
 private[ignition] case class OutInIndices(outIndex: Int, inIndex: Int) {
-  def :|[T](tgtStep: XStep[T] with MultiInput[T]) = MInStepOutInIndices[T](outIndex, inIndex, tgtStep)
+  def :|[T](tgtStep: Step[T] with MultiInput[T]) = MInStepOutInIndices[T](outIndex, inIndex, tgtStep)
 }
 
-private[ignition] case class MInStepOutInIndices[T](outIndex: Int, inIndex: Int, tgtStep: XStep[T] with MultiInput[T]) {
-  def |:(srcStep: XStep[T] with MultiOutput[T]) = tgtStep.from(inIndex, srcStep, outIndex)
+private[ignition] case class MInStepOutInIndices[T](outIndex: Int, inIndex: Int, tgtStep: Step[T] with MultiInput[T]) {
+  def |:(srcStep: Step[T] with MultiOutput[T]) = tgtStep.from(inIndex, srcStep, outIndex)
 }
 
-private[ignition] case class SInStepOutIndex[T](outIndex: Int, tgtStep: XStep[T] with SingleInput[T]) {
-  def |:(srcStep: XStep[T] with MultiOutput[T]): tgtStep.type = tgtStep.from(srcStep, outIndex)
+private[ignition] case class SInStepOutIndex[T](outIndex: Int, tgtStep: Step[T] with SingleInput[T]) {
+  def |:(srcStep: Step[T] with MultiOutput[T]): tgtStep.type = tgtStep.from(srcStep, outIndex)
 }
 
 /* step templates */
@@ -234,7 +235,7 @@ private[ignition] case class SInStepOutIndex[T](outIndex: Int, tgtStep: XStep[T]
  * +computeSchema(implicit runtime: SparkRuntime): Option[StructType]
  * +compute(implicit runtime: SparkRuntime): T
  */
-abstract class XProducer[T] extends AbstractXStep[T](0, 1) with SingleOutput[T] {
+abstract class Producer[T] extends AbstractStep[T](0, 1) with SingleOutput[T] {
 
   protected def compute(args: Seq[T], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): T =
     compute(limit)(runtime)
@@ -253,7 +254,7 @@ abstract class XProducer[T] extends AbstractXStep[T](0, 1) with SingleOutput[T] 
  * +computeSchema(inSchema: Option[StructType])(implicit runtime: SparkRuntime): Option[StructType]
  * +compute(arg: T)(implicit runtime: SparkRuntime): T
  */
-abstract class XTransformer[T] extends AbstractXStep[T](1, 1) with SingleInput[T] with SingleOutput[T] {
+abstract class Transformer[T] extends AbstractStep[T](1, 1) with SingleInput[T] with SingleOutput[T] {
 
   protected def compute(args: Seq[T], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): T =
     compute(args(0), limit)(runtime)
@@ -272,8 +273,8 @@ abstract class XTransformer[T] extends AbstractXStep[T](1, 1) with SingleInput[T
  * +computeSchema(inSchema: Option[StructType], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
  * +compute(arg: T, index: Int)(implicit runtime: SparkRuntime): T
  */
-abstract class XSplitter[T](override val outputCount: Int)
-  extends AbstractXStep[T](1, outputCount) with SingleInput[T] with MultiOutput[T] {
+abstract class Splitter[T](override val outputCount: Int)
+  extends AbstractStep[T](1, outputCount) with SingleInput[T] with MultiOutput[T] {
 
   protected def compute(args: Seq[T], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): T =
     compute(args(0), index, limit)(runtime)
@@ -292,8 +293,8 @@ abstract class XSplitter[T](override val outputCount: Int)
  * +computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): Option[StructType]
  * +compute(args: Seq[T])(implicit runtime: SparkRuntime): T
  */
-abstract class XMerger[T](override val inputCount: Int)
-  extends AbstractXStep[T](inputCount, 1) with MultiInput[T] with SingleOutput[T] {
+abstract class Merger[T](override val inputCount: Int)
+  extends AbstractStep[T](inputCount, 1) with MultiInput[T] with SingleOutput[T] {
 
   protected def compute(args: Seq[T], index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): T =
     compute(args, limit)(runtime)
@@ -312,11 +313,18 @@ abstract class XMerger[T](override val inputCount: Int)
  * +computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
  * +compute(args: Seq[T], index: Int)(implicit runtime: SparkRuntime): T
  */
-abstract class XModule[T](override val inputCount: Int, override val outputCount: Int)
-  extends AbstractXStep[T](inputCount, outputCount) with MultiInput[T] with MultiOutput[T] {
+abstract class Module[T](override val inputCount: Int, override val outputCount: Int)
+  extends AbstractStep[T](inputCount, outputCount) with MultiInput[T] with MultiOutput[T] {
 
   protected def computeSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
     computeSchema(inputSchemas(runtime), index)(runtime)
 
   protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): StructType
+}
+
+/**
+ * XML serialization.
+ */
+trait XmlExport {
+  def toXml: Elem
 }

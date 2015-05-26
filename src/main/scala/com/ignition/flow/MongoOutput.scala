@@ -13,7 +13,7 @@ import com.mongodb.casbah.commons.MongoDBObject
  *
  * @author Vlad Orzhekhovskiy
  */
-case class MongoOutput(db: String, coll: String) extends Transformer {
+case class MongoOutput(db: String, coll: String) extends FlowTransformer {
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val db = this.db

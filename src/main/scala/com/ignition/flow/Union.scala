@@ -10,7 +10,7 @@ import com.ignition.SparkRuntime
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Union() extends Merger(Union.MAX_INPUTS) {
+case class Union() extends FlowMerger(Union.MAX_INPUTS) {
   
   override val allInputsRequired = false
 

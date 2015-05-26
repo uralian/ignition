@@ -76,7 +76,8 @@ object HttpMethod extends Enumeration {
  */
 case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[String] = None,
   headers: Map[String, String] = Map.empty, resultField: Option[String] = Some("result"),
-  statusField: Option[String] = Some("status"), headersField: Option[String] = None) extends Transformer {
+  statusField: Option[String] = Some("status"), headersField: Option[String] = None) 
+  extends FlowTransformer {
 
   def body(body: String): RestClient = copy(body = Some(body))
   def headers(headers: Map[String, String]) = copy(headers = headers)

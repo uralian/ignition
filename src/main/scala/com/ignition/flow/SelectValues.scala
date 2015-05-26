@@ -101,7 +101,7 @@ object SelectAction {
  *
  * @author Vlad Orzhekhovskiy
  */
-case class SelectValues(actions: Iterable[SelectAction]) extends Transformer {
+case class SelectValues(actions: Iterable[SelectAction]) extends FlowTransformer {
   import SelectAction._
 
   def retain(names: String*) = copy(actions = actions.toSeq :+ Retain(names.toSeq))

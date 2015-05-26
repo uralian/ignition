@@ -10,7 +10,7 @@ import com.ignition.SparkRuntime
  *
  * @author Vlad Orzhekhovskiy
  */
-case class SetVariables(vars: Map[String, Any]) extends Transformer {
+case class SetVariables(vars: Map[String, Any]) extends FlowTransformer {
   
   override val allInputsRequired: Boolean = false
 

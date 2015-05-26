@@ -146,7 +146,7 @@ case class FieldLiteral(name: String) {
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Filter(condition: RowCondition) extends Splitter(2) {
+case class Filter(condition: RowCondition) extends FlowSplitter(2) {
   def and(c: RowCondition) = copy(condition = this.condition.and(c))
   def or(c: RowCondition) = copy(condition = this.condition.or(c))
 

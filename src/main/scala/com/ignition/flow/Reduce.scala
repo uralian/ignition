@@ -93,7 +93,7 @@ import ReduceOp._
  * @author Vlad Orzhekhovskiy
  */
 case class Reduce(reducers: Iterable[(String, ReduceOp)], groupFields: Iterable[String] = Nil)
-  extends Transformer with PairFunctions {
+  extends FlowTransformer with PairFunctions {
 
   def groupBy(fields: String*) = copy(groupFields = fields)
 

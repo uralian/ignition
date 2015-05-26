@@ -26,23 +26,23 @@ class StepSpec extends FlowSpecification with ScalaCheck with SparkTestHelper {
   def throwRT() = throw new RuntimeException("runtime")
   def throwWF() = throw ExecutionException("workflow")
 
-  abstract class ProducerAdapter extends Producer {
+  abstract class ProducerAdapter extends FlowProducer {
     protected def computeSchema(implicit runtime: SparkRuntime) = schema
   }
 
-  abstract class TransformerAdapter extends Transformer {
+  abstract class TransformerAdapter extends FlowTransformer {
     protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime) = schema
   }
 
-  abstract class SplitterAdapter extends Splitter(2) {
+  abstract class SplitterAdapter extends FlowSplitter(2) {
     protected def computeSchema(inSchema: StructType, index: Int)(implicit runtime: SparkRuntime) = schema
   }
 
-  abstract class MergerAdapter extends Merger(2) {
+  abstract class MergerAdapter extends FlowMerger(2) {
     protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime) = schema
   }
 
-  abstract class ModuleAdapter extends Module(2, 3) {
+  abstract class ModuleAdapter extends FlowModule(2, 3) {
     protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime) = schema
   }
 

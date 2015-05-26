@@ -3,20 +3,19 @@ package com.ignition.flow
 import scala.xml.{ Elem, Node }
 import scala.xml.NodeSeq.seqToNodeSeq
 
-import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
+import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.{ StructField, StructType }
 
+import com.ignition.{ SparkRuntime, XmlExport }
 import com.ignition.types.TypeUtils.{ typeForName, typeForValue, valueToXml, xmlToValue }
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText }
-
-import com.ignition.SparkRuntime
 
 /**
  * Static data grid input.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DataGrid(schema: StructType, rows: Seq[Row]) extends Producer with XmlExport {
+case class DataGrid(schema: StructType, rows: Seq[Row]) extends FlowProducer with XmlExport {
   import DataGrid._
 
   validate
@@ -27,7 +26,7 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends Producer with Xm
 
   def rows(tuples: Any*): DataGrid = {
     val rs = tuples map {
-      case p : Product => Row.fromTuple(p)
+      case p: Product => Row.fromTuple(p)
       case v => Row(v)
     }
     copy(rows = rs)
@@ -40,7 +39,7 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends Producer with Xm
   }
 
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
-  
+
   def toXml: Elem =
     <datagrid>
       { schemaToXml(schema) }

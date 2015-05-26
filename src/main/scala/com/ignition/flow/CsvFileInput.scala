@@ -14,7 +14,7 @@ import com.ignition.SparkRuntime
  *
  * @author Vlad Orzhekhovskiy
  */
-case class CsvFileInput(path: String, separator: String, schema: StructType) extends Producer {
+case class CsvFileInput(path: String, separator: String, schema: StructType) extends FlowProducer {
   import CsvFileInput._
 
   def separator(sep: String) = copy(separator = sep)

@@ -14,7 +14,7 @@ import com.ignition.SparkRuntime
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Intersection() extends Merger(Intersection.MAX_INPUTS) {
+case class Intersection() extends FlowMerger(Intersection.MAX_INPUTS) {
 
   override val allInputsRequired = false
 

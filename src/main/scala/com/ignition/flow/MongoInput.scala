@@ -33,7 +33,7 @@ case class SortOrder(field: String, ascending: Boolean = true)
  */
 case class MongoInput(db: String, coll: String, schema: StructType,
   filter: Map[String, Any] = Map.empty, sort: Iterable[SortOrder] = List.empty,
-  page: Page = Page.default) extends Producer {
+  page: Page = Page.default) extends FlowProducer {
 
   import MongoUtils._
 

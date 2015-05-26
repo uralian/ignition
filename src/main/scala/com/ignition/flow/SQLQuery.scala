@@ -2,11 +2,11 @@ package com.ignition.flow
 
 import scala.xml.{ Elem, Node }
 
-import org.apache.spark.sql.{ DataFrame, SQLContext }
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 
-import com.ignition.util.XmlUtils._
-import com.ignition.SparkRuntime
+import com.ignition.{ SparkRuntime, XmlExport }
+import com.ignition.util.XmlUtils.RichNodeSeq
 
 /**
  * Executes an SQL statement against the inputs. Each input is injected as a table
@@ -14,7 +14,7 @@ import com.ignition.SparkRuntime
  *
  * @author Vlad Orzhekhovskiy
  */
-case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlExport {
+case class SQLQuery(query: String) extends FlowMerger(SQLQuery.MAX_INPUTS) with XmlExport {
 
   override val allInputsRequired = false
 
@@ -27,7 +27,7 @@ case class SQLQuery(query: String) extends Merger(SQLQuery.MAX_INPUTS) with XmlE
     }
 
     val query = (injectEnvironment _ andThen injectVariables)(this.query)
-    
+
     val df = ctx.sql(query)
     optLimit(df, limit)
   }

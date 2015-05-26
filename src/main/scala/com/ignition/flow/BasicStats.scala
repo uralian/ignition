@@ -34,7 +34,7 @@ import BasicAggregator._
  * @author Vlad Orzhekhovskiy
  */
 case class BasicStats(fields: Map[String, Set[BasicAggregator]] = Map.empty,
-  groupFields: Iterable[String] = Nil) extends Transformer {
+  groupFields: Iterable[String] = Nil) extends FlowTransformer {
 
   def groupBy(fields: String*) = copy(groupFields = fields)
   def aggr(name: String, functions: BasicAggregator*) =

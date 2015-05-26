@@ -1,19 +1,19 @@
 package com.ignition.flow
 
-import scala.xml.{ Elem, Node }
+import scala.xml.{Elem, Node}
 
-import org.apache.spark.sql._
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types._
 
-import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optToOptText }
-import com.ignition.SparkRuntime
+import com.ignition.{SparkRuntime, XmlExport}
+import com.ignition.util.XmlUtils.{RichNodeSeq, booleanToText}
 
 /**
  * Prints out data on the standard output.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DebugOutput(names: Boolean = true, types: Boolean = false) extends Transformer with XmlExport {
+case class DebugOutput(names: Boolean = true, types: Boolean = false) extends FlowTransformer with XmlExport {
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val schema = arg.schema
@@ -62,10 +62,10 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false) extends Tr
 
     arg
   }
-  
+
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
 
-  def toXml: Elem = <debug-output names={ names } types={ types } />
+  def toXml: Elem = <debug-output names={ names } types={ types }/>
 
   private def calculateWidths(schema: StructType) = schema.fieldNames map { name =>
     math.max(math.min(name.length, 15), 10)

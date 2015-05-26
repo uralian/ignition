@@ -7,7 +7,7 @@ import org.apache.spark.sql.{ DataFrame, SQLContext, Row }
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.rdd.RDD
 
-import com.ignition.flow.Transformer
+import com.ignition.flow.FlowTransformer
 import com.ignition.types._
 import com.ignition.util.ConfigUtils._
 import com.ignition.SparkRuntime
@@ -68,7 +68,7 @@ case class RegressionConfig(
  */
 case class Regression(labelField: String, dataFields: Iterable[String] = Nil,
   groupFields: Iterable[String] = Nil, config: RegressionConfig = RegressionConfig())
-  extends Transformer with MLFunctions {
+  extends FlowTransformer with MLFunctions {
 
   import Regression._
 

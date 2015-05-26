@@ -3,12 +3,12 @@ package com.ignition.flow
 import org.apache.spark.sql.{ DataFrame, SQLContext }
 import org.apache.spark.sql.types.StructType
 import com.ignition.SparkRuntime
-import com.ignition.XStep
+import com.ignition.Step
 
 /**
  * Flow input data.
  */
-case class FlowInput(schema: Seq[StructType]) extends Module(schema.size, schema.size) {
+case class FlowInput(schema: Seq[StructType]) extends FlowModule(schema.size, schema.size) {
 
   override val allInputsRequired: Boolean = false
 
@@ -24,7 +24,7 @@ case class FlowInput(schema: Seq[StructType]) extends Module(schema.size, schema
 /**
  * Flow output data.
  */
-case class FlowOutput(override val outputCount: Int) extends Module(outputCount, outputCount) {
+case class FlowOutput(override val outputCount: Int) extends FlowModule(outputCount, outputCount) {
 
   protected def compute(args: Seq[DataFrame], index: Int,
     limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = args(index)
@@ -38,9 +38,9 @@ case class FlowOutput(override val outputCount: Int) extends Module(outputCount,
 /**
  * Sub-flow.
  */
-case class SubFlow(input: FlowInput, output: FlowOutput) extends Module(input.inputCount, output.outputCount) {
+case class SubFlow(input: FlowInput, output: FlowOutput) extends FlowModule(input.inputCount, output.outputCount) {
 
-  override def connectFrom(inIndex: Int, step: XStep[DataFrame], outIndex: Int): this.type = {
+  override def connectFrom(inIndex: Int, step: Step[DataFrame], outIndex: Int): this.type = {
     input.connectFrom(inIndex, step, outIndex)
     this
   }

@@ -19,7 +19,7 @@ case class FieldFormat(name: String, format: String = "%s")
  * @author Vlad Orzhekhovskiy
  */
 case class TextFileOutput(filename: String, formats: Iterable[FieldFormat],
-  separator: String = ",", outputHeader: Boolean = true) extends Transformer {
+  separator: String = ",", outputHeader: Boolean = true) extends FlowTransformer {
 
   def separator(sep: String) = copy(separator = sep)
   def header(out: Boolean) = copy(outputHeader = out)

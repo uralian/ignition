@@ -47,7 +47,7 @@ trait RowAggregator[U] extends Serializable {
  * the data supplied row aggregator to aggregate each partition.
  */
 abstract class AbstractAggregate[U: ClassTag](aggregator: RowAggregator[U], groupFields: Iterable[String] = Nil)
-  extends Transformer with PairFunctions {
+  extends FlowTransformer with PairFunctions {
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val groupFields = this.groupFields

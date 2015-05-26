@@ -1,22 +1,13 @@
 package com.ignition.flow
 
-import scala.xml.Elem
-
 import org.apache.spark.sql.DataFrame
 
 import com.ignition._
 
 /**
- * XML serialization.
- */
-trait XmlExport {
-  def toXml: Elem
-}
-
-/**
  * Workflow step that emits DataFrame as the output.
  */
-trait FlowStep extends XStep[DataFrame] {
+trait FlowStep extends Step[DataFrame] {
 
   /**
    * Returns the implicit SQLContext.
@@ -36,15 +27,15 @@ trait FlowStep extends XStep[DataFrame] {
 
 /* step templates */
 
-abstract class Producer extends XProducer[DataFrame] with FlowStep
+abstract class FlowProducer extends Producer[DataFrame] with FlowStep
 
-abstract class Transformer extends XTransformer[DataFrame] with FlowStep
+abstract class FlowTransformer extends Transformer[DataFrame] with FlowStep
 
-abstract class Splitter(outputCount: Int)
-  extends XSplitter[DataFrame](outputCount) with FlowStep
+abstract class FlowSplitter(outputCount: Int)
+  extends Splitter[DataFrame](outputCount) with FlowStep
 
-abstract class Merger(inputCount: Int)
-  extends XMerger[DataFrame](inputCount) with FlowStep
+abstract class FlowMerger(inputCount: Int)
+  extends Merger[DataFrame](inputCount) with FlowStep
 
-abstract class Module(inputCount: Int, outputCount: Int)
-  extends XModule[DataFrame](inputCount, outputCount) with FlowStep
+abstract class FlowModule(inputCount: Int, outputCount: Int)
+  extends Module[DataFrame](inputCount, outputCount) with FlowStep

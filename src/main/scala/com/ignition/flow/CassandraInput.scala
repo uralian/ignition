@@ -2,18 +2,17 @@ package com.ignition.flow
 
 import java.sql.Date
 
-import scala.xml.{ Elem, Node }
+import scala.xml.{Elem, Node}
 import scala.xml.NodeSeq.seqToNodeSeq
 
-import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.types._
 
-import com.datastax.spark.connector.{ CassandraRow, toSparkContextFunctions }
+import com.datastax.spark.connector.{CassandraRow, toSparkContextFunctions}
 import com.datastax.spark.connector.types.TypeConverter
-import com.ignition.types.TypeUtils.{ typeForName, typeForValue, valueToXml, xmlToValue }
+import com.ignition.{SparkRuntime, XmlExport}
+import com.ignition.types.TypeUtils.{typeForName, typeForValue, valueToXml, xmlToValue}
 import com.ignition.util.XmlUtils.RichNodeSeq
-
-import com.ignition.SparkRuntime
 
 /**
  * CQL WHERE clause.
@@ -49,8 +48,8 @@ object Where {
  * @author Vlad Orzhekhovskiy
  */
 case class CassandraInput(keyspace: String, table: String, schema: StructType,
-  where: Option[Where]) extends Producer with XmlExport {
-  
+  where: Option[Where]) extends FlowProducer with XmlExport {
+
   def where(filter: Where) = copy(where = Some(filter))
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {

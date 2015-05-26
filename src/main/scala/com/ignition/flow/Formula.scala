@@ -13,7 +13,7 @@ import com.ignition.SparkRuntime
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) extends Transformer {
+case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) extends FlowTransformer {
 
   def addField(name: String, expr: RowExpression[_ <: DataType]) = copy(fields = fields.toSeq :+ (name -> expr))
 
