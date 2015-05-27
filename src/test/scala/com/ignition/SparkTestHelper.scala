@@ -1,12 +1,13 @@
 package com.ignition
 
 import scala.concurrent.blocking
+
 import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
+
 import com.ignition.util.ConfigUtils
-import org.apache.spark.streaming.StreamingContext
-import java.util.concurrent.TimeUnit
-import org.apache.spark.streaming.Milliseconds
+import com.ignition.util.ConfigUtils.RichConfig
 
 /**
  * Spark test helper.
@@ -15,14 +16,13 @@ import org.apache.spark.streaming.Milliseconds
  */
 trait SparkTestHelper extends BeforeAllAfterAll {
 
-  protected def startStreaming: Boolean = false
-
   private val config = ConfigUtils.getConfig("spark.test")
 
   protected def sparkConf = new SparkConf(true).
     set("spark.cassandra.connection.host", CassandraBaseTestHelper.host).
     set("spark.cassandra.connection.native.port", CassandraBaseTestHelper.port.toString).
-    set("spark.cassandra.connection.rpc.port", CassandraBaseTestHelper.thriftPort.toString)
+    set("spark.cassandra.connection.rpc.port", CassandraBaseTestHelper.thriftPort.toString).
+    set("spark.streaming.clock", "org.apache.spark.util.ManualClock")
 
   val masterUrl = config.getString("master-url")
   val appName = config.getString("app-name")
@@ -31,10 +31,10 @@ trait SparkTestHelper extends BeforeAllAfterAll {
   implicit protected val ctx = new SQLContext(sc)
   import ctx.implicits._
 
+  val batchDuration = config.getTimeInterval("streaming.batch-duration")
   implicit protected val ssc = {
     val cfg = config.getConfig("streaming")
-    val ms = cfg.getDuration("batch-duration", TimeUnit.MILLISECONDS)
-    val ssc = new StreamingContext(sc, Milliseconds(ms))
+    val ssc = new StreamingContext(sc, Milliseconds(batchDuration.getMillis))
     val checkpointDir = cfg.getString("checkpoint-dir")
     ssc.checkpoint(checkpointDir)
     ssc
@@ -43,17 +43,10 @@ trait SparkTestHelper extends BeforeAllAfterAll {
   implicit protected val rt = new DefaultSparkRuntime(ctx, ssc)
 
   protected def clearContext = blocking {
-    if (startStreaming) {
-      val ms = config.getDuration("streaming.termination-timeout", TimeUnit.MILLISECONDS)
-      ssc.stop(false, true)
-      ssc.awaitTerminationOrTimeout(ms)
-    }
     sc.stop
     System.clearProperty("spark.driver.port")
     System.clearProperty("spark.master.port")
   }
-
-  override def beforeAll = if (startStreaming) ssc.start
 
   override def afterAll = clearContext
 }
