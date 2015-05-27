@@ -1,10 +1,12 @@
 package com.ignition
 
-import org.apache.spark.{ SparkConf, SparkContext }
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.SQLContext
+import java.util.concurrent.TimeUnit
 
-import com.ignition.flow.DataFlow
+import org.apache.spark.{ SparkConf, SparkContext }
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
+
+import com.ignition.frame.DataFlow
 import com.ignition.util.ConfigUtils
 
 /**
@@ -36,7 +38,15 @@ object SparkPlug {
 
   implicit protected lazy val sc = new SparkContext(sparkConf)
   implicit protected lazy val ctx = new SQLContext(sc)
-  implicit protected lazy val runtime = new SparkRuntime(ctx)
+  implicit protected lazy val ssc = {
+    val streamCfg = ConfigUtils.getConfig("spark.streaming")
+    val ms = streamCfg.getDuration("batch-duration", TimeUnit.MILLISECONDS)
+    val ssc = new StreamingContext(sc, Milliseconds(ms))
+    val checkpointDir = streamCfg.getString("checkpoint-dir")
+    ssc.checkpoint(checkpointDir)
+    ssc
+  }
+  implicit protected lazy val runtime = new DefaultSparkRuntime(ctx, ssc)
 
   def runDataFlow(flow: DataFlow,
     vars: Map[String, Any] = Map.empty,

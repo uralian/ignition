@@ -1,9 +1,13 @@
 package com.ignition
 
 import scala.concurrent.blocking
+
 import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
+
 import com.ignition.util.ConfigUtils
+import com.ignition.util.ConfigUtils.RichConfig
 
 /**
  * Spark test helper.
@@ -17,7 +21,8 @@ trait SparkTestHelper extends BeforeAllAfterAll {
   protected def sparkConf = new SparkConf(true).
     set("spark.cassandra.connection.host", CassandraBaseTestHelper.host).
     set("spark.cassandra.connection.native.port", CassandraBaseTestHelper.port.toString).
-    set("spark.cassandra.connection.rpc.port", CassandraBaseTestHelper.thriftPort.toString)
+    set("spark.cassandra.connection.rpc.port", CassandraBaseTestHelper.thriftPort.toString).
+    set("spark.streaming.clock", "org.apache.spark.util.ManualClock")
 
   val masterUrl = config.getString("master-url")
   val appName = config.getString("app-name")
@@ -26,7 +31,16 @@ trait SparkTestHelper extends BeforeAllAfterAll {
   implicit protected val ctx = new SQLContext(sc)
   import ctx.implicits._
 
-  implicit protected val rt = new SparkRuntime(ctx)
+  val batchDuration = config.getTimeInterval("streaming.batch-duration")
+  implicit protected val ssc = {
+    val cfg = config.getConfig("streaming")
+    val ssc = new StreamingContext(sc, Milliseconds(batchDuration.getMillis))
+    val checkpointDir = cfg.getString("checkpoint-dir")
+    ssc.checkpoint(checkpointDir)
+    ssc
+  }
+
+  implicit protected val rt = new DefaultSparkRuntime(ctx, ssc)
 
   protected def clearContext = blocking {
     sc.stop
