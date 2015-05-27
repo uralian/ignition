@@ -2,11 +2,11 @@ package com.ignition
 
 import java.util.concurrent.TimeUnit
 
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.streaming.{Milliseconds, StreamingContext}
+import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
 
-import com.ignition.flow.DataFlow
+import com.ignition.frame.DataFlow
 import com.ignition.util.ConfigUtils
 
 /**

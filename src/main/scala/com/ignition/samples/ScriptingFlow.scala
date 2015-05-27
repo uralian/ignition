@@ -4,9 +4,8 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.types.Decimal
 
 import com.ignition.SparkPlug
-import com.ignition.flow._
 import com.ignition.types._
-import com.ignition.flow._
+import com.ignition.frame._
 import com.ignition.script._
 
 object ScriptingFlow extends App {

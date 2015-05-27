@@ -3,9 +3,8 @@ package com.ignition.samples
 import com.eaio.uuid.UUID
 
 import com.ignition.SparkPlug
-import com.ignition.flow._
 import com.ignition.types._
-import com.ignition.flow._
+import com.ignition.frame._
 
 object UnionFlow extends App {
 

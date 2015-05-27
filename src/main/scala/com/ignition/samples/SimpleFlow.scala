@@ -3,12 +3,11 @@ package com.ignition.samples
 import com.eaio.uuid.UUID
 
 import com.ignition.SparkPlug
-import com.ignition.flow._
+import com.ignition.frame._
 import com.ignition.types._
-import com.ignition.flow._
 
 object SimpleFlow extends App {
-  import com.ignition.flow.BasicAggregator._
+  import BasicAggregator._
 
   val flow = DataFlow {
     val grid1 = DataGrid(string("id") ~ string("name") ~ int("weight") ~ date("dob")) rows (

@@ -1,12 +1,11 @@
 package com.ignition.samples
 
 import com.ignition.SparkPlug
-import com.ignition.flow._
 import com.ignition.types._
-import com.ignition.flow._
+import com.ignition.frame._
 
 object ReduceFlow extends App {
-  import com.ignition.flow.ReduceOp._
+  import ReduceOp._
 
   val flow = DataFlow {
     val schema = string("id") ~ int("hour") ~ string("task") ~ int("points")
