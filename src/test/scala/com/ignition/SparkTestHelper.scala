@@ -32,15 +32,17 @@ trait SparkTestHelper extends BeforeAllAfterAll {
   import ctx.implicits._
 
   val batchDuration = config.getTimeInterval("streaming.batch-duration")
-  implicit protected val ssc = {
+  implicit protected val ssc = createStreamingContext
+
+  implicit protected val rt = new DefaultSparkRuntime(ctx, ssc)
+
+  protected def createStreamingContext: StreamingContext = {
     val cfg = config.getConfig("streaming")
     val ssc = new StreamingContext(sc, Milliseconds(batchDuration.getMillis))
     val checkpointDir = cfg.getString("checkpoint-dir")
     ssc.checkpoint(checkpointDir)
     ssc
   }
-
-  implicit protected val rt = new DefaultSparkRuntime(ctx, ssc)
 
   protected def clearContext = blocking {
     sc.stop
