@@ -6,6 +6,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.Row
 import org.apache.spark.rdd.RDD
 import scala.collection.mutable.Queue
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 
 /**
  * Creates a stream from a static data set, passing one RDD at a time.
@@ -13,6 +14,12 @@ import scala.collection.mutable.Queue
  * @author Vlad Orzhekhovskiy
  */
 case class QueueInput(schema: StructType, data: List[Seq[Row]] = Nil) extends StreamProducer {
+
+  val dataWithSchema = data map { rows =>
+    rows map { row =>
+      new GenericRowWithSchema(row.toSeq.toArray, schema).asInstanceOf[Row]
+    }
+  }
 
   def addBatch(rdd: Seq[Row]) = copy(data = this.data :+ rdd)
 
@@ -24,8 +31,8 @@ case class QueueInput(schema: StructType, data: List[Seq[Row]] = Nil) extends St
     copy(data = this.data :+ rs)
   }
 
-  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DStream[Row] = {
-    val rdds = data map (sc.parallelize(_))
+  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataStream = {
+    val rdds = dataWithSchema map (sc.parallelize(_))
 
     val queue = Queue(rdds: _*)
     ssc.queueStream(queue, true)

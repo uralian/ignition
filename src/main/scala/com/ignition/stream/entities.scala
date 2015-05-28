@@ -5,9 +5,9 @@ import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.sql.Row
 
 /**
- * Workflow step that emits DStream[Row] as the output.
+ * Workflow step that emits DataStream as the output.
  */
-trait StreamStep extends Step[DStream[Row]] {
+trait StreamStep extends Step[DataStream] {
 
   /**
    * Returns the implicit SparkContext.
@@ -22,15 +22,15 @@ trait StreamStep extends Step[DStream[Row]] {
 
 /* step templates */
 
-abstract class StreamProducer extends Producer[DStream[Row]] with StreamStep
+abstract class StreamProducer extends Producer[DataStream] with StreamStep
 
-abstract class StreamTransformer extends Transformer[DStream[Row]] with StreamStep
+abstract class StreamTransformer extends Transformer[DataStream] with StreamStep
 
 abstract class StreamSplitter(outputCount: Int)
-  extends Splitter[DStream[Row]](outputCount) with StreamStep
+  extends Splitter[DataStream](outputCount) with StreamStep
 
 abstract class StreamMerger(inputCount: Int)
-  extends Merger[DStream[Row]](inputCount) with StreamStep
+  extends Merger[DataStream](inputCount) with StreamStep
 
 abstract class StreamModule(inputCount: Int, outputCount: Int)
-  extends Module[DStream[Row]](inputCount, outputCount) with StreamStep
+  extends Module[DataStream](inputCount, outputCount) with StreamStep
