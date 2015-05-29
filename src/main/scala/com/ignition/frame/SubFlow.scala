@@ -8,10 +8,10 @@ import com.ignition.{ SparkRuntime, Step }
 /**
  * Flow input data.
  */
-case class FlowInput(schema: Seq[StructType]) extends FrameModule(schema.size, schema.size) {
+case class FlowInput(schema: StructType*) extends FrameModule(schema.size, schema.size) {
 
   override val allInputsRequired: Boolean = false
-
+  
   protected def compute(args: Seq[DataFrame], index: Int,
     limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = args(index)
 
@@ -58,4 +58,23 @@ case class SubFlow(input: FlowInput, output: FlowOutput) extends FrameModule(inp
   protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): StructType = ???
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
+}
+
+/**
+ * SubFlow companion object.
+ */
+object SubFlow {
+  def apply(ports: (FlowInput, FlowOutput)): SubFlow = apply(ports._1, ports._2)
+
+  def apply(outputCount: Int, schemas: StructType*) = new SubFlowBuilder(outputCount, schemas: _*)
+
+  class SubFlowBuilder(outputCount: Int, schemas: StructType*) {
+    val input = FlowInput(schemas: _*)
+    val output = FlowOutput(outputCount)
+
+    def apply(body: (FlowInput,FlowOutput) => Unit) = {
+      body(input, output)
+      SubFlow(input, output)
+    }
+  }
 }

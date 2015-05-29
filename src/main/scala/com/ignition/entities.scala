@@ -116,23 +116,37 @@ abstract class AbstractStep[T](val inputCount: Int, val outputCount: Int) extend
   protected def unserializable = throw new java.io.IOException("Object should not be serialized")
 }
 
+trait ConnectableTo[T]
+
 /**
  * A step with multiple output ports.
  */
 trait MultiOutput[T] { self: AbstractStep[T] =>
 
   /**
-   * Connects the output ports to multiple single input port nodes:
-   * s to (a, b, c)
+   * Connect the output port 0 to a single-input step:
+   * m to a
+   * m --> a
+   */
+  def to(step: SingleInput[T]): step.type = out(0) to step
+  def -->(step: SingleInput[T]): step.type = out(0) --> step
+
+  /**
+   * Connect the output port 0 to an input port of a multi-input step:
+   * m to a.in(1)
+   * m --> a.in(1)
+   */
+  def to(in: MultiInput[T]#InPort): in.outer.type = out(0) to in
+  def -->(in: MultiInput[T]#InPort): in.outer.type = out(0) --> in 
+
+  /**
+   * Connects the output ports 0, 1, 2... to multiple single-input steps:
+   * m to (a, b, c)
+   * m --> (a, b, c)
    */
   def to(tgtSteps: SingleInput[T]*): Unit = tgtSteps.zipWithIndex foreach {
     case (step: SingleInput[T], index) => step.from(this, index)
   }
-
-  /**
-   * Connects the output ports to multiple single input port nodes:
-   * s --> (a, b, c)
-   */
   def -->(tgtSteps: SingleInput[T]*): Unit = to(tgtSteps: _*)
 
   /**
@@ -146,14 +160,41 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
   protected[ignition] case class OutPort(outIndex: Int) {
     val outer: self.type = self
 
+    /**
+     * Connects this output port to a single-input step:
+     * m.out(1) to a
+     * m.out(1) --> a
+     */
     def to(step: SingleInput[T]): step.type = step.from(outer, outIndex)
     def -->(step: SingleInput[T]): step.type = to(step)
 
+    /**
+     * Connects this output port to the specified input port of a multi-input step:
+     * m.out(1) to a.in(0)
+     * m.out(1) --> a.in(0)
+     */
+    def to(in: MultiInput[T]#InPort): in.outer.type = in.outer.from(in.inIndex, outer, outIndex)
+    def -->(in: MultiInput[T]#InPort): in.outer.type = to(in)
+
+    /**
+     * Connects this output port to input port 0 of a multi-input step:
+     * m.out(1) to m2
+     * m.out(1) --> m2
+     */
     def to(step: MultiInput[T]): step.type = step.from(0, outer, outIndex)
     def -->(step: MultiInput[T]): step.type = to(step)
 
-    def to(in: MultiInput[T]#InPort): Unit = in.outer.from(in.inIndex, outer, outIndex)
-    def -->(in: MultiInput[T]#InPort): Unit = to(in)
+    /**
+     * Connects this output port to a mixture of targets, where each target is either
+     * a single-input step or an input port of a multi-input step:
+     * m.out(1) to (a, b.in(1), c)
+     * m.out(1) --> (a.in(0), a.in(1), b)
+     */
+    def to(targets: ConnectableTo[T]*): Unit = targets foreach {
+      case step: SingleInput[T] => step.from(outer, outIndex)
+      case in: MultiInput[T]#InPort => in.outer.from(in.inIndex, outer, outIndex)
+    }
+    def -->(targets: ConnectableTo[T]*): Unit = to(targets: _*)
   }
 }
 
@@ -196,13 +237,15 @@ trait MultiInput[T] { self: AbstractStep[T] =>
   /**
    * The input port under the specified index.
    */
-  protected[ignition] case class InPort(inIndex: Int) { val outer: self.type = self }
+  protected[ignition] case class InPort(inIndex: Int) extends ConnectableTo[T] {
+    val outer: self.type = self
+  }
 }
 
 /**
  * A step with a single input port.
  */
-trait SingleInput[T] { self: AbstractStep[T] =>
+trait SingleInput[T] extends ConnectableTo[T] { self: AbstractStep[T] =>
 
   private[ignition] def from(step: Step[T] with MultiOutput[T], outIndex: Int): this.type = connectFrom(0, step, outIndex)
 
