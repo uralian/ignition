@@ -32,10 +32,8 @@ case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) with
     optLimit(df, limit)
   }
 
-  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType = {
-    val df = compute(inputs(Some(1)), Some(1))(runtime)
-    df.schema
-  }
+  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
+    computedSchema(0)
 
   def toXml: Elem = <sql>{ query }</sql>
 

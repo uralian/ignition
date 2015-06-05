@@ -126,9 +126,8 @@ case class Reduce(reducers: Iterable[(String, ReduceOp)], groupFields: Iterable[
     ctx.createDataFrame(targetRDD, targetSchema)
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = {
-    compute(input(Some(1)), Some(1)) schema
-  }
+  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
+    computedSchema(0)
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

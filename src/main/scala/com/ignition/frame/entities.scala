@@ -23,6 +23,13 @@ trait FrameStep extends Step[DataFrame] {
    * Optionally limits the data frame.
    */
   protected def optLimit(df: DataFrame, limit: Option[Int]) = limit map df.limit getOrElse df
+
+  /**
+   * Calls output() passing the limit of 1 and returns the DataFrame schema.
+   * This method should be used by subclasses as an easy way to return the schema.
+   */
+  protected def computedSchema(index: Int)(implicit runtime: SparkRuntime) =
+    output(index, Some(1)).schema
 }
 
 /* step templates */
