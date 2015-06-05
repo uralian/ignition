@@ -116,6 +116,9 @@ abstract class AbstractStep[T](val inputCount: Int, val outputCount: Int) extend
   protected def unserializable = throw new java.io.IOException("Object should not be serialized")
 }
 
+/**
+ * A single-input step or an input port of a multi-input step.
+ */
 trait ConnectableTo[T]
 
 /**
@@ -141,13 +144,14 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
 
   /**
    * Connects the output ports 0, 1, 2... to multiple single-input steps:
-   * m to (a, b, c)
-   * m --> (a, b, c)
+   * m to (a, b, c.in(1))
+   * m --> (a, b, c.in(1))
    */
-  def to(tgtSteps: SingleInput[T]*): Unit = tgtSteps.zipWithIndex foreach {
+  def to(targets: ConnectableTo[T]*): Unit = targets.zipWithIndex foreach {
     case (step: SingleInput[T], index) => step.from(this, index)
+    case (in: MultiInput[T]#InPort, index) => in.outer.from(in.inIndex, this, index)
   }
-  def -->(tgtSteps: SingleInput[T]*): Unit = to(tgtSteps: _*)
+  def -->(targets: ConnectableTo[T]*): Unit = to(targets: _*)
 
   /**
    * Exposes the specified output port.
