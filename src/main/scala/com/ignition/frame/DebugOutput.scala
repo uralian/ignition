@@ -13,7 +13,10 @@ import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText }
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DebugOutput(names: Boolean = true, types: Boolean = false) extends FrameTransformer with XmlExport {
+case class DebugOutput(names: Boolean = true, types: Boolean = false, header: Option[String] = None)
+  extends FrameTransformer with XmlExport {
+  
+  def header(h: String) = copy(header = Some(h))
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val schema = arg.schema
@@ -26,6 +29,8 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false) extends Fr
       case (dt, width) => s"%${width}s".format(dt.typeName)
     } mkString ("|", "|", "|")
 
+    header foreach println
+    
     if (names || types) println(delimiter)
 
     if (names) {

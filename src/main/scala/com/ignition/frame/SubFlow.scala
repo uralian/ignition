@@ -8,15 +8,15 @@ import com.ignition.{ SparkRuntime, Step }
 /**
  * Flow input data.
  */
-case class FlowInput(schema: StructType*) extends FrameModule(schema.size, schema.size) {
+case class FlowInput(override val inputCount: Int) extends FrameModule(inputCount, inputCount) {
 
   override val allInputsRequired: Boolean = false
-  
+
   protected def compute(args: Seq[DataFrame], index: Int,
     limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = args(index)
 
   protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): StructType =
-    schema(index)
+    computedSchema(index)
 
   private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
@@ -64,17 +64,18 @@ case class SubFlow(input: FlowInput, output: FlowOutput) extends FrameModule(inp
  * SubFlow companion object.
  */
 object SubFlow {
-  def apply(ports: (FlowInput, FlowOutput)): SubFlow = apply(ports._1, ports._2)
 
-  def apply(outputCount: Int, schemas: StructType*) = new SubFlowBuilder(outputCount, schemas: _*)
-
-  class SubFlowBuilder(outputCount: Int, schemas: StructType*) {
-    val input = FlowInput(schemas: _*)
+  def apply(inputCount: Int, outputCount: Int)(body: (FlowInput, FlowOutput) => Unit): SubFlow = {
+    val input = FlowInput(inputCount)
     val output = FlowOutput(outputCount)
+    body(input, output)
+    SubFlow(input, output)
+  }
 
-    def apply(body: (FlowInput,FlowOutput) => Unit) = {
-      body(input, output)
-      SubFlow(input, output)
-    }
+  def apply(outputCount: Int)(body: (FlowOutput) => Unit): SubFlow = {
+    val input = FlowInput(0)
+    val output = FlowOutput(outputCount)
+    body(output)
+    SubFlow(input, output)
   }
 }
