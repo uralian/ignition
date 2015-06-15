@@ -38,8 +38,6 @@ case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) ext
     }
     StructType(inSchema ++ newFields)
   }
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

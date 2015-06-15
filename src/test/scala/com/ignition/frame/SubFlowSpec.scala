@@ -25,7 +25,7 @@ class SubFlowSpec extends FrameFlowSpecification {
     .addRow(javaDate(2010, 5, 10), Decimal(66.99), "jane")
     .addRow(javaDate(2010, 1, 3), Decimal(55.08), "john")
 
-  val fi = FlowInput(Array(customerSchema, orderSchema))
+  val fi = FlowInput(2)
   val fo = FlowOutput(3)
   fo.connectFrom(0, fi, 1)
   fo.connectFrom(1, fi, 0)

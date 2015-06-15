@@ -60,8 +60,6 @@ case class CassandraOutput(keyspace: String, table: String) extends FrameTransfo
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
 
   def toXml: Elem = <cassandra-output keyspace={ keyspace } table={ table }/>
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

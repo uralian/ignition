@@ -37,6 +37,5 @@ class SetVariablesSpec extends StreamFlowSpecification {
       rt.vars("a") === 99
       rt.vars("c") === "hello"
     }
-    "be unserializable" in assertUnserializable(SetVariables())
   }
 }

@@ -37,8 +37,6 @@ case class CsvFileInput(path: String, separator: String, schema: StructType) ext
   }
 
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

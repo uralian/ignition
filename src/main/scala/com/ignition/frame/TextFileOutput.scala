@@ -50,8 +50,6 @@ case class TextFileOutput(filename: String, formats: Iterable[FieldFormat],
   }
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

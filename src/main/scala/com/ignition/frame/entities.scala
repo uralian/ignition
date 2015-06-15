@@ -23,6 +23,13 @@ trait FrameStep extends Step[DataFrame] {
    * Optionally limits the data frame.
    */
   protected def optLimit(df: DataFrame, limit: Option[Int]) = limit map df.limit getOrElse df
+
+  /**
+   * Calls output() passing the limit of 1 and returns the DataFrame schema.
+   * This method should be used by subclasses as an easy way to return the schema.
+   */
+  protected def computedSchema(index: Int)(implicit runtime: SparkRuntime) =
+    output(index, Some(1)).schema
 }
 
 /* step templates */
@@ -31,11 +38,11 @@ abstract class FrameProducer extends Producer[DataFrame] with FrameStep
 
 abstract class FrameTransformer extends Transformer[DataFrame] with FrameStep
 
-abstract class FrameSplitter(outputCount: Int)
+abstract class FrameSplitter(override val outputCount: Int)
   extends Splitter[DataFrame](outputCount) with FrameStep
 
-abstract class FrameMerger(inputCount: Int)
+abstract class FrameMerger(override val inputCount: Int)
   extends Merger[DataFrame](inputCount) with FrameStep
 
-abstract class FrameModule(inputCount: Int, outputCount: Int)
+abstract class FrameModule(override val inputCount: Int, override val outputCount: Int)
   extends Module[DataFrame](inputCount, outputCount) with FrameStep

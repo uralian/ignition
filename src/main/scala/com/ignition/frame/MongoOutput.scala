@@ -34,6 +34,4 @@ case class MongoOutput(db: String, coll: String) extends FrameTransformer {
   }
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

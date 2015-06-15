@@ -89,8 +89,6 @@ case class CassandraInput(keyspace: String, table: String, schema: StructType,
         where map (_.toXml) toList
       }
     </cassandra-input>
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

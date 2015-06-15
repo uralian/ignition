@@ -205,6 +205,9 @@ class StepSpec extends FrameFlowSpecification with ScalaCheck with SparkTestHelp
       p1 to t1 to m2.in(0)
       t1.ins(0) === Tuple2(p1, 0)
       m2.ins(0) === Tuple2(t1, 0)
+      s2.out(1) --> (m2.in(1), t1)
+      m2.ins(1) === Tuple2(s2, 1)
+      t1.ins(0) === Tuple2(s2, 1)
     }
     "connect multi-port steps with |: and :|" in {
       s2 |: 1 --> 0 :| m2
@@ -222,6 +225,9 @@ class StepSpec extends FrameFlowSpecification with ScalaCheck with SparkTestHelp
       (t1, t2) --> m2
       m2.ins(0) === Tuple2(t1, 0)
       m2.ins(1) === Tuple2(t2, 0)
+      (s2.out(1), t1) --> m2
+      m2.ins(0) === Tuple2(s2, 1)
+      m2.ins(1) === Tuple2(t1, 0)
     }
     "connect muti-output steps with products" in {
       s2 to (t1, t2)
@@ -230,6 +236,9 @@ class StepSpec extends FrameFlowSpecification with ScalaCheck with SparkTestHelp
       s2 --> (t1, t2)
       t1.ins(0) === Tuple2(s2, 0)
       t2.ins(0) === Tuple2(s2, 1)
+      s2 --> (t1, m2.in(1))
+      t1.ins(0) === Tuple2(s2, 0)
+      m2.ins(1) === Tuple2(s2, 1)
     }
   }
 }

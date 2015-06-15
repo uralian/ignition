@@ -7,6 +7,8 @@ package com
  */
 package object ignition {
   
+  val STEPS_SERIALIZABLE = "step.serializable"
+
   /**
    * An extension for Int to be used for connecting an output port of an MultiOutput
    * step with |: notation like this:
@@ -23,10 +25,12 @@ package object ignition {
    * to the input ports of an MultiInput step.
    *
    * (a, b, c) --> d  // connect the outputs of a, b, and c to the inputs of d
+   * (a.out(1), b) --> d // connect output 1 of a and output 0 of b to the inputs of d
    */
   implicit class RichProduct(val product: Product) extends AnyVal {
     def to[T](tgtStep: Step[T] with MultiInput[T]): tgtStep.type = {
       product.productIterator.zipWithIndex foreach {
+        case (src: (MultiOutput[_] with Step[_])#OutPort, index) => tgtStep.from(index, src.outer.asInstanceOf[Step[T] with MultiOutput[T]], src.outIndex)
         case (srcStep: Step[T] with SingleOutput[T], index) => tgtStep.from(index, srcStep)
       }
       tgtStep

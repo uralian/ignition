@@ -30,6 +30,4 @@ case class TextFolderInput(path: String, nameField: String = "filename",
   }
 
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

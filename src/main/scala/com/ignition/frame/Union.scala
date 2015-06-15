@@ -25,8 +25,6 @@ case class Union() extends FrameMerger(Union.MAX_INPUTS) {
     assert(schemas.tail.forall(_ == schemas.head), "Input schemas do not match")
     inSchemas.head
   }
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**
