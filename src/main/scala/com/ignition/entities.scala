@@ -127,21 +127,29 @@ trait ConnectableTo[T]
 trait MultiOutput[T] { self: AbstractStep[T] =>
 
   /**
-   * Connect the output port 0 to a single-input step:
+   * Connects the output port 0 to a single-input step:
    * m to a
    * m --> a
    */
   def to(step: SingleInput[T]): step.type = out(0) to step
   def -->(step: SingleInput[T]): step.type = out(0) --> step
-
+  
   /**
-   * Connect the output port 0 to an input port of a multi-input step:
+   * Connects the output port 0 to an input port of a multi-input step:
    * m to a.in(1)
    * m --> a.in(1)
    */
   def to(in: MultiInput[T]#InPort): in.outer.type = out(0) to in
   def -->(in: MultiInput[T]#InPort): in.outer.type = out(0) --> in 
 
+  /**
+   * Connects the output port 0 to the inout port 0 of a multi-input step:
+   * m to a
+   * m --> a 
+   */
+  def to(step: MultiInput[T]): step.type = out(0) to step
+  def -->(step: MultiInput[T]): step.type = out(0) --> step
+  
   /**
    * Connects the output ports 0, 1, 2... to multiple single-input steps:
    * m to (a, b, c.in(1))
