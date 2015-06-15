@@ -14,31 +14,33 @@ import com.ignition.DefaultSparkRuntime
  */
 trait StreamFlowSpecification extends FlowSpecification {
 
+  System.setProperty(com.ignition.STEPS_SERIALIZABLE, true.toString)
+
   /**
    * Starts the streaming, waits for a certain number of batches (using a fake clock)
    * and compares the stream output with the provided result.
    */
   protected def runAndAssertOutput(step: StreamStep, index: Int, batchCount: Int, expected: Set[Row]*) = {
-    
+
     val ssc = createStreamingContext
     implicit val rt = new DefaultSparkRuntime(ctx, ssc)
-    
+
     var buffer = ListBuffer.empty[RDD[Row]]
     step.output(index).foreachRDD(rdd => buffer += rdd)
-    
+
     val clock = new ClockWrapper(ssc)
     ssc.start
     clock.advance(batchCount * batchDuration.getMillis)
 
-    Thread.sleep(math.max(batchCount * 100, 500))
+    Thread.sleep(math.max(batchCount * 200, 1000))
 
     val result = (buffer zip expected) forall {
       case (rdd, rows) => rdd.collect.toSet === rows
     }
 
     ssc.stop(false, false)
-    ssc.awaitTerminationOrTimeout(0)
-    
+    ssc.awaitTerminationOrTimeout(100)
+
     result
   }
 

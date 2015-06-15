@@ -38,11 +38,11 @@ abstract class FrameProducer extends Producer[DataFrame] with FrameStep
 
 abstract class FrameTransformer extends Transformer[DataFrame] with FrameStep
 
-abstract class FrameSplitter(outputCount: Int)
+abstract class FrameSplitter(override val outputCount: Int)
   extends Splitter[DataFrame](outputCount) with FrameStep
 
-abstract class FrameMerger(inputCount: Int)
+abstract class FrameMerger(override val inputCount: Int)
   extends Merger[DataFrame](inputCount) with FrameStep
 
-abstract class FrameModule(inputCount: Int, outputCount: Int)
+abstract class FrameModule(override val inputCount: Int, override val outputCount: Int)
   extends Module[DataFrame](inputCount, outputCount) with FrameStep

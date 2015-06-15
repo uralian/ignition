@@ -24,6 +24,5 @@ class QueueInputSpec extends StreamFlowSpecification {
         
       assertSchema(schema, queue, 0)
     }
-    "be unserializable" in assertUnserializable(QueueInput(schema))
   }
 }

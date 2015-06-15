@@ -261,8 +261,4 @@ class FilterSpec extends StreamFlowSpecification {
         Set(("john", 3, 95.0)))
     }
   }
-
-  "Filter" should {
-    "be unserializable" in assertUnserializable(Filter($"item" == 1))
-  }
 }
