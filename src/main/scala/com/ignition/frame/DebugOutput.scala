@@ -75,8 +75,6 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false, header: Op
   private def calculateWidths(schema: StructType) = schema.fieldNames map { name =>
     math.max(math.min(name.length, 15), 10)
   }
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

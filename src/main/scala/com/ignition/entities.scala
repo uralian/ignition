@@ -41,7 +41,7 @@ trait Step[T] {
  * +computeSchema(inSchemas: Seq[Option[StructType]], index: Int)(implicit runtime: SparkRuntime): Option[StructType]
  * +compute(args: Seq[DataFrame], index: Int)(implicit runtime: SparkRuntime): T
  */
-abstract class AbstractStep[T](val inputCount: Int, val outputCount: Int) extends Step[T] {
+abstract class AbstractStep[T](val inputCount: Int, val outputCount: Int) extends Step[T] with Serializable {
   protected[ignition] val ins = Array.ofDim[(Step[T], Int)](inputCount)
 
   val allInputsRequired: Boolean = true
@@ -110,10 +110,14 @@ abstract class AbstractStep[T](val inputCount: Int, val outputCount: Int) extend
   }
 
   /**
-   * Serialization helper. Used by subclasses in writeObject() method to explicitly
-   * prohibit serialization.
+   * Serialization helper. Enables or disables step serialization based on the
+   * environment property.
    */
-  protected def unserializable = throw new java.io.IOException("Object should not be serialized")
+  private def writeObject(out: java.io.ObjectOutputStream): Unit =
+    if (System.getProperty(STEPS_SERIALIZABLE) == false.toString)
+      throw new java.io.NotSerializableException("Steps should not be serialized")
+    else
+      out.defaultWriteObject
 }
 
 /**
@@ -133,23 +137,23 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
    */
   def to(step: SingleInput[T]): step.type = out(0) to step
   def -->(step: SingleInput[T]): step.type = out(0) --> step
-  
+
   /**
    * Connects the output port 0 to an input port of a multi-input step:
    * m to a.in(1)
    * m --> a.in(1)
    */
   def to(in: MultiInput[T]#InPort): in.outer.type = out(0) to in
-  def -->(in: MultiInput[T]#InPort): in.outer.type = out(0) --> in 
+  def -->(in: MultiInput[T]#InPort): in.outer.type = out(0) --> in
 
   /**
    * Connects the output port 0 to the inout port 0 of a multi-input step:
    * m to a
-   * m --> a 
+   * m --> a
    */
   def to(step: MultiInput[T]): step.type = out(0) to step
   def -->(step: MultiInput[T]): step.type = out(0) --> step
-  
+
   /**
    * Connects the output ports 0, 1, 2... to multiple single-input steps:
    * m to (a, b, c.in(1))

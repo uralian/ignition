@@ -53,6 +53,4 @@ case class ColumnStats(dataFields: Iterable[String] = Nil, groupFields: Iterable
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

@@ -64,6 +64,4 @@ case class Correlation(dataFields: Iterable[String] = Nil, groupFields: Iterable
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     compute(input(Some(10)), Some(10)) schema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

@@ -39,6 +39,4 @@ case class QueueInput(schema: StructType, data: List[Seq[Row]] = Nil) extends St
   }
 
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

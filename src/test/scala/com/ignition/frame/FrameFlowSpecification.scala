@@ -11,6 +11,8 @@ import com.ignition.{ ExecutionException, FlowSpecification }
  */
 trait FrameFlowSpecification extends FlowSpecification {
   import ctx.implicits._
+  
+  System.setProperty(com.ignition.STEPS_SERIALIZABLE, false.toString)
 
   /**
    * Checks if the output is identical to the supplied row set.

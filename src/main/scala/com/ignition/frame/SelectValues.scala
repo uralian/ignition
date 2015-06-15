@@ -119,8 +119,6 @@ case class SelectValues(actions: Iterable[SelectAction]) extends FrameTransforme
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     actions.foldLeft(inSchema)((schema, action) => action(schema))
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

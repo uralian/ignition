@@ -17,8 +17,6 @@ case class FlowInput(override val inputCount: Int) extends FrameModule(inputCoun
 
   protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): StructType =
     computedSchema(index)
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**
@@ -31,8 +29,6 @@ case class FlowOutput(override val outputCount: Int) extends FrameModule(outputC
 
   protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): StructType =
     inSchemas(index)
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**
@@ -56,8 +52,6 @@ case class SubFlow(input: FlowInput, output: FlowOutput) extends FrameModule(inp
 
   /* not used */
   protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime): StructType = ???
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

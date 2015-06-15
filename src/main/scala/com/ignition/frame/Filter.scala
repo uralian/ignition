@@ -158,6 +158,4 @@ case class Filter(condition: RowCondition) extends FrameSplitter(2) {
   }
 
   protected def computeSchema(inSchema: StructType, index: Int)(implicit runtime: SparkRuntime): StructType = inSchema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

@@ -36,8 +36,6 @@ case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) with
     computedSchema(0)
 
   def toXml: Elem = <sql>{ query }</sql>
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

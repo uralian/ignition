@@ -74,8 +74,6 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer wi
       }
     }
   }
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

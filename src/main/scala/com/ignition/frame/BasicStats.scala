@@ -53,6 +53,4 @@ case class BasicStats(fields: Map[String, Set[BasicAggregator]] = Map.empty,
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }

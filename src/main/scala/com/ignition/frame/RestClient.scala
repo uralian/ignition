@@ -127,8 +127,6 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod, body: Option[S
     val fields = inSchema ++ resultField.map(string(_)) ++ statusField.map(int(_)) ++ headersField.map(string(_))
     StructType(fields)
   }
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

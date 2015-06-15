@@ -27,8 +27,6 @@ case class Intersection() extends FrameMerger(Intersection.MAX_INPUTS) {
     assert(schemas.tail.forall(_ == schemas.head), "Input schemas do not match")
     inSchemas.head
   }
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

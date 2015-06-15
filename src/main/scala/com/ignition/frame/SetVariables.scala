@@ -23,8 +23,6 @@ case class SetVariables(vars: Map[String, Any]) extends FrameTransformer {
   }
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
-
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
 }
 
 /**

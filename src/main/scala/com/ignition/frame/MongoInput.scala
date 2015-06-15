@@ -76,8 +76,6 @@ case class MongoInput(db: String, coll: String, schema: StructType,
 
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
 
-  private def writeObject(out: java.io.ObjectOutputStream): Unit = unserializable
-
   private def filterToDBObject(filter: Map[String, Any]): DBObject = filter map {
     case (key, value: List[Any]) => key -> MongoDBList(value: _*)
     case (key, value: Map[_, _]) => key -> filterToDBObject(value.asInstanceOf[Map[String, Any]])

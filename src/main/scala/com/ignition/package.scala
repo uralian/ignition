@@ -6,6 +6,8 @@ package com
  * @author Vlad Orzhekhovskiy
  */
 package object ignition {
+  
+  val STEPS_SERIALIZABLE = "step.serializable"
 
   /**
    * An extension for Int to be used for connecting an output port of an MultiOutput
