@@ -41,6 +41,9 @@ case class Join(condition: Option[RowCondition], joinType: JoinType) extends Fra
     computedSchema(0)
 }
 
+/**
+ * Join companion object.
+ */
 object Join {
   def apply(): Join = apply(None, INNER)
   def apply(condition: RowCondition, joinType: JoinType = INNER): Join = apply(Some(condition), joinType)
