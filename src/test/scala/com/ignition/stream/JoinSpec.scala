@@ -3,9 +3,8 @@ package com.ignition.stream
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
+import com.ignition.RichProduct
 import com.ignition.types._
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
 
 @RunWith(classOf[JUnitRunner])
 class JoinSpec extends StreamFlowSpecification {
@@ -30,7 +29,7 @@ class JoinSpec extends StreamFlowSpecification {
         Set(("john", 1, 15.0, "jake", 20, true), ("john", 3, 10.0, "jake", 20, true),
           ("john", 1, 15.0, "john", 15, false), ("john", 3, 10.0, "john", 15, false)),
         Set(("jake", 4, 25.0, "jane", 10, true), ("john", 3, 30.0, "jane", 10, true),
-            ("jake", 4, 25.0, "john", 30, true), ("john", 3, 30.0, "john", 30, true)))
+          ("jake", 4, 25.0, "john", 30, true), ("john", 3, 30.0, "john", 30, true)))
     }
   }
 
