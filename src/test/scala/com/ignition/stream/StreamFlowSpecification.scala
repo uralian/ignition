@@ -16,17 +16,23 @@ trait StreamFlowSpecification extends FlowSpecification {
 
   System.setProperty(com.ignition.STEPS_SERIALIZABLE, true.toString)
 
+  ssc.stop(true, true)
+  System.clearProperty("spark.driver.port")
+  System.clearProperty("spark.master.port")
+
   /**
    * Starts the streaming, waits for a certain number of batches (using a fake clock)
    * and compares the stream output with the provided result.
    */
   protected def runAndAssertOutput(step: StreamStep, index: Int, batchCount: Int, expected: Set[Row]*) = {
 
-    val ssc = createStreamingContext
+    val sc = createSparkContext
+    val ctx = createSQLContxt(sc)
+    val ssc = createStreamingContext(sc)
     implicit val rt = new DefaultSparkRuntime(ctx, ssc)
 
-    var buffer = ListBuffer.empty[RDD[Row]]
-    step.output(index).foreachRDD(rdd => buffer += rdd)
+    var buffer = ListBuffer.empty[Set[Row]]
+    step.output(index).foreachRDD(rdd => buffer += rdd.collect.toSet)
 
     val clock = new ClockWrapper(ssc)
     ssc.start
@@ -34,14 +40,16 @@ trait StreamFlowSpecification extends FlowSpecification {
 
     Thread.sleep(math.max(batchCount * 200, 1000))
 
-    val result = (buffer zip expected) forall {
-      case (rdd, rows) => rdd.collect.toSet === rows
-    }
-
     ssc.stop(false, false)
     ssc.awaitTerminationOrTimeout(100)
 
-    result
+    sc.stop
+    System.clearProperty("spark.driver.port")
+    System.clearProperty("spark.master.port")
+
+    (buffer zip expected) forall {
+      case (rdd, rows) => rdd === rows
+    }
   }
 
   /**

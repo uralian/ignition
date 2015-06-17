@@ -26,17 +26,22 @@ trait SparkTestHelper extends BeforeAllAfterAll {
 
   val masterUrl = config.getString("master-url")
   val appName = config.getString("app-name")
-  implicit protected val sc = new SparkContext(masterUrl, appName, sparkConf)
-
-  implicit protected val ctx = new SQLContext(sc)
-  import ctx.implicits._
-
   val batchDuration = config.getTimeInterval("streaming.batch-duration")
-  implicit protected val ssc = createStreamingContext
+  
+  implicit protected val sc: SparkContext = createSparkContext 
+
+  implicit protected val ctx: SQLContext = createSQLContxt(sc)
+
+  implicit protected val ssc: StreamingContext = createStreamingContext(sc)
 
   implicit protected val rt = new DefaultSparkRuntime(ctx, ssc)
 
-  protected def createStreamingContext: StreamingContext = {
+  protected def createSparkContext: SparkContext =
+    new SparkContext(masterUrl, appName, sparkConf)
+  
+  protected def createSQLContxt(sc: SparkContext): SQLContext = new SQLContext(sc)
+
+  protected def createStreamingContext(sc: SparkContext): StreamingContext = {
     val cfg = config.getConfig("streaming")
     val ssc = new StreamingContext(sc, Milliseconds(batchDuration.getMillis))
     val checkpointDir = cfg.getString("checkpoint-dir")
