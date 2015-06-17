@@ -37,7 +37,7 @@ package object frame {
   }
 
   /**
-   * Injects the variables, by replacing substrings of form ${varName} with the value of
+   * Injects the variables, by replacing substrings of form %{varName} with the value of
    * the specified variable.
    */
   def injectVariables(expr: String)(implicit runtime: SparkRuntime) = runtime.vars.names.foldLeft(expr) {
