@@ -32,11 +32,5 @@ class WindowSpec extends StreamFlowSpecification {
         Set(("jake", 4, 62.0), ("john", 3, 95.0)),
         Set())
     }
-    "fail on invalid intervals" in {
-      val w = Window(Milliseconds(123))
-      queue --> w
-
-      runAndAssertOutput(w, 0, 5) must throwA[ExecutionException]
-    }
   }
 }
