@@ -41,7 +41,7 @@ package object frame {
    * the specified variable.
    */
   def injectVariables(expr: String)(implicit runtime: SparkRuntime) = runtime.vars.names.foldLeft(expr) {
-    case (result, varName) => result.replace("%{" + varName + "}", runtime.vars(varName).toString)
+    case (result, varName) => result.replace("v{" + varName + "}", runtime.vars(varName).toString)
   }
 
   /**
@@ -49,6 +49,6 @@ package object frame {
    * value of the corresponding JVM variable.
    */
   def injectEnvironment(expr: String) = System.getProperties().asScala.foldLeft(expr) {
-    case (result, (key, value)) => result.replace("#{" + key + "}", value)
+    case (result, (key, value)) => result.replace("e{" + key + "}", value)
   }
 }
