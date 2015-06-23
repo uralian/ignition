@@ -1,6 +1,6 @@
 // properties
 
-val APP_VERSION = "0.2.0-SNAPSHOT"
+val APP_VERSION = "0.2.0"
 
 val SCALA_VERSION = "2.10.4"
 
