@@ -16,7 +16,9 @@ import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText }
 case class DebugOutput(names: Boolean = true, types: Boolean = false, header: Option[String] = None)
   extends FrameTransformer with XmlExport {
   
-  def header(h: String) = copy(header = Some(h))
+  def names(names: Boolean): DebugOutput = copy(names = names)
+  def types(types: Boolean): DebugOutput = copy(types = types)
+  def header(header: String): DebugOutput = copy(header = Some(header))
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val schema = arg.schema
