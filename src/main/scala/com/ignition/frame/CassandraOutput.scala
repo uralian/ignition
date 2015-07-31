@@ -35,6 +35,7 @@ case class DataRowWriter(schema: StructType, tableDef: TableDef) extends RowWrit
 
   def columnNames: Seq[String] = schema.fieldNames
 }
+
 /**
  * Writes rows into a Cassandra table.
  *
