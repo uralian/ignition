@@ -13,10 +13,12 @@ import com.ignition.Splitter
 
 /**
  * Invokes a DataFrame SubFlow on each stream batch.
+ * The flow passed in the constructor should expect the RDDs from
+ * the stream to appear on the first input (index 0).
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Transform(flow: SubFlow) extends StreamSplitter(flow.outputCount) {
+case class Foreach(flow: SubFlow) extends StreamSplitter(flow.outputCount) {
 
   protected def compute(arg: DataStream, index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataStream = {
     val flow = this.flow
@@ -45,22 +47,22 @@ case class Transform(flow: SubFlow) extends StreamSplitter(flow.outputCount) {
 /**
  * Transform companion object.
  */
-object Transform {
+object Foreach {
 
-  def apply(tx: FrameTransformer): Transform = {
+  def apply(tx: FrameTransformer): Foreach = {
     val flow = SubFlow(1, 1) { (input, output) =>
       input --> tx --> output
     }
-    Transform(flow)
+    Foreach(flow)
   }
 
-  def apply(split: FrameSplitter): Transform = {
+  def apply(split: FrameSplitter): Foreach = {
     val flow = SubFlow(1, split.outputCount) { (input, output) =>
       input --> split
       (0 until split.outputCount) foreach { n =>
         split.out(n) --> output.in(n)
       }
     }
-    Transform(flow)
+    Foreach(flow)
   }
 }

@@ -7,6 +7,7 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
 
 import com.ignition.frame.DataFlow
+import com.ignition.stream.StreamFlow
 import com.ignition.util.ConfigUtils
 
 /**
@@ -71,5 +72,33 @@ object SparkPlug {
     flow.execute
   }
 
-  def shutdown() = sc.stop
+  def startStreamFlow(flow: StreamFlow,
+    vars: Map[String, Any] = Map.empty,
+    accs: Map[String, Any] = Map.empty,
+    args: Array[String] = Array.empty) = {
+
+    vars foreach {
+      case (name, value) => runtime.vars(name) = value
+    }
+
+    accs foreach {
+      case (name, value: Int) => runtime.accs(name) = value
+      case (name, value: Long) => runtime.accs(name) = value
+      case (name, value: Float) => runtime.accs(name) = value
+      case (name, value: Double) => runtime.accs(name) = value
+    }
+
+    (args zipWithIndex) foreach {
+      case (arg, index) => runtime.vars(s"arg$index") = arg
+    }
+
+    flow.start
+  }
+
+  def shutdown() = {
+    ssc.stop(false, false)
+    sc.stop
+    System.clearProperty("spark.driver.port")
+    System.clearProperty("spark.master.port")
+  }
 }

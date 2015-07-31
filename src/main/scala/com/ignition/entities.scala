@@ -143,8 +143,8 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
    * m to a.in(1)
    * m --> a.in(1)
    */
-  def to(in: MultiInput[T]#InPort): in.outer.type = out(0) to in
-  def -->(in: MultiInput[T]#InPort): in.outer.type = out(0) --> in
+  def to(in: MultiInput[T]#InPort) = out(0) to in
+  def -->(in: MultiInput[T]#InPort) = out(0) --> in
 
   /**
    * Connects the output port 0 to the inout port 0 of a multi-input step:
@@ -190,7 +190,7 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
      * m.out(1) --> a.in(0)
      */
     def to(in: MultiInput[T]#InPort): in.outer.type = in.outer.from(in.inIndex, outer, outIndex)
-    def -->(in: MultiInput[T]#InPort): in.outer.type = to(in)
+    def -->(in: MultiInput[T]#InPort) = to(in)
 
     /**
      * Connects this output port to input port 0 of a multi-input step:
