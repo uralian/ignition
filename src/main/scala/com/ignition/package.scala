@@ -6,7 +6,7 @@ package com
  * @author Vlad Orzhekhovskiy
  */
 package object ignition {
-  
+
   val STEPS_SERIALIZABLE = "step.serializable"
 
   /**
@@ -30,8 +30,8 @@ package object ignition {
   implicit class RichProduct(val product: Product) extends AnyVal {
     def to[T](tgtStep: Step[T] with MultiInput[T]): tgtStep.type = {
       product.productIterator.zipWithIndex foreach {
-        case (src: (MultiOutput[_] with Step[_])#OutPort, index) => tgtStep.from(index, src.outer.asInstanceOf[Step[T] with MultiOutput[T]], src.outIndex)
-        case (srcStep: Step[T] with SingleOutput[T], index) => tgtStep.from(index, srcStep)
+        case (src: (Step[_] with MultiOutput[_])#OutPort, index) => tgtStep.from(index, src.outer.asInstanceOf[Step[T] with MultiOutput[T]], src.outIndex)
+        case (srcStep: Step[_] with SingleOutput[_], index) => tgtStep.from(index, srcStep.asInstanceOf[Step[T] with SingleOutput[T]])
       }
       tgtStep
     }

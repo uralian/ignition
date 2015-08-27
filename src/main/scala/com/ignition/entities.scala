@@ -147,7 +147,7 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
   def -->(in: MultiInput[T]#InPort) = out(0) --> in
 
   /**
-   * Connects the output port 0 to the inout port 0 of a multi-input step:
+   * Connects the output port 0 to the input port 0 of a multi-input step:
    * m to a
    * m --> a
    */
@@ -155,7 +155,8 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
   def -->(step: MultiInput[T]): step.type = out(0) --> step
 
   /**
-   * Connects the output ports 0, 1, 2... to multiple single-input steps:
+   * Connects the output ports 0, 1, 2... to multiple steps, each of them either single-input
+   * or has the input port specified.
    * m to (a, b, c.in(1))
    * m --> (a, b, c.in(1))
    */
@@ -218,12 +219,28 @@ trait MultiOutput[T] { self: AbstractStep[T] =>
  * A step with a single output port.
  */
 trait SingleOutput[T] { self: AbstractStep[T] =>
+
+  /**
+   * Connects this step to a single-input step:
+   * a to b
+   * a --> b
+   */
   def to(step: SingleInput[T]): step.type = step.from(this)
   def -->(step: SingleInput[T]): step.type = to(step)
 
+  /**
+   * Connects this step to a port of a multi-input step:
+   * a to b.in(1)
+   * a --> b.in(1)
+   */
   def to(in: MultiInput[T]#InPort): Unit = in.outer.from(in.inIndex, this)
   def -->(in: MultiInput[T]#InPort): Unit = to(in)
 
+  /**
+   * Connects this step to port 0 of a multi-input step:
+   * a to m
+   * a --> m
+   */
   def to(step: MultiInput[T]): step.type = step.from(0, this)
   def -->(step: MultiInput[T]): step.type = to(step)
 
