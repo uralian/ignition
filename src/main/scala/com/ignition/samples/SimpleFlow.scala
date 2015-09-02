@@ -35,7 +35,7 @@ object SimpleFlow extends App {
 
     val queryB = SQLQuery("SELECT SUBSTR(name, 1, 2) AS name, weight FROM input0")
 
-    val statsB = BasicStats() groupBy ("name") aggr ("weight", AVG, MAX, COUNT_DISTINCT)
+    val statsB = BasicStats() groupBy "name" add ("weight", AVG, MAX, COUNT_DISTINCT)
 
     val debugB = DebugOutput()
 

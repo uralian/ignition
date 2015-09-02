@@ -22,7 +22,7 @@ class ForeachSpec extends StreamFlowSpecification {
   "Foreach for FrameTransformer" should {
     "work with BasicStats" in {
       import com.ignition.frame.BasicAggregator._
-      val tx = Foreach { BasicStats() aggr ("a", SUM) aggr ("b", MAX) }
+      val tx = Foreach { BasicStats() % SUM("a") % MAX("b") }
       queue --> tx
       runAndAssertOutput(tx, 0, 3, Set((6, 3)), Set((5, 2)), Set((3, 3)))
     }
