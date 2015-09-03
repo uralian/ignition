@@ -42,27 +42,20 @@ object Where {
   def fromXml(xml: Node) = {
     val cql = (xml \ "cql").text
     val values = (xml \ "arg") map { node =>
-      val dataType = typeForName((node \ "@type").asString)
+      val dataType = typeForName(node \ "@type" asString)
       xmlToValue(dataType, node.child)
     }
     Where(cql, values: _*)
   }
 
-  def fromJson(json: JValue) = (for {
-    JObject(fields) <- json
-    JField("cql", JString(cql)) <- fields
-    JField("args", JArray(args)) <- fields
-  } yield {
-    val values = for {
-      JObject(arg) <- args
-      JField("type", JString(argType)) <- arg
-      JField("value", JString(argValue)) <- arg
-    } yield {
-      val dataType = typeForName(argType)
-      jsonToValue(dataType, argValue)
+  def fromJson(json: JValue) = {
+    val cql = json \ "cql" asString
+    val args = (json \ "args" asArray) map { arg =>
+      val dataType = typeForName(arg \ "type" asString)
+      jsonToValue(dataType, arg \ "value" asString)
     }
-    Where(cql, values: _*)
-  }).head
+    Where(cql, args: _*)
+  }
 }
 
 /**

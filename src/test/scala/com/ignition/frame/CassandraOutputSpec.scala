@@ -40,13 +40,17 @@ class CassandraOutputSpec extends FrameFlowSpecification with CassandraSpec {
       rows.get(0).getDecimal("total") === javaBD(123.45)
       rows.get(0).getDouble("weight") === 9.23
     }
-    "save to xml" in {
+    "save to/load from xml" in {
       val cass = CassandraOutput("keyspace", "table")
-      <cassandra-output keyspace="keyspace" table="table"/> must ==/(cass.toXml)
+      cass.toXml must ==/(<cassandra-output keyspace="keyspace" table="table"/>)
+      CassandraOutput.fromXml(cass.toXml) === cass
     }
-    "load from xml" in {
-      val xml = <cassandra-output keyspace="keyspace" table="table"/>
-      CassandraOutput.fromXml(xml) === CassandraOutput("keyspace", "table")
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+      
+      val cass = CassandraOutput("ignition", "orders")
+      cass.toJson === ("tag" -> "cassandra-output") ~ ("keyspace" -> "ignition") ~ ("table" -> "orders")
+      CassandraOutput.fromJson(cass.toJson) === cass
     }
     "be unserializable" in assertUnserializable(CassandraOutput("ignition", "orders"))
   }
