@@ -48,6 +48,6 @@ class CassandraOutputSpec extends FrameFlowSpecification with CassandraSpec {
       val xml = <cassandra-output keyspace="keyspace" table="table"/>
       CassandraOutput.fromXml(xml) === CassandraOutput("keyspace", "table")
     }
-    "be unserializable" in assertUnserializable(CassandraInput("ignition", "orders", schema))
+    "be unserializable" in assertUnserializable(CassandraOutput("ignition", "orders"))
   }
 }
