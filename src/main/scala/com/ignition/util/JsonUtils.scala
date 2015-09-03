@@ -14,60 +14,60 @@ object JsonUtils {
 
     /* primitive options; None if does not exist */
 
-    def asStringOption = self match {
+    def getAsString = self match {
       case JString(s) => Some(s)
       case _          => None
     }
 
-    def asBigIntOption = self match {
+    def getAsBigInt = self match {
       case JInt(bi) => Some(bi)
       case _        => None
     }
 
-    def asIntOption = self match {
+    def getAsInt = self match {
       case JInt(bi) => Some(bi.toInt)
       case _        => None
     }
 
-    def asLongOption = self match {
+    def getAsLong = self match {
       case JInt(bi) => Some(bi.toLong)
       case _        => None
     }
 
-    def asDoubleOption = self match {
+    def getAsDouble = self match {
       case JDouble(d)   => Some(d)
       case JInt(n)      => Some(n.toDouble)
       case JDecimal(bd) => Some(bd.toDouble)
       case _            => None
     }
 
-    def asDecimalOption = self match {
+    def getAsDecimal = self match {
       case JDecimal(bd) => Some(bd)
       case JInt(n)      => Some(BigDecimal(n))
       case JDouble(d)   => Some(BigDecimal(d))
       case _            => None
     }
 
-    def asBooleanOption = self match {
+    def getAsBoolean = self match {
       case JBool(b) => Some(b)
       case _        => None
     }
 
     /* primitives; null if does not exist */
 
-    def asString = asStringOption orNull
+    def asString = getAsString orNull
 
-    def asBigInt = asBigIntOption orNull
+    def asBigInt = getAsBigInt orNull
 
-    def asInt = asIntOption getOrElse 0
+    def asInt = getAsInt getOrElse 0
 
-    def asLong = asLongOption getOrElse 0L
+    def asLong = getAsLong getOrElse 0L
 
-    def asDouble = asDoubleOption getOrElse 0.0
+    def asDouble = getAsDouble getOrElse 0.0
 
-    def asDecimal = asDecimalOption orNull
+    def asDecimal = getAsDecimal orNull
 
-    def asBoolean = asBooleanOption getOrElse false
+    def asBoolean = getAsBoolean getOrElse false
 
     /* collections; Nil if does not exist */
 

@@ -3,10 +3,14 @@ package com.ignition.types
 import java.sql.{ Date, Timestamp }
 import java.text.SimpleDateFormat
 
+import scala.BigDecimal
 import scala.xml.{ NodeSeq, Text }
 
 import org.apache.spark.sql.types._
+import org.json4s.JValue
+import org.json4s.JsonDSL._
 
+import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
 
 /**
@@ -21,7 +25,7 @@ object TypeUtils {
   private val timeFormat = new ThreadLocal[SimpleDateFormat]() {
     override protected def initialValue = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
   }
-  
+
   /**
    * Returns a sample value of the specified type.
    */
@@ -136,6 +140,46 @@ object TypeUtils {
     case _: DecimalType => xml.getAsString map Decimal.apply orNull
     case DateType => xml.getAsString map parseDate orNull
     case TimestampType => xml.getAsString map parseTimestamp orNull
+    case _ => throw new IllegalArgumentException(s"Invalid data type: $dataType")
+  }
+
+  /**
+   * Converts a value to JSON.
+   */
+  def valueToJson(obj: Any): JValue = obj match {
+    case null => None
+    case x: Binary => x.toList.map(_.toInt)
+    case x: Boolean => x
+    case x: String => x
+    case x: Byte => x
+    case x: Short => x
+    case x: Int => x
+    case x: Long => x
+    case x: Float => x
+    case x: Double => x
+    case x: Decimal => x.toBigDecimal
+    case x: java.math.BigDecimal => BigDecimal(x)
+    case x: Date => formatDate(x)
+    case x: Timestamp => formatTimestamp(x)
+    case _ => throw new IllegalArgumentException(s"Invalid data type: $obj")
+  }
+
+  /**
+   * Parses the JSON using the specified data type.
+   */
+  def jsonToValue(dataType: DataType, json: JValue): Any = dataType match {
+    case BinaryType => json.asArray map (_.asInt.toByte)
+    case BooleanType => json.getAsBoolean orNull
+    case StringType => json.getAsString orNull
+    case ByteType => json.getAsInt map (_.toByte) orNull
+    case ShortType => json.getAsInt map (_.toShort) orNull
+    case IntegerType => json.getAsInt orNull
+    case LongType => json.getAsInt map (_.toLong) orNull
+    case FloatType => json.getAsDouble map (_.toFloat) orNull
+    case DoubleType => json.getAsDouble orNull
+    case _: DecimalType => json.getAsDecimal orNull
+    case DateType => json.getAsString map parseDate orNull
+    case TimestampType => json.getAsString map parseTimestamp orNull
     case _ => throw new IllegalArgumentException(s"Invalid data type: $dataType")
   }
 
