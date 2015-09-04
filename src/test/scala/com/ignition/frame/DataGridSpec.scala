@@ -1,5 +1,7 @@
 package com.ignition.frame
 
+import scala.math.BigInt.int2bigInt
+
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
@@ -43,22 +45,31 @@ class DataGridSpec extends FrameFlowSpecification {
       assertOutput(grid, 0, Seq("john", 25), Seq("jane", 33), Seq("jack", 51))
       grid.output(Some(1)).collect.toSet === Set(Row("john", 25))
     }
-    "load from xml" in {
+    "save to/load from xml" in {
       val grid = DataGrid.fromXml(xml)
+
       grid.schema === string("id", false) ~ string("label") ~ int("index")
       grid.rows.size === 3
       grid.rows(0).toSeq === Seq("3815cb50-ccca-11e4-80dc-027f371e36df", "ABC", 52)
       grid.rows(1).toSeq === Seq("3815cb50-ccca-11e4-80dc-027f371e36df", null, 3)
       grid.rows(2).toSeq === Seq("a3fa87b1-ad63-11e4-9d3b-0a0027000000", "XYZ", null)
+
+      DataGrid.fromXml(grid.toXml) === grid
     }
-    "save to xml" in {
+    "save to/load from json" in {
+      import org.json4s._
+      import org.json4s.JsonDSL._
+
       val grid = DataGrid.fromXml(xml)
-      val xml2 = grid.toXml
-      xml must ==/(xml2)
-    }
-    "yield correct metadata" in {
-      val grid = DataGrid.fromXml(xml)
-      assertSchema(grid.schema, grid)
+      grid.toJson === ("tag" -> "datagrid") ~ ("schema" -> List(
+        ("name" -> "id") ~ ("type" -> "string") ~ ("nullable" -> false),
+        ("name" -> "label") ~ ("type" -> "string") ~ ("nullable" -> true),
+        ("name" -> "index") ~ ("type" -> "integer") ~ ("nullable" -> true))) ~
+        ("rows" -> List(
+          List(JString("3815cb50-ccca-11e4-80dc-027f371e36df"), JString("ABC"), JInt(52)),
+          List(JString("3815cb50-ccca-11e4-80dc-027f371e36df"), null, JInt(3)),
+          List(JString("a3fa87b1-ad63-11e4-9d3b-0a0027000000"), JString("XYZ"), null)))
+      DataGrid.fromJson(grid.toJson) === grid
     }
     "produce valid DataFrame" in {
       val grid = DataGrid.fromXml(xml)

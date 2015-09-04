@@ -37,4 +37,9 @@ package object ignition {
     }
     def -->[T](tgtStep: Step[T] with MultiInput[T]): tgtStep.type = to(tgtStep)
   }
+
+  /**
+   * Converts a single value to a Product of size 1.
+   */
+  implicit def value2tuple[T](x: T): Tuple1[T] = Tuple1(x)
 }

@@ -147,7 +147,7 @@ object TypeUtils {
    * Converts a value to JSON.
    */
   def valueToJson(obj: Any): JValue = obj match {
-    case null => None
+    case null => null
     case x: Binary => x.toList.map(_.toInt)
     case x: Boolean => x
     case x: String => x

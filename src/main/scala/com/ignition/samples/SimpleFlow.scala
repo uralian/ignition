@@ -2,7 +2,7 @@ package com.ignition.samples
 
 import com.eaio.uuid.UUID
 
-import com.ignition.SparkPlug
+import com.ignition._
 import com.ignition.frame._
 import com.ignition.types._
 
