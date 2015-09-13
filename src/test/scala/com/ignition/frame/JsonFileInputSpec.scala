@@ -35,6 +35,31 @@ class JsonFileInputSpec extends FrameFlowSpecification {
 
       jfi.output must throwA[ExecutionException]
     }
+    "save to/load from xml" in {
+      val columns = List("date" -> "date.value", "flag" -> "flag", "index" -> "index", "score" -> "score")
+      val jfi = JsonFileInput("/tmp/myfile.json", columns)
+      jfi.toXml must ==/(
+        <json-file-input>
+          <path>/tmp/myfile.json</path>
+          <field name="date">date.value</field>
+          <field name="flag">flag</field>
+          <field name="index">index</field>
+          <field name="score">score</field>
+        </json-file-input>)
+      JsonFileInput.fromXml(jfi.toXml) === jfi
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val columns = List("date" -> "date.value", "flag" -> "flag", "index" -> "index", "score" -> "score")
+      val jfi = JsonFileInput("/tmp/myfile.json", columns)
+      jfi.toJson === ("tag" -> "json-file-input") ~ ("path" -> "/tmp/myfile.json") ~ ("fields" -> List(
+        ("name" -> "date") ~ ("xpath" -> "date.value"),
+        ("name" -> "flag") ~ ("xpath" -> "flag"),
+        ("name" -> "index") ~ ("xpath" -> "index"),
+        ("name" -> "score") ~ ("xpath" -> "score")))
+      JsonFileInput.fromJson(jfi.toJson) === jfi
+    }
     "be unserializable" in assertUnserializable(JsonFileInput("test"))
   }
 
