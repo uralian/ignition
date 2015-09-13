@@ -3,16 +3,10 @@ package com.ignition.frame
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import org.json4s._
-import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
-
 import com.ignition.types.{ RichStructType, double, fieldToRichStruct, int, long, string }
 
 @RunWith(classOf[JUnitRunner])
 class BasicStatsSpec extends FrameFlowSpecification {
-  sequential
-
   import BasicAggregator._
 
   val schema = string("name") ~ int("item") ~ int("score")
@@ -67,6 +61,8 @@ class BasicStatsSpec extends FrameFlowSpecification {
       BasicStats.fromXml(s2.toXml) === s2
     }
     "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
       val s1 = BasicStats() % ("score", MIN, MAX, AVG)
       s1.toJson === ("tag" -> "basic-stats") ~
         ("groupBy" -> (None: Option[String])) ~

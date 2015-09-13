@@ -20,7 +20,7 @@ case class TextFolderInput(path: String, nameField: String = "filename",
   val schema = string(nameField) ~ string(dataField)
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val path = (injectEnvironment _ andThen injectVariables)(this.path)
+    val path = injectGlobals(this.path)
 
     val rdd = ctx.sparkContext.wholeTextFiles(path) map {
       case (fileName, contents) => Row(fileName, contents)

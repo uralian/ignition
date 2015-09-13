@@ -24,7 +24,7 @@ case class TextFileOutput(filename: String, formats: Iterable[FieldFormat],
   def header(out: Boolean) = copy(outputHeader = out)
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val filename = (injectEnvironment _ andThen injectVariables)(this.filename)
+    val filename = injectGlobals(this.filename)
     val out = new PrintWriter(filename)
 
     if (outputHeader) {

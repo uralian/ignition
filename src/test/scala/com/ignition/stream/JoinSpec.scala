@@ -32,5 +32,4 @@ class JoinSpec extends StreamFlowSpecification {
           ("jake", 4, 25.0, "john", 30, true), ("john", 3, 30.0, "john", 30, true)))
     }
   }
-
 }

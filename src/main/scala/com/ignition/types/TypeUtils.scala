@@ -183,10 +183,10 @@ object TypeUtils {
     case _ => throw new IllegalArgumentException(s"Invalid data type: $dataType")
   }
 
-  private def parseBinary(str: String) = str.split(",").map(_.toByte)
-  private def parseDate(str: String) = new Date(dateFormat.get.parse(str).getTime)
-  private def parseTimestamp(str: String) = new Timestamp(timeFormat.get.parse(str).getTime)
+  private[ignition] def parseBinary(str: String) = str.split(",").map(_.toByte)
+  private[ignition] def parseDate(str: String) = new Date(dateFormat.get.parse(str).getTime)
+  private[ignition] def parseTimestamp(str: String) = new Timestamp(timeFormat.get.parse(str).getTime)
 
-  private def formatDate(date: Date) = dateFormat.get.format(date)
-  private def formatTimestamp(time: Timestamp) = timeFormat.get.format(time)
+  private[ignition] def formatDate(date: Date) = dateFormat.get.format(date)
+  private[ignition] def formatTimestamp(time: Timestamp) = timeFormat.get.format(time)
 }

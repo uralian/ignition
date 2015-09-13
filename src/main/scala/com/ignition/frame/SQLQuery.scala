@@ -26,7 +26,7 @@ case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) with
       case _ => /* do nothing */
     }
 
-    val query = (injectEnvironment _ andThen injectVariables)(this.query)
+    val query = injectGlobals(this.query)
 
     val df = ctx.sql(query)
     optLimit(df, limit)

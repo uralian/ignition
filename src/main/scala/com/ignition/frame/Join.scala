@@ -1,8 +1,18 @@
 package com.ignition.frame
 
-import org.apache.spark.sql._
-import com.ignition.SparkRuntime
+import scala.xml.{ Elem, Node }
+
+import org.apache.spark.sql.{ Column, DataFrame }
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ jobject2assoc, option2jvalue, pair2Assoc, pair2jvalue, string2jvalue }
+import org.json4s.jvalue2monadic
+
+import com.ignition.SparkRuntime
+import com.ignition.util.JsonUtils.RichJValue
+import com.ignition.util.XmlUtils.RichNodeSeq
+
+import JoinType.{ INNER, JoinType }
 
 /**
  * DataFrame join type.
@@ -16,7 +26,6 @@ object JoinType extends Enumeration {
   val RIGHT = Value("right_outer")
   val SEMI = Value("semijoin")
 }
-import JoinType._
 
 /**
  * Performs join of the two data frames.
@@ -25,8 +34,9 @@ import JoinType._
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Join(condition: Option[RowCondition], joinType: JoinType) extends FrameMerger(2) {
-  
+case class Join(condition: Option[Column], joinType: JoinType) extends FrameMerger(2) {
+  import Join._
+
   def joinType(jt: JoinType) = copy(joinType = jt)
 
   protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
@@ -34,17 +44,48 @@ case class Join(condition: Option[RowCondition], joinType: JoinType) extends Fra
     val df1 = optLimit(args(0), limit).as('input0)
     val df2 = optLimit(args(1), limit).as('input1)
 
-    condition map (c => df1.join(df2, c.column, joinType.toString)) getOrElse df1.join(df2)
+    condition map (c => df1.join(df2, c, joinType.toString)) getOrElse df1.join(df2)
   }
 
   protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
+
+  def toXml: Elem =
+    <node type={ joinType.toString }>
+      { condition map (c => <condition>{ c.toString }</condition>) toList }
+    </node>.copy(label = tag)
+
+  def toJson: JValue = ("tag" -> tag) ~ ("type" -> joinType.toString) ~
+    ("condition" -> condition.map(_.toString))
 }
 
 /**
  * Join companion object.
  */
 object Join {
+  val tag = "join"
+
   def apply(): Join = apply(None, INNER)
-  def apply(condition: RowCondition, joinType: JoinType = INNER): Join = apply(Some(condition), joinType)
+
+  def apply(condition: Column): Join = apply(condition, INNER)
+
+  def apply(condition: Column, joinType: JoinType): Join = apply(Some(condition), joinType)
+
+  def apply(condition: String): Join = apply(condition, INNER)
+
+  def apply(condition: String, joinType: JoinType): Join = apply(new Column(condition), joinType)
+
+  def fromXml(xml: Node) = {
+    val joinType = JoinType.withName(xml \ "@type" asString)
+    val condition = (xml \ "condition" getAsString) map (new Column(_))
+
+    apply(condition, joinType)
+  }
+
+  def fromJson(json: JValue) = {
+    val joinType = JoinType.withName(json \ "type" asString)
+    val condition = (json \ "condition" getAsString) map (new Column(_))
+
+    apply(condition, joinType)
+  }
 }

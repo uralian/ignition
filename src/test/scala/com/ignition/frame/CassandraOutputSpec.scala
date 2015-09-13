@@ -10,7 +10,6 @@ import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
 class CassandraOutputSpec extends FrameFlowSpecification with CassandraSpec {
-  sequential
 
   val keySpace = "ignition"
   val dataSet = "ignition_test.ddl"

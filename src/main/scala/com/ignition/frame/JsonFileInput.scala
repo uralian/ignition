@@ -17,7 +17,7 @@ case class JsonFileInput(path: String, columns: Iterable[(String, String)])
   def columns(c: Iterable[(String, String)]): JsonFileInput = copy(columns = this.columns ++ c)
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val path = (injectEnvironment _ andThen injectVariables)(this.path)
+    val path = injectGlobals(this.path)
 
     val df = ctx.jsonFile(path)
     val cols = columns map {

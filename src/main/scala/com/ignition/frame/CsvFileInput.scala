@@ -32,7 +32,7 @@ case class CsvFileInput(path: String, separator: Option[String] = Some(","),
   def schema(schema: StructType): CsvFileInput = copy(schema = Some(schema))
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val path = (injectEnvironment _ andThen injectVariables)(this.path)
+    val path = injectGlobals(this.path)
     val separator = this.separator
 
     val lines = ctx.sparkContext.textFile(path)

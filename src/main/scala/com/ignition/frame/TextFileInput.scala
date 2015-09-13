@@ -21,7 +21,7 @@ case class TextFileInput(path: String, separator: Option[Regex] = None, dataFiel
   val schema: StructType = string(dataField)
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val path = (injectEnvironment _ andThen injectVariables)(this.path)
+    val path = injectGlobals(this.path)
 
     val src = Source.fromFile(path)
     val lines = try src.getLines.mkString("\n") finally src.close

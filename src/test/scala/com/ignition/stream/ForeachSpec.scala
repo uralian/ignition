@@ -54,7 +54,7 @@ class ForeachSpec extends StreamFlowSpecification {
 
   "Transform for FrameSplitter" should {
     "work with Filter" in {
-      val tx = Foreach { com.ignition.frame.Filter($"a" == 2) }
+      val tx = Foreach { com.ignition.frame.Filter($"a" === 2) }
       queue --> tx
       runAndAssertOutput(tx, 0, 3, Set((2, 3)), Set((2, 2)), Set((2, 3)))
       runAndAssertOutput(tx, 1, 3, Set((4, 2)), Set((3, 1)), Set((1, 2)))

@@ -5,14 +5,13 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.functions._
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
 
 import scala.xml.{ Elem, Node }
 import scala.xml.NodeSeq.seqToNodeSeq
 
 import com.ignition.SparkRuntime
-import com.ignition.util.XmlUtils._
-import com.ignition.util.JsonUtils._
+import com.ignition.util.XmlUtils.RichNodeSeq
+import com.ignition.util.JsonUtils.RichJValue
 
 /**
  * Basic aggregate functions.
@@ -44,9 +43,9 @@ import BasicAggregator._
  */
 case class BasicStats(dataFields: Iterable[(String, BasicAggregator)],
                       groupFields: Iterable[String] = Nil) extends FrameTransformer {
-  
+
   import BasicStats._
-  
+
   def add(tuple: (String, BasicAggregator)) = copy(dataFields = dataFields.toSeq :+ tuple)
   def %(tuple: (String, BasicAggregator)) = add(tuple)
 
@@ -108,7 +107,7 @@ object BasicStats {
     val groupFields = (xml \ "group-by" \ "field") map (_ \ "@name" asString)
     apply(dataFields, groupFields)
   }
-  
+
   def fromJson(json: JValue) = {
     val dataFields = for {
       JObject(df) <- json \ "aggregate"

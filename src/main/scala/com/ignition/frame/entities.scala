@@ -1,7 +1,6 @@
 package com.ignition.frame
 
 import org.apache.spark.sql.DataFrame
-
 import com.ignition._
 
 /**
@@ -46,3 +45,20 @@ abstract class FrameMerger(override val inputCount: Int)
 
 abstract class FrameModule(override val inputCount: Int, override val outputCount: Int)
   extends Module[DataFrame](inputCount, outputCount) with FrameStep
+
+/* literals */
+
+/**
+ * Variable literal.
+ */
+case class VarLiteral(name: String) {
+  def eval(implicit runtime: SparkRuntime) = runtime.vars(name)
+  def evalAs[T](implicit runtime: SparkRuntime) = eval.asInstanceOf[T]
+}
+
+/**
+ * Environment literal.
+ */
+case class EnvLiteral(name: String) {
+  def eval = System.getProperty(name)
+}

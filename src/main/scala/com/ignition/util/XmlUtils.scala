@@ -8,10 +8,6 @@ import scala.xml._
  * @author Vlad Orzhekhovskiy
  */
 object XmlUtils {
-  /**
-   * Converts string into XML element.
-   */
-  implicit def stringToElem(label: String) = Elem(null, label, Null, TopScope, true)
 
   /**
    * Extends the standard xml NodeSeq functionality by providing typed and optional accessors.

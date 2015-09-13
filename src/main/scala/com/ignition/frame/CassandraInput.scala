@@ -14,7 +14,7 @@ import com.datastax.spark.connector.rdd.CassandraRDD
 import com.datastax.spark.connector.toSparkContextFunctions
 import com.datastax.spark.connector.types._
 import com.ignition.SparkRuntime
-import com.ignition.types.TypeUtils.{ jsonToValue, typeForName, typeForValue, valueToJson, valueToXml, xmlToValue }
+import com.ignition.types.TypeUtils._
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
 
