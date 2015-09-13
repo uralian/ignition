@@ -1,11 +1,18 @@
 package com.ignition.frame
 
 import scala.collection.JavaConversions.mapAsJavaMap
+import scala.xml.{ Elem, Node }
 
+import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL._
+import org.json4s.jvalue2monadic
 
 import com.ignition.SparkRuntime
+import com.ignition.util.JsonUtils.RichJValue
+import com.ignition.util.XmlUtils.RichNodeSeq
 
 import kafka.producer.{ KeyedMessage, Producer, ProducerConfig }
 
@@ -16,6 +23,8 @@ import kafka.producer.{ KeyedMessage, Producer, ProducerConfig }
  */
 case class KafkaOutput(field: String, topic: String, brokers: Iterable[String] = Nil,
                        kafkaProperties: Map[String, String] = Map.empty) extends FrameTransformer {
+
+  import KafkaOutput._
 
   def brokers(hosts: String*): KafkaOutput = copy(brokers = hosts)
   def brokers(hosts: String): KafkaOutput = copy(brokers = hosts.split(",\\s*"))
@@ -44,4 +53,64 @@ case class KafkaOutput(field: String, topic: String, brokers: Iterable[String] =
   }
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
+
+  def toXml: Elem =
+    <node>
+      <field>{ field }</field>
+      <topic>{ topic }</topic>
+      <brokers>{ brokers.mkString(",") }</brokers>
+      {
+        if (!kafkaProperties.isEmpty)
+          <kafkaProperties>
+            {
+              kafkaProperties map {
+                case (name, value) => <property name={ name }>{ value }</property>
+              }
+            }
+          </kafkaProperties>
+      }
+    </node>.copy(label = tag)
+
+  def toJson: JValue = {
+    val props = if (kafkaProperties.isEmpty) None else Some(kafkaProperties.map {
+      case (name, value) => ("name" -> name) ~ ("value" -> value)
+    })
+    ("tag" -> tag) ~ ("field" -> field) ~ ("topic" -> topic) ~ ("brokers" -> brokers.mkString(",")) ~
+      ("kafkaProperties" -> props)
+  }
+}
+
+/**
+ * Kafka Output companion object.
+ */
+object KafkaOutput {
+  val tag = "kafka-output"
+
+  def fromXml(xml: Node) = {
+    val field = xml \ "field" asString
+    val topic = xml \ "topic" asString
+    val brokers = (xml \ "brokers" asString) split (",\\s*")
+    val properties = xml \ "kafkaProperties" \ "property" map { node =>
+      val name = node \ "@name" asString
+      val value = node.child.head asString
+
+      name -> value
+    } toMap
+
+    apply(field, topic, brokers, properties)
+  }
+
+  def fromJson(json: JValue) = {
+    val field = json \ "field" asString
+    val topic = json \ "topic" asString
+    val brokers = (json \ "groupId" asString) split (",\\s*")
+    val properties = (json \ "kafkaProperties" asArray) map { item =>
+      val name = item \ "name" asString
+      val value = item \ "value" asString
+
+      name -> value
+    } toMap
+
+    apply(field, topic, brokers, properties)
+  }
 }
