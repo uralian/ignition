@@ -58,6 +58,28 @@ class FormulaSpec extends FrameFlowSpecification with TestDataHelper {
         apd(row4, "", "c", 2008.565), apd(row5, "<b/>", "2", 1987.8),
         apd(row6, "<b>x</b>", "", 1996.9995), apd(row7, "<b>...</b>", "", 1981.5))
     }
+    "save to/load from xml" in {
+      val formula = Formula("X" -> "b".xpath("xml"), "Y" -> "$.books[1]".json("json"),
+        "Z" -> "YEAR(dob) + total / 2".mvel)
+      formula.toXml must ==/(
+        <formula>
+          <field name="X"><xpath source="xml">b</xpath></field>
+          <field name="Y"><json source="json">$.books[1]</json></field>
+          <field name="Z"><mvel>YEAR(dob) + total / 2</mvel></field>
+        </formula>)
+      Formula.fromXml(formula.toXml) === formula
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val formula = Formula("X" -> "b".xpath("xml"), "Y" -> "$.books[1]".json("json"),
+        "Z" -> "YEAR(dob) + total / 2".mvel)
+      formula.toJson === ("tag" -> "formula") ~ ("fields" -> List(
+        ("name" -> "X") ~ ("type" -> "xpath") ~ ("source" -> "xml") ~ ("query" -> "b"),
+        ("name" -> "Y") ~ ("type" -> "json") ~ ("source" -> "json") ~ ("query" -> "$.books[1]"),
+        ("name" -> "Z") ~ ("type" -> "mvel") ~ ("expression" -> "YEAR(dob) + total / 2")))
+      Formula.fromJson(formula.toJson) === formula
+    }
     "be unserializable" in assertUnserializable(Formula("Y" -> "$.books[1]".json("json")))
   }
 

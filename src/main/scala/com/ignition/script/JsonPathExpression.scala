@@ -1,9 +1,17 @@
 package com.ignition.script
 
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
+import scala.xml.{ Elem, Node }
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.{ StringType, StructType }
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ jobject2assoc, pair2Assoc, pair2jvalue, string2jvalue }
+import org.json4s.jvalue2monadic
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.ignition.util.JsonUtils.RichJValue
+import com.ignition.util.XmlUtils.RichNodeSeq
+
 import io.gatling.jsonpath.JsonPath
 
 /**
@@ -16,7 +24,7 @@ case class JsonPathExpression(val srcField: String, val query: String) extends R
   @transient private lazy val compiled = JsonPath.compile(query)
 
   private val mapper = new ObjectMapper
-  
+
   val targetType = Some(StringType)
 
   def evaluate(schema: StructType)(row: Row) = compiled.right.map { path =>
@@ -26,5 +34,29 @@ case class JsonPathExpression(val srcField: String, val query: String) extends R
   } match {
     case Left(err) => throw new RuntimeException(err.reason)
     case Right(str) => str
+  }
+
+  def toXml: Elem = <json source={ srcField }>{ query }</json>
+
+  def toJson: JValue = ("type" -> "json") ~ ("source" -> srcField) ~ ("query" -> query)
+}
+
+/**
+ * JsonPath Expression companion object.
+ */
+object JsonPathExpression {
+
+  def fromXml(xml: Node) = {
+    val srcField = xml \ "@source" asString
+    val query = xml.child.head asString
+
+    apply(srcField, query)
+  }
+
+  def fromJson(json: JValue) = {
+    val srcField = json \ "source" asString
+    val query = json \ "query" asString
+
+    apply(srcField, query)
   }
 }
