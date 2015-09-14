@@ -107,8 +107,8 @@ class MongoInputSpec extends FrameFlowSpecification with EmbedConnection {
           ("name" -> "code") ~ ("type" -> "string") ~ ("nullable" -> false),
           ("name" -> "owner#name") ~ ("type" -> "string") ~ ("nullable" -> true),
           ("name" -> "active") ~ ("type" -> "boolean") ~ ("nullable" -> true))) ~
-          ("filter" -> Option.empty[String]) ~
-          ("sortBy" -> Option.empty[String]) ~
+          ("filter" -> jNone) ~
+          ("sortBy" -> jNone) ~
           ("page" -> ("limit" -> 100) ~ ("offset" -> 0))
       MongoInput.fromJson(m1.toJson) === m1
 
@@ -125,7 +125,7 @@ class MongoInputSpec extends FrameFlowSpecification with EmbedConnection {
             ("sortBy" -> List(
               ("name" -> "owner#name") ~ ("direction" -> "asc"),
               ("name" -> "code") ~ ("direction" -> "desc"))) ~
-              ("page" -> Option.empty[String])
+              ("page" -> jNone)
       MongoInput.fromJson(m2.toJson) === m2
     }
     "be unserializable" in assertUnserializable(MongoInput("test", "accounts", string("code", false).schema))

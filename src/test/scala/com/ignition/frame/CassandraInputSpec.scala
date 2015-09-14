@@ -139,12 +139,12 @@ class CassandraInputSpec extends FrameFlowSpecification with CassandraSpec {
 
       val c1 = CassandraInput("ignition", "orders")
       c1.toJson === ("tag" -> "cassandra-input") ~ ("keyspace" -> "ignition") ~ ("table" -> "orders") ~
-        ("columns" -> Option.empty[String]) ~ ("where" -> Option.empty[String])
+        ("columns" -> jNone) ~ ("where" -> jNone)
       CassandraInput.fromJson(c1.toJson) === c1
 
       val c2 = CassandraInput("ignition", "orders") columns ("items", "total")
       c2.toJson === ("tag" -> "cassandra-input") ~ ("keyspace" -> "ignition") ~ ("table" -> "orders") ~
-        ("columns" -> List("items", "total")) ~ ("where" -> Option.empty[String])
+        ("columns" -> List("items", "total")) ~ ("where" -> jNone)
       CassandraInput.fromJson(c2.toJson) === c2
 
       val c3 = CassandraInput("ignition", "orders") columns ("items", "total") where (

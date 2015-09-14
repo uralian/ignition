@@ -61,14 +61,14 @@ class KafkaInputSpec extends FrameFlowSpecification {
 
       val k1 = KafkaInput("zk", "topic", "group") properties ("a" -> "b") maxRows (10) noMaxTimeout ()
       k1.toJson === ("tag" -> "kafka-input") ~ ("topic" -> "topic") ~ ("zkUrl" -> "zk") ~
-        ("groupId" -> "group") ~ ("field" -> "payload") ~ ("maxRows" -> 10) ~ ("maxTimeout" -> Option.empty[Long]) ~
+        ("groupId" -> "group") ~ ("field" -> "payload") ~ ("maxRows" -> 10) ~ ("maxTimeout" -> jNone) ~
         ("kafkaProperties" -> List(("name" -> "a") ~ ("value" -> "b")))
       KafkaInput.fromJson(k1.toJson) === k1
 
       val k2 = KafkaInput("zk", "topic", "group") maxTimeout (200) field ("data")
       k2.toJson === ("tag" -> "kafka-input") ~ ("topic" -> "topic") ~ ("zkUrl" -> "zk") ~
         ("groupId" -> "group") ~ ("field" -> "data") ~ ("maxRows" -> 100) ~ ("maxTimeout" -> 200) ~
-        ("kafkaProperties" -> Option.empty[String])
+        ("kafkaProperties" -> jNone)
       KafkaInput.fromJson(k2.toJson) === k2
     }
     "be unserializable" in assertUnserializable(KafkaInput("zk", "topic", "group"))

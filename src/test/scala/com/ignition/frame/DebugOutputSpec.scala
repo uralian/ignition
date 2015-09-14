@@ -73,7 +73,7 @@ class DebugOutputSpec extends FrameFlowSpecification {
 
       val d1 = DebugOutput() showNames false showTypes false noTitle () unlimitedWidth ()
       d1.toJson === ("tag" -> "debug-output") ~ ("names" -> false) ~ ("types" -> false) ~
-        ("title" -> Option.empty[String]) ~ ("maxWidth" -> Option.empty[Int])
+        ("title" -> jNone) ~ ("maxWidth" -> jNone)
       DebugOutput.fromJson(d1.toJson) === d1
 
       val d2 = DebugOutput() showNames true showTypes true title "debug" maxWidth 100

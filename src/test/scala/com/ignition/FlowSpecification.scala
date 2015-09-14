@@ -31,4 +31,6 @@ trait FlowSpecification extends Specification with XmlMatchers with SparkTestHel
   protected implicit def anySeqToRow(data: Seq[Any]) = Row.fromSeq(data)
 
   protected implicit def tupleToRow(tuple: Product) = Row.fromTuple(tuple)
+  
+  protected val jNone = org.json4s.JNothing
 }

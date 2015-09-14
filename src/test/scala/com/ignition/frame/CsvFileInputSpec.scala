@@ -79,17 +79,17 @@ class CsvFileInputSpec extends FrameFlowSpecification {
 
       val c1 = CsvFileInput("file", None, None)
       c1.toJson === ("tag" -> "csv-file-input") ~ ("path" -> "file") ~
-        ("separator" -> Option.empty[String]) ~ ("schema" -> Option.empty[String])
+        ("separator" -> jNone) ~ ("schema" -> jNone)
       CsvFileInput.fromJson(c1.toJson) === c1
 
       val c2 = CsvFileInput("file", Some(","), None)
       c2.toJson === ("tag" -> "csv-file-input") ~ ("path" -> "file") ~
-        ("separator" -> ",") ~ ("schema" -> Option.empty[String])
+        ("separator" -> ",") ~ ("schema" -> jNone)
       CsvFileInput.fromJson(c2.toJson) === c2
 
       val c3 = CsvFileInput("file", None, Some(int("index") ~ date("when")))
       c3.toJson === ("tag" -> "csv-file-input") ~ ("path" -> "file") ~
-        ("separator" -> Option.empty[String]) ~ ("schema" -> List(
+        ("separator" -> jNone) ~ ("schema" -> List(
           ("name" -> "index") ~ ("type" -> "integer") ~ ("nullable" -> true),
           ("name" -> "when") ~ ("type" -> "date") ~ ("nullable" -> true)))
       CsvFileInput.fromJson(c3.toJson) === c3

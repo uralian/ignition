@@ -93,7 +93,7 @@ class JoinSpec extends FrameFlowSpecification {
       import org.json4s.JsonDSL._
 
       val j1 = Join()
-      j1.toJson === ("tag" -> "join") ~ ("type" -> "inner") ~ ("condition" -> Option.empty[String])
+      j1.toJson === ("tag" -> "join") ~ ("type" -> "inner") ~ ("condition" -> jNone)
       Join.fromJson(j1.toJson) === j1
 
       val j2 = Join($"input0.name" === $"input1.name")
