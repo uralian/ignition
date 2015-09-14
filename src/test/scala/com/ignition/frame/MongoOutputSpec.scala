@@ -50,6 +50,18 @@ class MongoOutputSpec extends FrameFlowSpecification with EmbedConnection {
         MongoDBObject("code" -> 111, "name" -> "john", "active" -> null),
         MongoDBObject("code" -> 222, "name" -> null, "active" -> false))
     }
+    "save to/load from xml" in {
+      val mongo = MongoOutput("test", "accounts")
+      mongo.toXml must ==/(<mongo-output db="test" coll="accounts" />)
+      MongoOutput.fromXml(mongo.toXml) === mongo
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+      
+      val mongo = MongoOutput("test", "accounts")
+      mongo.toJson === ("tag" -> "mongo-output") ~ ("db" -> "test") ~ ("coll" -> "accounts")
+      MongoOutput.fromJson(mongo.toJson) === mongo
+    }
     "be unserializable" in assertUnserializable(MongoOutput("test", "accounts"))
   }
 }
