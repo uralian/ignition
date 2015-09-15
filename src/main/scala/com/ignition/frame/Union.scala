@@ -1,7 +1,11 @@
 package com.ignition.frame
 
+import scala.xml.{ Elem, Node }
+
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ pair2jvalue, string2jvalue }
 
 import com.ignition.SparkRuntime
 
@@ -11,6 +15,7 @@ import com.ignition.SparkRuntime
  * @author Vlad Orzhekhovskiy
  */
 case class Union() extends FrameMerger(Union.MAX_INPUTS) {
+  import Union._
 
   override val allInputsRequired = false
 
@@ -25,11 +30,21 @@ case class Union() extends FrameMerger(Union.MAX_INPUTS) {
     assert(schemas.tail.forall(_ == schemas.head), "Input schemas do not match")
     inSchemas.head
   }
+
+  def toXml: Elem = <node/>.copy(label = tag)
+
+  def toJson: JValue = ("tag" -> tag)
 }
 
 /**
  * Union companion object.
  */
 object Union {
+  val tag = "union"
+
   val MAX_INPUTS = 10
+
+  def fromXml(xml: Node) = apply()
+
+  def fromJson(json: JValue) = apply()
 }
