@@ -4,8 +4,12 @@ import scala.xml.{ Elem, Node }
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ pair2Assoc, string2jvalue }
+import org.json4s.jvalue2monadic
 
 import com.ignition.{ SparkRuntime, XmlExport }
+import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
 
 /**
@@ -15,6 +19,7 @@ import com.ignition.util.XmlUtils.RichNodeSeq
  * @author Vlad Orzhekhovskiy
  */
 case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) with XmlExport {
+  import SQLQuery._
 
   override val allInputsRequired = false
 
@@ -35,14 +40,20 @@ case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) with
   protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
 
-  def toXml: Elem = <sql>{ query }</sql>
+  def toXml: Elem = <node>{ query }</node>.copy(label = tag)
+
+  def toJson: JValue = ("tag" -> tag) ~ ("query" -> query)
 }
 
 /**
  * SQL query companion object.
  */
 object SQLQuery {
+  val tag = "sql"
+
   val MAX_INPUTS = 10
 
-  def fromXml(xml: Node) = SQLQuery(xml.asString)
+  def fromXml(xml: Node) = SQLQuery(xml.child.head asString)
+
+  def fromJson(json: JValue) = SQLQuery(json \ "query" asString)
 }
