@@ -37,6 +37,26 @@ class SetVariablesSpec extends FrameFlowSpecification {
       rt.vars("a") === 99
       rt.vars("c") === "hello"
     }
+    "save to/load from xml" in {
+      val sv = SetVariables("a" -> 5, "b" -> true, "c" -> null)
+      sv.toXml must ==/(
+        <set-variables>
+          <var name="a" type="integer">5</var>
+          <var name="b" type="boolean">true</var>
+          <var name="c"/>
+        </set-variables>)
+      SetVariables.fromXml(sv.toXml) === sv
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val sv = SetVariables("a" -> 5, "b" -> true, "c" -> null)
+      sv.toJson === ("tag" -> "set-variables") ~ ("vars" -> List(
+        ("name" -> "a") ~ ("type" -> "integer") ~ ("value" -> 5),
+        ("name" -> "b") ~ ("type" -> "boolean") ~ ("value" -> true),
+        ("name" -> "c") ~ ("type" -> jNone) ~ ("value" -> null)))
+      SetVariables.fromJson(sv.toJson) === sv
+    }
     "be unserializable" in assertUnserializable(SetVariables())
   }
 }
