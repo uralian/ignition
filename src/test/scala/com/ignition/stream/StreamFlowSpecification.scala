@@ -6,6 +6,11 @@ import org.apache.spark.sql.Row
 import org.apache.spark.streaming.ClockWrapper
 import com.ignition.{ ExecutionException, FlowSpecification }
 import com.ignition.DefaultSparkRuntime
+import org.apache.spark.streaming.scheduler.StreamingListener
+import org.apache.spark.streaming.scheduler.StreamingListenerBatchCompleted
+import scala.concurrent._
+import scala.util.control.NonFatal
+import org.apache.spark.streaming.scheduler.StreamingListenerReceiverError
 
 /**
  * Base trait for stream flow spec2 tests, includes some helper functions.
@@ -34,18 +39,31 @@ trait StreamFlowSpecification extends FlowSpecification {
     var buffer = ListBuffer.empty[Set[Row]]
     step.output(index).foreachRDD(rdd => buffer += rdd.collect.toSet)
 
-    val clock = new ClockWrapper(ssc)
-    ssc.start
-    clock.advance(batchCount * batchDuration.getMillis)
+    val listen = new StreamingListener {
+      private var batchIndex = 0
+      override def onBatchCompleted(event: StreamingListenerBatchCompleted) = synchronized {
+        batchIndex += 1
+        if (batchIndex >= batchCount) future { ssc.stop(false, true) }
+      }
+      override def onReceiverError(error: StreamingListenerReceiverError) = synchronized {
+        log.error("Receiver error occurred: " + error)
+        future { ssc.stop(false, false) }
+      }
+    }
+    ssc.addStreamingListener(listen)
 
-    Thread.sleep(math.max(batchCount * 200, 1000))
-
-    ssc.stop(false, false)
-    ssc.awaitTerminationOrTimeout(100)
-
-    sc.stop
-    System.clearProperty("spark.driver.port")
-    System.clearProperty("spark.master.port")
+    try {
+      ssc.start
+      ssc.awaitTermination
+    } catch {
+      case NonFatal(e) =>
+        log.error("Error occurred while streaming: " + e.getMessage)
+        ssc.stop(false, false)
+    } finally {
+      sc.stop
+      System.clearProperty("spark.driver.port")
+      System.clearProperty("spark.master.port")
+    }
 
     (buffer zip expected) forall {
       case (rdd, rows) => rdd === rows
