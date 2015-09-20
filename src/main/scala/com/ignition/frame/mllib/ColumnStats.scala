@@ -1,24 +1,34 @@
 package com.ignition.frame.mllib
 
-import org.apache.spark.mllib.linalg.Vector
+import scala.xml.{ Elem, Node }
+
 import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL._
+import org.json4s.jvalue2monadic
 
 import com.ignition.SparkRuntime
 import com.ignition.frame.FrameTransformer
 import com.ignition.types.{ RichStructType, double, fieldToRichStruct, long }
+import com.ignition.util.JsonUtils.RichJValue
+import com.ignition.util.XmlUtils.RichNodeSeq
 
 /**
  * Calculates column-based statistics using MLLib library.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class ColumnStats(dataFields: Iterable[String] = Nil, groupFields: Iterable[String] = Nil)
+case class ColumnStats(dataFields: Iterable[String], groupFields: Iterable[String] = Nil)
   extends FrameTransformer with MLFunctions {
 
-  def columns(fields: String*) = copy(dataFields = fields)
+  import ColumnStats._
+
+  def add(fields: String*) = copy(dataFields = dataFields ++ fields)
+  def %(fields: String*) = add(fields: _*)
+
   def groupBy(fields: String*) = copy(groupFields = fields)
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
@@ -53,4 +63,46 @@ case class ColumnStats(dataFields: Iterable[String] = Nil, groupFields: Iterable
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
+
+  def toXml: Elem =
+    <node>
+      <aggregate>
+        {
+          dataFields map { name => <field name={ name }/> }
+        }
+      </aggregate>
+      {
+        if (!groupFields.isEmpty)
+          <group-by>
+            { groupFields map (f => <field name={ f }/>) }
+          </group-by>
+      }
+    </node>.copy(label = tag)
+
+  def toJson: org.json4s.JValue = {
+    val groupBy = if (groupFields.isEmpty) None else Some(groupFields)
+    val aggregate = dataFields map (_.toString)
+    ("tag" -> tag) ~ ("groupBy" -> groupBy) ~ ("aggregate" -> aggregate)
+  }
+}
+
+/**
+ * Columns Stats companion object.
+ */
+object ColumnStats {
+  val tag = "column-stats"
+  
+  def apply(dataFields: String*): ColumnStats = apply(dataFields, Nil)
+
+  def fromXml(xml: Node) = {
+    val dataFields = (xml \ "aggregate" \ "field") map { _ \ "@name" asString }
+    val groupFields = (xml \ "group-by" \ "field") map (_ \ "@name" asString)
+    apply(dataFields, groupFields)
+  }
+
+  def fromJson(json: JValue) = {
+    val dataFields = (json \ "aggregate" asArray) map (_ asString)
+    val groupFields = (json \ "groupBy" asArray) map (_ asString)
+    apply(dataFields, groupFields)
+  }
 }
