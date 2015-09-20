@@ -1,14 +1,22 @@
 package com.ignition.frame.mllib
 
-import org.apache.spark.mllib.linalg.Vector
+import scala.xml.{ Elem, Node }
+
 import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL._
+import org.json4s.jvalue2monadic
 
 import com.ignition.SparkRuntime
 import com.ignition.frame.FrameTransformer
 import com.ignition.types.double
+import com.ignition.util.JsonUtils.RichJValue
+import com.ignition.util.XmlUtils.RichNodeSeq
+
+import CorrelationMethod.{ CorrelationMethod, PEARSON }
 
 /**
  * Correlation methods.
@@ -19,17 +27,20 @@ object CorrelationMethod extends Enumeration {
   val PEARSON = Value("pearson")
   val SPEARMAN = Value("spearman")
 }
-import CorrelationMethod._
 
 /**
  * Computes the correlation between data series using MLLib library.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Correlation(dataFields: Iterable[String] = Nil, groupFields: Iterable[String] = Nil,
-  method: CorrelationMethod = PEARSON) extends FrameTransformer with MLFunctions {
+case class Correlation(dataFields: Iterable[String], groupFields: Iterable[String] = Nil,
+                       method: CorrelationMethod = PEARSON) extends FrameTransformer with MLFunctions {
 
-  def columns(fields: String*) = copy(dataFields = fields)
+  import Correlation._
+
+  def add(fields: String*) = copy(dataFields = dataFields ++ fields)
+  def %(fields: String*) = add(fields: _*)
+
   def groupBy(fields: String*) = copy(groupFields = fields)
   def method(method: CorrelationMethod) = copy(method = method)
 
@@ -64,4 +75,48 @@ case class Correlation(dataFields: Iterable[String] = Nil, groupFields: Iterable
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     compute(input(Some(10)), Some(10)) schema
+
+  def toXml: Elem =
+    <node method={ method.toString }>
+      <aggregate>
+        {
+          dataFields map { name => <field name={ name }/> }
+        }
+      </aggregate>
+      {
+        if (!groupFields.isEmpty)
+          <group-by>
+            { groupFields map (f => <field name={ f }/>) }
+          </group-by>
+      }
+    </node>.copy(label = tag)
+
+  def toJson: org.json4s.JValue = {
+    val groupBy = if (groupFields.isEmpty) None else Some(groupFields)
+    val aggregate = dataFields map (_.toString)
+    ("tag" -> tag) ~ ("method" -> method.toString) ~ ("groupBy" -> groupBy) ~ ("aggregate" -> aggregate)
+  }
+}
+
+/**
+ * Correlation companion object.
+ */
+object Correlation {
+  val tag = "correlation"
+
+  def apply(dataFields: String*): Correlation = apply(dataFields, Nil)
+
+  def fromXml(xml: Node) = {
+    val dataFields = (xml \ "aggregate" \ "field") map { _ \ "@name" asString }
+    val groupFields = (xml \ "group-by" \ "field") map (_ \ "@name" asString)
+    val method = CorrelationMethod.withName(xml \ "@method" asString)
+    apply(dataFields, groupFields, method)
+  }
+
+  def fromJson(json: JValue) = {
+    val dataFields = (json \ "aggregate" asArray) map (_ asString)
+    val groupFields = (json \ "groupBy" asArray) map (_ asString)
+    val method = CorrelationMethod.withName(json \ "method" asString)
+    apply(dataFields, groupFields, method)
+  }
 }

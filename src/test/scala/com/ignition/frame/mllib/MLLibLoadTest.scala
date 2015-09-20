@@ -64,7 +64,7 @@ object MLLibLoadTest extends App with TestDataHelper {
     assert(rows.size == rowCount)
 
     val grid = DataGrid(schema, rows)
-    val stats = Correlation() groupBy ("key1", "key2") columns ("intVal", "dblVal", "lngVal")
+    val stats = Correlation() % ("intVal", "dblVal", "lngVal") groupBy ("key1", "key2")
     grid --> stats
     println("Correlation - computing...")
 

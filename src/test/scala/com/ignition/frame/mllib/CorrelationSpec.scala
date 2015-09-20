@@ -18,7 +18,7 @@ class CorrelationSpec extends FrameFlowSpecification {
 
   "Correlation" should {
     "compute stats without grouping" in {
-      val corr = Correlation() columns ("height", "weight", "iq")
+      val corr = Correlation("height", "weight", "iq")
       grid --> corr
 
       assertSchema(
@@ -26,12 +26,47 @@ class CorrelationSpec extends FrameFlowSpecification {
         corr, 0)
     }
     "compute stats with grouping" in {
-      val corr = Correlation() columns ("height", "weight", "iq") groupBy ("color")
+      val corr = Correlation() add ("height", "weight", "iq") groupBy "color"
       grid --> corr
 
       assertSchema(string("color") ~
         double("corr_height_weight") ~ double("corr_height_iq") ~ double("corr_weight_iq"),
         corr, 0)
+    }
+    "save to/load from xml" in {
+      val s1 = Correlation("height", "weight", "iq")
+      s1.toXml must ==/(
+        <correlation method="pearson">
+          <aggregate>
+            <field name="height"/><field name="weight"/><field name="iq"/>
+          </aggregate>
+        </correlation>)
+      Correlation.fromXml(s1.toXml) === s1
+
+      val s2 = Correlation() add ("height", "weight", "iq") groupBy "color"
+      s2.toXml must ==/(
+        <correlation method="pearson">
+          <aggregate>
+            <field name="height"/><field name="weight"/><field name="iq"/>
+          </aggregate>
+          <group-by>
+            <field name="color"/>
+          </group-by>
+        </correlation>)
+      Correlation.fromXml(s2.toXml) === s2
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val s1 = Correlation("height", "weight", "iq")
+      s1.toJson === ("tag" -> "correlation") ~ ("aggregate" -> List("height", "weight", "iq")) ~
+        ("method" -> "pearson") ~ ("groupBy" -> jNone)
+      Correlation.fromJson(s1.toJson) === s1
+
+      val s2 = Correlation() add ("height", "weight", "iq") groupBy "color"
+      s2.toJson === ("tag" -> "correlation") ~ ("aggregate" -> List("height", "weight", "iq")) ~
+        ("method" -> "pearson") ~ ("groupBy" -> List("color"))
+      Correlation.fromJson(s2.toJson) === s2
     }
     "be unserializable" in assertUnserializable(Correlation())
   }
