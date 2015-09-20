@@ -36,6 +36,9 @@ case class Join(condition: Option[Column], joinType: JoinType) extends StreamMer
 
   protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
+
+  def toXml: scala.xml.Elem = ???
+  def toJson: org.json4s.JValue = ???
 }
 
 /**
