@@ -18,18 +18,47 @@ class RegressionSpec extends FrameFlowSpecification {
 
   "Regression" should {
     "compute without grouping" in {
-      val reg = Regression("x") columns ("y", "z") iterations (200) step (5)
+      val reg = Regression("x") features ("y", "z") iterations 200 step 5
       grid --> reg
 
       assertSchema(double("y_weight") ~ double("z_weight") ~ double("intercept") ~
         double("r2"), reg, 0)
     }
     "compute with grouping" in {
-      val reg = Regression("x") columns ("y", "z") groupBy ("color") iterations (200) step (5)
+      val reg = Regression("x") features ("y", "z") groupBy "color" iterations 200 step 5
       grid --> reg
 
       assertSchema(string("color") ~ double("y_weight") ~ double("z_weight") ~
         double("intercept") ~ double("r2"), reg, 0)
+    }
+    "save to/load from xml" in {
+      val reg = Regression("x") features ("y", "z") groupBy "color" iterations 200 step 5
+      reg.toXml must ==/(
+        <regression>
+          <label>x</label>
+          <features>
+            <field name="y"/><field name="z"/>
+          </features>
+          <group-by>
+            <field name="color"/>
+          </group-by>
+          <config>
+            <method>LINEAR</method>
+            <iterations>200</iterations>
+            <step>5.0</step>
+            <allowIntercept>false</allowIntercept>
+          </config>
+        </regression>)
+      Regression.fromXml(reg.toXml) === reg
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val reg = Regression("x") features ("y", "z") groupBy "color" iterations 200 step 5
+      reg.toJson === ("tag" -> "regression") ~ ("label" -> "x") ~ ("features" -> List("y", "z")) ~
+        ("groupBy" -> List("color")) ~ ("config" ->
+          ("method" -> "LINEAR") ~ ("iterations" -> 200) ~ ("step" -> 5.0) ~ ("allowIntercept" -> false))
+      Regression.fromJson(reg.toJson) === reg
     }
     "be unserializable" in assertUnserializable(Regression("x"))
   }

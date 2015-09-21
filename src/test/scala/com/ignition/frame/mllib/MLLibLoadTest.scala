@@ -91,7 +91,7 @@ object MLLibLoadTest extends App with TestDataHelper {
     assert(rows.size == rowCount)
 
     val grid = DataGrid(schema, rows)
-    val reg = Regression("label") columns ("feature1", "feature2") groupBy ("key1", "key2")
+    val reg = Regression("label") features ("feature1", "feature2") groupBy ("key1", "key2")
     grid --> reg
     println("Regression - computing...")
 
