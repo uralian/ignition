@@ -16,6 +16,9 @@ case class Window(windowDuration: Duration, slideDuration: Option[Duration] = No
     arg.window(windowDuration, slideDuration getOrElse arg.slideDuration)
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
+  
+  def toXml: scala.xml.Elem = ???
+  def toJson: org.json4s.JValue = ???
 }
 
 /**

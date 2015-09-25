@@ -1,17 +1,14 @@
 package com.ignition.frame
 
 import scala.xml.{ Attribute, Elem, Node, Null, Text }
-
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
-
-import com.ignition.{ SparkRuntime, Step, StepFactory, AbstractStep }
+import com.ignition.{ SparkRuntime, Step, AbstractStep }
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.{ RichNodeSeq, intToText }
-
 import SubFlow.{ FlowInput, FlowOutput, FlowStep, tag }
 
 /**

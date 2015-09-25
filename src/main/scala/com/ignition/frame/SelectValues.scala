@@ -158,7 +158,7 @@ object SelectAction {
     }
   }
 
-  def fromXml(xml: Node) = xml match {
+  def fromXml(xml: Node) = scala.xml.Utility.trim(xml) match {
     case <rename>{ _* }</rename> => Rename.fromXml(xml)
     case <remove>{ _* }</remove> => Remove.fromXml(xml)
     case <retain>{ _* }</retain> => Retain.fromXml(xml)
@@ -211,7 +211,7 @@ object SelectValues {
 
   def apply(actions: SelectAction*): SelectValues = apply(actions.toSeq)
 
-  def fromXml(xml: Node) = apply(xml.child map SelectAction.fromXml)
+  def fromXml(xml: Node) = apply(xml \ "_" map SelectAction.fromXml)
 
   def fromJson(json: JValue) = apply((json \ "actions" asArray) map SelectAction.fromJson)
 }

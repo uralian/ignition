@@ -1,10 +1,16 @@
 package com.ignition
 
+import java.io.File
 import java.util.concurrent.TimeUnit
+
+import scala.io.Source
+import scala.xml.XML
 
 import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
+import org.json4s.jackson.JsonMethods.parse
+import org.json4s.string2JsonInput
 
 import com.ignition.frame.DataFlow
 import com.ignition.stream.StreamFlow
@@ -50,9 +56,9 @@ object SparkPlug {
   implicit protected lazy val runtime = new DefaultSparkRuntime(ctx, ssc)
 
   def runDataFlow(flow: DataFlow,
-    vars: Map[String, Any] = Map.empty,
-    accs: Map[String, Any] = Map.empty,
-    args: Array[String] = Array.empty) = {
+                  vars: Map[String, Any] = Map.empty,
+                  accs: Map[String, Any] = Map.empty,
+                  args: Array[String] = Array.empty) = {
 
     vars foreach {
       case (name, value) => runtime.vars(name) = value
@@ -73,9 +79,9 @@ object SparkPlug {
   }
 
   def startStreamFlow(flow: StreamFlow,
-    vars: Map[String, Any] = Map.empty,
-    accs: Map[String, Any] = Map.empty,
-    args: Array[String] = Array.empty) = {
+                      vars: Map[String, Any] = Map.empty,
+                      accs: Map[String, Any] = Map.empty,
+                      args: Array[String] = Array.empty) = {
 
     vars foreach {
       case (name, value) => runtime.vars(name) = value
@@ -100,5 +106,40 @@ object SparkPlug {
     sc.stop
     System.clearProperty("spark.driver.port")
     System.clearProperty("spark.master.port")
+  }
+
+  case class FlowConfig(flowfile: File = null, fileType: String = "json", args: Seq[String] = Seq.empty)
+
+  val parser = new scopt.OptionParser[FlowConfig]("SparkPlug") {
+    head("SparkPlug", "0.3")
+    note("This program runs a single dataflow.\n")
+
+    opt[String]("type") optional () valueName ("json|xml") action { (x, c) =>
+      c.copy(fileType = x)
+    } text ("flow file format (default: json)")
+    help("help") text ("prints this usage text")
+    arg[File]("dataflow") required () action { (x, c) =>
+      c.copy(flowfile = x)
+    } text ("dataflow file")
+    arg[String]("arg0 arg1 ...") unbounded () optional () action { (x, c) =>
+      c.copy(args = c.args :+ x)
+    } text ("dataflow parameters")
+
+    override def showUsageOnError: Boolean = true
+  }
+
+  /**
+   * Entry point to start a data flow.
+   */
+  def main(args: Array[String]): Unit = {
+    val cfg = parser.parse(args, FlowConfig()) getOrElse sys.exit
+
+    val data = Source.fromFile(cfg.flowfile).getLines mkString "\n"
+    val flow = if (cfg.fileType == "json")
+      DataFlow.fromJson(parse(data))
+    else
+      DataFlow.fromXml(XML.loadString(data))
+
+    runDataFlow(flow = flow, args = args)
   }
 }

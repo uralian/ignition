@@ -28,22 +28,34 @@ class StepSpec extends FrameFlowSpecification with ScalaCheck with SparkTestHelp
 
   abstract class ProducerAdapter extends FrameProducer {
     protected def computeSchema(implicit runtime: SparkRuntime) = schema
+    def toXml: scala.xml.Elem = ???
+    def toJson: org.json4s.JValue = ???
   }
 
   abstract class TransformerAdapter extends FrameTransformer {
     protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime) = schema
+    def toXml: scala.xml.Elem = ???
+    def toJson: org.json4s.JValue = ???
+
   }
 
   abstract class SplitterAdapter extends FrameSplitter(2) {
     protected def computeSchema(inSchema: StructType, index: Int)(implicit runtime: SparkRuntime) = schema
+    def toXml: scala.xml.Elem = ???
+    def toJson: org.json4s.JValue = ???
+
   }
 
   abstract class MergerAdapter extends FrameMerger(2) {
     protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime) = schema
+    def toXml: scala.xml.Elem = ???
+    def toJson: org.json4s.JValue = ???
   }
 
   abstract class ModuleAdapter extends FrameModule(2, 3) {
     protected def computeSchema(inSchemas: Seq[StructType], index: Int)(implicit runtime: SparkRuntime) = schema
+    def toXml: scala.xml.Elem = ???
+    def toJson: org.json4s.JValue = ???
   }
 
   private def createDF(value: Int) = {

@@ -23,6 +23,9 @@ case class SetVariables(vars: Map[String, Any]) extends StreamTransformer {
   }
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
+  
+  def toXml: scala.xml.Elem = ???
+  def toJson: org.json4s.JValue = ???
 }
 
 /**

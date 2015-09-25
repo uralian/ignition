@@ -10,7 +10,7 @@ object KafkaInputOutput extends App {
 
   if (args.length < 2) {
     Console.err.println(s"""
-        |Usage: KafkaInputOutput <brokers> <topics>
+        |Usage: KafkaInputOutput <zkUrl> <brokers> <inTopic> <groupId> <outTopic>
         |  <zkUrl> zookeeper connect url
         |  <brokers> comma-separated kafka brokers
         |  <inTopic> topic to consumer from

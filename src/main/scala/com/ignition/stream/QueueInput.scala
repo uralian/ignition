@@ -39,4 +39,7 @@ case class QueueInput(schema: StructType, data: List[Seq[Row]] = Nil) extends St
   }
 
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+  
+  def toXml: scala.xml.Elem = ???
+  def toJson: org.json4s.JValue = ???
 }

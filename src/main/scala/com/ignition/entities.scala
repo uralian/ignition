@@ -2,14 +2,14 @@ package com.ignition
 
 import scala.util.control.NonFatal
 import scala.xml.Elem
-
 import org.apache.spark.sql.types.StructType
+import org.json4s.JsonAST.JValue
 
 /**
  * A workflow step. It can have an arbitrary number of inputs and outputs.
  * @param T the type parameter encapsulating the data that is passed between steps.
  */
-trait Step[T] {
+trait Step[T] extends XmlExport with JsonExport {
 
   /**
    * The number of output ports.
@@ -403,4 +403,11 @@ abstract class Module[T](override val inputCount: Int, override val outputCount:
  */
 trait XmlExport {
   def toXml: Elem
+}
+
+/**
+ * JSON serialization.
+ */
+trait JsonExport {
+  def toJson: JValue
 }

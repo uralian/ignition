@@ -1,11 +1,14 @@
 package com.ignition.frame
 
 import org.apache.spark.sql.types.Decimal
+import org.json4s.{ JsonDSL, jvalue2monadic }
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
 import com.ignition.RichProduct
-import com.ignition.types.{ RichStructType, boolean, date, decimal, double, fieldToRichStruct, string }
+import com.ignition.script.RichString
+import com.ignition.types._
+import com.ignition.util.JsonUtils
 
 @RunWith(classOf[JUnitRunner])
 class SubFlowSpec extends FrameFlowSpecification {
@@ -67,12 +70,28 @@ class SubFlowSpec extends FrameFlowSpecification {
         Seq(javaDate(2010, 5, 10), javaBD(66.99), "jane", 19.99, javaBD(86.98)))
       assertSchema(orderSchema ~ double("cost") ~ decimal("total"), flow, 2)
     }
+    "be able to call another subflow" in {
+      val flow1 = SubFlow(1, 1) { (input, output) =>
+        val formula = Formula("sum" -> "a + b".mvel)
+        input --> formula --> output
+      }
+      val flow2 = SubFlow(1, 1) { (input, output) =>
+        val formula = Formula("product" -> "sum * c".mvel)
+        input --> flow1 --> formula --> output
+      }
+      val grid = DataGrid(int("a") ~ int("b") ~ int("c")) rows ((2, 4, 3), (1, 3, 2), (2, 2, 2))
+      grid --> flow2
+
+      assertSchema(int("a") ~ int("b") ~ int("c") ~ int("sum") ~ int("product"), flow2, 0)
+      assertOutput(flow2, 0, Seq(2, 4, 3, 6, 18), Seq(1, 3, 2, 4, 8), Seq(2, 2, 2, 4, 8))
+    }
     "save to/load from xml" in {
       val flow = SubFlow(2, 4) { (input, output) =>
         input.out(0) --> (query.in(0), output.in(0))
         customerGrid --> query.in(1)
         customerGrid --> output.in(1)
-        input.out(1) --> Filter("abc < 3") --> output.in(2)
+        val filter = Filter("abc < 3")
+        input.out(1) --> filter --> output.in(2)
 
         query --> output.in(3)
       }
@@ -103,7 +122,8 @@ class SubFlowSpec extends FrameFlowSpecification {
         input.out(0) --> (query.in(0), output.in(0))
         customerGrid --> query.in(1)
         customerGrid --> output.in(1)
-        input.out(1) --> Filter("abc < 3") --> output.in(2)
+        val filter = Filter("abc < 3")
+        input.out(1) --> filter --> output.in(2)
 
         query --> output.in(3)
       }
