@@ -30,7 +30,7 @@ class TextFolderInputSpec extends FrameFlowSpecification with BeforeAllAfterAll 
     super.afterAll
   }
 
-  "TextFileInput" should {
+  "TextFolderInput" should {
     "load text files" in {
       val files = createTestFiles(testDir)(5)
       val step = TextFolderInput(testDir.getPath)
@@ -38,6 +38,19 @@ class TextFolderInputSpec extends FrameFlowSpecification with BeforeAllAfterAll 
       output === Set(files(0).getName, files(1).getName, files(2).getName,
         files(3).getName, files(4).getName)
       assertSchema(string("filename") ~ string("content"), step, 0)
+    }
+    "save to/load from xml" in {
+      val step = TextFolderInput("/mypath", "file", "data")
+      step.toXml must ==/(<text-folder-input path="/mypath" nameField="file" dataField="data"/>)
+      TextFolderInput.fromXml(step.toXml) === step
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val step = TextFolderInput("/mypath", "file", "data")
+      step.toJson === ("tag" -> "text-folder-input") ~ ("path" -> "/mypath") ~ ("nameField" -> "file") ~
+        ("dataField" -> "data")
+      TextFolderInput.fromJson(step.toJson) === step
     }
   }
 

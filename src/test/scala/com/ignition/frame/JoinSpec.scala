@@ -3,9 +3,9 @@ package com.ignition.frame
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.types._
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
+import com.ignition.RichProduct
+import com.ignition.types.{ RichStructType, boolean, double, fieldToRichStruct, int, string }
+import com.ignition.util.XmlUtils
 
 @RunWith(classOf[JUnitRunner])
 class JoinSpec extends FrameFlowSpecification {
@@ -31,7 +31,7 @@ class JoinSpec extends FrameFlowSpecification {
 
   "INNER Join" should {
     "work with equality expressions" in {
-      val join = Join($"input0.name" == $"input1.name")
+      val join = Join($"input0.name" === $"input1.name")
       (grid1, grid2) --> join
       assertOutput(join, 0, ("john", 1, 25.0, "john", 25, true),
         ("jane", 1, 46.0, "jane", 35, false))
@@ -47,7 +47,7 @@ class JoinSpec extends FrameFlowSpecification {
 
   "LEFT/RIGHT Join" should {
     "work with equality expressions" in {
-      val join = Join($"input0.name" == $"input1.name", LEFT)
+      val join = Join($"input0.name" === $"input1.name", LEFT)
       (grid1, grid2) --> join
       assertOutput(join, 0, ("john", 1, 25.0, "john", 25, true),
         ("jane", 1, 46.0, "jane", 35, false), ("jake", 4, 62.0, null, null, null))
@@ -63,11 +63,47 @@ class JoinSpec extends FrameFlowSpecification {
 
   "OUTER Join" should {
     "work with equality expressions" in {
-      val join = Join($"input0.name" == $"input1.name", OUTER)
+      val join = Join($"input0.name" === $"input1.name", OUTER)
       (grid1, grid2) --> join
       assertOutput(join, 0, ("john", 1, 25.0, "john", 25, true),
         ("jane", 1, 46.0, "jane", 35, false), ("jake", 4, 62.0, null, null, null),
         (null, null, null, "jill", 18, true))
     }
+  }
+
+  "Join" should {
+    "save to/load from xml" in {
+      import com.ignition.util.XmlUtils._
+
+      val j1 = Join()
+      j1.toXml must ==/(<join type="inner"></join>)
+      Join.fromXml(j1.toXml) === j1
+
+      val j2 = Join($"input0.name" === $"input1.name")
+      j2.toXml must ==/(<join type="inner"><condition>(input0.name = input1.name)</condition></join>)
+      Join.fromXml(j2.toXml).condition.toString === j2.condition.toString
+      Join.fromXml(j2.toXml).joinType === j2.joinType
+
+      val j3 = Join($"a" < $"b", OUTER)
+      (j3.toXml \ "condition" asString) === "(a < b)"
+      Join.fromXml(j3.toXml).condition.toString === j3.condition.toString
+      Join.fromXml(j3.toXml).joinType === j3.joinType
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val j1 = Join()
+      j1.toJson === ("tag" -> "join") ~ ("type" -> "inner") ~ ("condition" -> jNone)
+      Join.fromJson(j1.toJson) === j1
+
+      val j2 = Join($"input0.name" === $"input1.name")
+      j2.toJson === ("tag" -> "join") ~ ("type" -> "inner") ~ ("condition" -> "(input0.name = input1.name)")
+      Join.fromJson(j2.toJson).condition.map(_.toString) === j2.condition.map(_.toString)
+
+      val j3 = Join($"a" < $"b", OUTER)
+      j3.toJson === ("tag" -> "join") ~ ("type" -> "outer") ~ ("condition" -> "(a < b)")
+      Join.fromJson(j3.toJson).condition.map(_.toString) === j3.condition.map(_.toString)
+    }
+    "be unserializable" in assertUnserializable(Join($"input0.item" === $"input1.item"))
   }
 }

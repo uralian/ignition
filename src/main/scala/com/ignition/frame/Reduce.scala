@@ -1,6 +1,7 @@
 package com.ignition.frame
 
 import scala.util.Random
+import scala.xml.{ Elem, Node }
 
 import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.sql.{ DataFrame, Row }
@@ -9,12 +10,19 @@ import org.apache.spark.sql.types.{ Decimal, StructType }
 import com.ignition.SparkRuntime
 import com.ignition.types.RichBoolean
 
+import org.json4s._
+import org.json4s.JsonDSL._
+
+import com.ignition.util.XmlUtils.RichNodeSeq
+import com.ignition.util.JsonUtils.RichJValue
+
 /**
  * Reduce operations.
  */
 object ReduceOp extends Enumeration {
   abstract class ReduceOp extends super.Val {
     def reduce(a: Any, b: Any): Any
+    def apply(field: String) = field -> this
   }
   implicit def valueToOp(v: Value) = v.asInstanceOf[ReduceOp]
 
@@ -95,6 +103,14 @@ import ReduceOp._
 case class Reduce(reducers: Iterable[(String, ReduceOp)], groupFields: Iterable[String] = Nil)
   extends FrameTransformer with PairFunctions {
 
+  import Reduce._
+
+  def add(tuple: (String, ReduceOp)) = copy(reducers = reducers.toSeq :+ tuple)
+  def %(tuple: (String, ReduceOp)) = add(tuple)
+
+  def add(field: String, functions: ReduceOp*) = copy(functions.map(f => (field, f)))
+  def %(field: String, functions: ReduceOp*) = add(field, functions: _*)
+
   def groupBy(fields: String*) = copy(groupFields = fields)
 
   protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
@@ -128,11 +144,54 @@ case class Reduce(reducers: Iterable[(String, ReduceOp)], groupFields: Iterable[
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
+
+  def toXml: Elem =
+    <node>
+      <aggregate>
+        {
+          reducers map { case (name, op) => <field name={ name } type={ op.toString }/> }
+        }
+      </aggregate>
+      {
+        if (!groupFields.isEmpty)
+          <group-by>
+            { groupFields map (f => <field name={ f }/>) }
+          </group-by>
+      }
+    </node>.copy(label = tag)
+
+  def toJson: JValue = {
+    val groupBy = if (groupFields.isEmpty) None else Some(groupFields)
+    val aggregate = reducers map (df => df._1 -> df._2.toString)
+    ("tag" -> tag) ~ ("groupBy" -> groupBy) ~ ("aggregate" -> aggregate)
+  }
 }
 
 /**
  * Reduce companion object.
  */
 object Reduce {
+  val tag = "reduce"
+
   def apply(reducers: (String, ReduceOp)*): Reduce = apply(reducers.toList)
+
+  def fromXml(xml: Node) = {
+    val dataFields = (xml \ "aggregate" \ "field") map { node =>
+      val name = node \ "@name" asString
+      val func = ReduceOp.withName(node \ "@type" asString): ReduceOp
+      name -> func
+    }
+    val groupFields = (xml \ "group-by" \ "field") map (_ \ "@name" asString)
+    apply(dataFields, groupFields)
+  }
+
+  def fromJson(json: JValue) = {
+    val dataFields = for {
+      JObject(df) <- json \ "aggregate"
+      JField(name, JString(funcName)) <- df
+      func = ReduceOp.withName(funcName): ReduceOp
+    } yield name -> func
+    val groupFields = (json \ "groupBy" asArray) map (_ asString)
+    apply(dataFields, groupFields)
+  }
 }

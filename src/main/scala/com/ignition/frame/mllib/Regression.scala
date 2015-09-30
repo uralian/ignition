@@ -3,10 +3,10 @@ package com.ignition.frame.mllib
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.optimization.GradientDescent
-import org.apache.spark.mllib.regression.{GeneralizedLinearAlgorithm, GeneralizedLinearModel, LabeledPoint, LassoModel, LassoWithSGD, LinearRegressionModel, LinearRegressionWithSGD, RidgeRegressionModel, RidgeRegressionWithSGD}
+import org.apache.spark.mllib.regression._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.rdd.RDD.{doubleRDDToDoubleRDDFunctions, rddToPairRDDFunctions}
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.rdd.RDD.{ doubleRDDToDoubleRDDFunctions, rddToPairRDDFunctions }
+import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 
 import com.ignition.SparkRuntime
@@ -14,11 +14,17 @@ import com.ignition.frame.FrameTransformer
 import com.ignition.types.double
 import com.ignition.util.ConfigUtils.getConfig
 
+import scala.xml._
+import org.json4s._
+import org.json4s.JsonDSL._
+import com.ignition.util.JsonUtils._
+import com.ignition.util.XmlUtils._
+
 /**
  * Regression methods.
  */
 object RegressionMethod extends Enumeration {
-  trait RegressionMethod[T <: GeneralizedLinearModel] extends super.Val {
+  abstract class RegressionMethod[T <: GeneralizedLinearModel] extends super.Val {
     def algorithm: GeneralizedLinearAlgorithm[T]
   }
   implicit def valueToMethod(v: Value) =
@@ -59,6 +65,41 @@ case class RegressionConfig(
       .setStepSize(stepSize)
     algorithm
   }
+
+  def toXml: Elem =
+    <config>
+      <method>{ regressionMethod.toString }</method>
+      <iterations>{ iterationCount }</iterations>
+      <step>{ stepSize }</step>
+      <allowIntercept>{ allowIntercept }</allowIntercept>
+    </config>
+
+  def toJson: JValue = ("method" -> regressionMethod.toString) ~
+    ("iterations" -> iterationCount) ~ ("step" -> stepSize) ~ ("allowIntercept" -> allowIntercept)
+}
+
+/**
+ * Regression Config companion object.
+ */
+object RegressionConfig {
+
+  def fromXml(xml: Node) = {
+    val method = RegressionMethod.withName(xml \ "method" asString)
+    val iterationCount = xml \ "iterations" asInt
+    val stepSize = xml \ "step" asDouble
+    val allowIntercept = xml \ "allowIntercept" asBoolean
+
+    RegressionConfig(method, iterationCount, stepSize, allowIntercept)
+  }
+
+  def fromJson(json: JValue) = {
+    val method = RegressionMethod.withName(json \ "method" asString)
+    val iterationCount = json \ "iterations" asInt
+    val stepSize = json \ "step" asDouble
+    val allowIntercept = json \ "allowIntercept" asBoolean
+
+    RegressionConfig(method, iterationCount, stepSize, allowIntercept)
+  }
 }
 
 /**
@@ -66,18 +107,17 @@ case class RegressionConfig(
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Regression(labelField: String, dataFields: Iterable[String] = Nil,
-  groupFields: Iterable[String] = Nil, config: RegressionConfig = RegressionConfig())
+case class Regression(labelField: String, dataFields: Iterable[String],
+                      groupFields: Iterable[String] = Nil, config: RegressionConfig = RegressionConfig())
   extends FrameTransformer with MLFunctions {
 
   import Regression._
 
   def label(field: String) = copy(labelField = field)
-  def columns(fields: String*) = copy(dataFields = fields)
+  def features(fields: String*) = copy(dataFields = fields)
   def groupBy(fields: String*) = copy(groupFields = fields)
 
-  def method(method: RegressionMethod[_ <: GeneralizedLinearModel]) =
-    copy(config = config.method(method))
+  def method(method: RegressionMethod[_ <: GeneralizedLinearModel]) = copy(config = config.method(method))
   def iterations(num: Int) = copy(config = config.iterations(num))
   def step(num: Double) = copy(config = config.step(num))
   def intercept(flag: Boolean) = copy(config = config.intercept(flag))
@@ -115,12 +155,56 @@ case class Regression(labelField: String, dataFields: Iterable[String] = Nil,
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
     compute(input(Some(10)), Some(10)) schema
+
+  def toXml: Elem =
+    <node>
+      <label>{ labelField }</label>
+      <features>
+        {
+          dataFields map { name => <field name={ name }/> }
+        }
+      </features>
+      {
+        if (!groupFields.isEmpty)
+          <group-by>
+            { groupFields map (f => <field name={ f }/>) }
+          </group-by>
+      }
+      { config.toXml }
+    </node>.copy(label = tag)
+
+  def toJson: org.json4s.JValue = {
+    val groupBy = if (groupFields.isEmpty) None else Some(groupFields)
+    val features = dataFields map (_.toString)
+
+    ("tag" -> tag) ~ ("label" -> labelField) ~ ("features" -> features) ~ ("groupBy" -> groupBy) ~
+      ("config" -> config.toJson)
+  }
 }
 
 /**
  * Regression companion object.
  */
 object Regression {
+  val tag = "regression"
+
+  def apply(labelField: String, dataFields: String*): Regression = apply(labelField, dataFields)
+
+  def fromXml(xml: Node) = {
+    val labelField = xml \ "label" asString
+    val dataFields = (xml \ "features" \ "field") map { _ \ "@name" asString }
+    val groupFields = (xml \ "group-by" \ "field") map (_ \ "@name" asString)
+    val config = RegressionConfig.fromXml(xml \ "config" head)
+    Regression(labelField, dataFields, groupFields, config)
+  }
+
+  def fromJson(json: JValue) = {
+    val labelField = json \ "label" asString
+    val dataFields = (json \ "features" asArray) map (_ asString)
+    val groupFields = (json \ "groupBy" asArray) map (_ asString)
+    val config = RegressionConfig.fromJson(json \ "config")
+    Regression(labelField, dataFields, groupFields, config)
+  }
 
   private val cfg = getConfig("mllib.regression")
   val rddSizeThreshold = cfg.getInt("rdd-size-threshold")

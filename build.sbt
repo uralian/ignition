@@ -77,6 +77,7 @@ libraryDependencies ++= Seq(
   "org.mvel"                  % "mvel2"                      % "2.0",
   "io.gatling"               %% "jsonpath"                   % "0.6.2",
   "ch.qos.logback"            % "logback-classic"            % "1.1.1",
+  "com.github.scopt"         %% "scopt"                      % "3.3.0",
   "org.apache.spark"         %% "spark-core"                 % SPARK_VERSION
 		exclude("org.slf4j", "slf4j-log4j12"),  
   "org.apache.spark"         %% "spark-streaming"            % SPARK_VERSION,

@@ -16,7 +16,7 @@ class ColumnStatsSpec extends FrameFlowSpecification {
 
   "ColumnStats" should {
     "compute stats without grouping" in {
-      val stats = ColumnStats() columns ("score", "item")
+      val stats = ColumnStats() % "score" % "item"
       grid --> stats
 
       assertSchema(long("count") ~
@@ -37,7 +37,7 @@ class ColumnStatsSpec extends FrameFlowSpecification {
       row.getDouble(3) === 72.5
     }
     "compute stats with grouping" in {
-      val stats = ColumnStats() columns ("score", "item") groupBy ("name")
+      val stats = ColumnStats() add ("score", "item") groupBy "name"
       grid --> stats
 
       assertSchema(string("name") ~ long("count") ~
@@ -63,6 +63,39 @@ class ColumnStatsSpec extends FrameFlowSpecification {
       jane.size === 1
       jane.head.getLong(1) === 4
     }
-    "be unserializable" in assertUnserializable(ColumnStats())
+    "save to/load from xml" in {
+      val s1 = ColumnStats() % "score" % "item"
+      s1.toXml must ==/(
+        <column-stats>
+          <aggregate>
+            <field name="score"/><field name="item"/>
+          </aggregate>
+        </column-stats>)
+      ColumnStats.fromXml(s1.toXml) === s1
+
+      val s2 = ColumnStats() add ("score", "item") groupBy "name"
+      s2.toXml must ==/(
+        <column-stats>
+          <aggregate>
+            <field name="score"/><field name="item"/>
+          </aggregate>
+          <group-by>
+            <field name="name"/>
+          </group-by>
+        </column-stats>)
+      ColumnStats.fromXml(s2.toXml) === s2
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val s1 = ColumnStats() % "score" % "item"
+      s1.toJson === ("tag" -> "column-stats") ~ ("aggregate" -> List("score", "item")) ~ ("groupBy" -> jNone)
+      ColumnStats.fromJson(s1.toJson) === s1
+
+      val s2 = ColumnStats() add ("score", "item") groupBy "name"
+      s2.toJson === ("tag" -> "column-stats") ~ ("aggregate" -> List("score", "item")) ~ ("groupBy" -> List("name"))
+      ColumnStats.fromJson(s2.toJson) === s2
+    }
+    "be unserializable" in assertUnserializable(ColumnStats() add ("score", "item") groupBy "name")
   }
 }

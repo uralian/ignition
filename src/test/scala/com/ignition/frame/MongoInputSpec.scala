@@ -28,7 +28,7 @@ class MongoInputSpec extends FrameFlowSpecification with EmbedConnection {
   "MongoInput" should {
     "load data without filtering" in {
       insertAccounts(3)
-      val schema = string("code", false) ~ string("owner.name") ~ boolean("active")
+      val schema = string("code", false) ~ string("owner#name") ~ boolean("active")
       val mongo = MongoInput("test", "accounts", schema)
       assertOutput(mongo, 0, Seq("1", "John 1", true), Seq("2", "John 2", true), Seq("3", "John 3", false))
     }
@@ -43,7 +43,7 @@ class MongoInputSpec extends FrameFlowSpecification with EmbedConnection {
     }
     "load data with nulls" in {
       insertAccounts(10)
-      val schema = string("code", false) ~ string("type") ~ string("owner.address.zip")
+      val schema = string("code", false) ~ string("type") ~ string("owner#address#zip")
       val mongo = MongoInput("test", "accounts", schema)
       assertOutput(mongo, 0,
         Seq("1", "checking", "00100"),
@@ -59,9 +59,74 @@ class MongoInputSpec extends FrameFlowSpecification with EmbedConnection {
     }
     "fail for nulls in non-nullable fields" in {
       insertAccounts(10)
-      val schema = string("code", false) ~ string("owner.address.zip", false)
+      val schema = string("code", false) ~ string("owner#address#zip", false)
       val mongo = MongoInput("test", "accounts", schema)
       mongo.output.collect must throwA[RuntimeException]
+    }
+    "save to/load from xml" in {
+      val schema = string("code", false) ~ string("owner#name") ~ boolean("active")
+      val m1 = MongoInput("test", "accounts", schema)
+      m1.toXml must ==/(
+        <mongo-input db="test" coll="accounts">
+          <schema>
+            <field name="code" type="string" nullable="false"/>
+            <field name="owner#name" type="string" nullable="true"/>
+            <field name="active" type="boolean" nullable="true"/>
+          </schema>
+          <page limit="100" offset="0"/>
+        </mongo-input>)
+      MongoInput.fromXml(m1.toXml) === m1
+
+      val m2 = MongoInput("test", "accounts", schema) where ("code" -> "123",
+        "active" -> true) orderBy ("owner#name" -> true, "code" -> false) limit (0) offset (0)
+      m2.toXml must ==/(
+        <mongo-input db="test" coll="accounts">
+          <schema>
+            <field name="code" type="string" nullable="false"/>
+            <field name="owner#name" type="string" nullable="true"/>
+            <field name="active" type="boolean" nullable="true"/>
+          </schema>
+          <filter>
+            <field name="code" type="string">123</field>
+            <field name="active" type="boolean">true</field>
+          </filter>
+          <sort-by>
+            <field name="owner#name" direction="asc"/>
+            <field name="code" direction="desc"/>
+          </sort-by>
+        </mongo-input>)
+      MongoInput.fromXml(m2.toXml) === m2
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val schema = string("code", false) ~ string("owner#name") ~ boolean("active")
+      val m1 = MongoInput("test", "accounts", schema)
+      m1.toJson === ("tag" -> "mongo-input") ~ ("db" -> "test") ~ ("coll" -> "accounts") ~
+        ("schema" -> List(
+          ("name" -> "code") ~ ("type" -> "string") ~ ("nullable" -> false),
+          ("name" -> "owner#name") ~ ("type" -> "string") ~ ("nullable" -> true),
+          ("name" -> "active") ~ ("type" -> "boolean") ~ ("nullable" -> true))) ~
+          ("filter" -> jNone) ~
+          ("sortBy" -> jNone) ~
+          ("page" -> ("limit" -> 100) ~ ("offset" -> 0))
+      MongoInput.fromJson(m1.toJson) === m1
+
+      val m2 = MongoInput("test", "accounts", schema) where ("code" -> "123",
+        "active" -> true) orderBy ("owner#name" -> true, "code" -> false) limit (0) offset (0)
+      m2.toJson === ("tag" -> "mongo-input") ~ ("db" -> "test") ~ ("coll" -> "accounts") ~
+        ("schema" -> List(
+          ("name" -> "code") ~ ("type" -> "string") ~ ("nullable" -> false),
+          ("name" -> "owner#name") ~ ("type" -> "string") ~ ("nullable" -> true),
+          ("name" -> "active") ~ ("type" -> "boolean") ~ ("nullable" -> true))) ~
+          ("filter" -> List(
+            ("name" -> "code") ~ ("type" -> "string") ~ ("value" -> "123"),
+            ("name" -> "active") ~ ("type" -> "boolean") ~ ("value" -> true))) ~
+            ("sortBy" -> List(
+              ("name" -> "owner#name") ~ ("direction" -> "asc"),
+              ("name" -> "code") ~ ("direction" -> "desc"))) ~
+              ("page" -> jNone)
+      MongoInput.fromJson(m2.toJson) === m2
     }
     "be unserializable" in assertUnserializable(MongoInput("test", "accounts", string("code", false).schema))
   }

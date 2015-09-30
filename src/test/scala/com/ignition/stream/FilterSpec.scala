@@ -18,8 +18,8 @@ class FilterSpec extends StreamFlowSpecification {
     addRows(("jake", 4, 62.0), ("john", 3, 95.0))
 
   "Filter for numeric expressions" should {
-    "evaluate `==`" in {
-      val f = Filter($"item" == 1)
+    "evaluate `===`" in {
+      val f = Filter($"item" === 1)
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(("john", 1, 65.0)), Set(("jane", 1, 46.0)), Set())
@@ -61,27 +61,19 @@ class FilterSpec extends StreamFlowSpecification {
         Set(("jane", 2, 85.0)), Set(("jake", 4, 62.0), ("john", 3, 95.0)))
       runAndAssertOutput(f, 1, 3, Set(), Set(("jane", 1, 46.0)), Set())
     }
-    "evaluate `<>`" in {
-      val f = Filter($"item" <> 1)
+    "evaluate `!==`" in {
+      val f = Filter($"item" !== 1)
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(("john", 3, 78.0)), Set(("jane", 2, 85.0)),
         Set(("jake", 4, 62.0), ("john", 3, 95.0)))
       runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0)), Set(("jane", 1, 46.0)), Set())
     }
-    "evaluate `in`" in {
-      val f = Filter($"item" in (2, 4))
-      queue --> f
-
-      runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0)), Set(("jake", 4, 62.0)))
-      runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)),
-        Set(("jane", 1, 46.0)), Set(("john", 3, 95.0)))
-    }
   }
 
   "Filter for string expressions" should {
-    "evaluate `==`" in {
-      val f = Filter($"name" == "john")
+    "evaluate `===`" in {
+      val f = Filter($"name" === "'john'")
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)),
@@ -89,8 +81,8 @@ class FilterSpec extends StreamFlowSpecification {
       runAndAssertOutput(f, 1, 3, Set(), Set(("jane", 2, 85.0), ("jane", 1, 46.0)),
         Set(("jake", 4, 62.0)))
     }
-    "evaluate `<>`" in {
-      val f = Filter($"name" <> "john")
+    "evaluate `!==`" in {
+      val f = Filter($"name" !== "'john'")
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0), ("jane", 1, 46.0)),
@@ -99,7 +91,7 @@ class FilterSpec extends StreamFlowSpecification {
         Set(), Set(("john", 3, 95.0)))
     }
     "evaluate `matches`" in {
-      val f = Filter($"name" matches "ja.e")
+      val f = Filter($"name" rlike "'ja.e'")
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0), ("jane", 1, 46.0)),
@@ -107,69 +99,11 @@ class FilterSpec extends StreamFlowSpecification {
       runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)),
         Set(), Set(("john", 3, 95.0)))
     }
-    "evaluate `in`" in {
-      val f = Filter($"name" in ("jack", "jane", "jake"))
-      queue --> f
-
-      runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0), ("jane", 1, 46.0)),
-        Set(("jake", 4, 62.0)))
-      runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)), Set(),
-        Set(("john", 3, 95.0)))
-    }
-  }
-
-  val schema2 = date("date") ~ timestamp("time")
-  val queue2 = QueueInput(schema2).
-    addRows(
-      (javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30)),
-      (javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15))).
-      addRows(
-        (javaDate(1944, 7, 2), javaTime(1944, 7, 2, 17, 10)),
-        (javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25)))
-
-  "Filter for date expressions" should {
-    "evaluate `==`" in {
-      val f = Filter($"date" == javaDate(1951, 2, 12))
-      queue2 --> f
-
-      runAndAssertOutput(f, 0, 2, Set((javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15))), Set())
-      runAndAssertOutput(f, 1, 2, Set((javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30))),
-        Set((javaDate(1944, 7, 2), javaTime(1944, 7, 2, 17, 10)),
-          (javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25))))
-    }
-    "evaluate `<>`" in {
-      val f = Filter($"date" <> javaDate(1951, 2, 12))
-      queue2 --> f
-
-      runAndAssertOutput(f, 0, 2, Set((javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30))),
-        Set((javaDate(1944, 7, 2), javaTime(1944, 7, 2, 17, 10)),
-          (javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25))))
-      runAndAssertOutput(f, 1, 2, Set((javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15))), Set())
-    }
-    "evaluate `<`" in {
-      val f = Filter($"date" < javaDate(1960, 1, 1))
-      queue2 --> f
-
-      runAndAssertOutput(f, 0, 2, Set((javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30)),
-        (javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15))),
-        Set((javaDate(1944, 7, 2), javaTime(1944, 7, 2, 17, 10))))
-      runAndAssertOutput(f, 1, 2, Set(),
-        Set((javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25))))
-    }
-    "evaluate `>`" in {
-      val f = Filter($"date" > javaDate(1951, 2, 10))
-      queue2 --> f
-
-      runAndAssertOutput(f, 0, 2, Set((javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15))),
-        Set((javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25))))
-      runAndAssertOutput(f, 1, 2, Set((javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30))),
-        Set((javaDate(1944, 7, 2), javaTime(1944, 7, 2, 17, 10))))
-    }
   }
 
   "Filter for complex expressions" should {
     "evaluate `and`" in {
-      val f = Filter($"item" == 1 and $"score" > 50)
+      val f = Filter($"item" === 1 and $"score" > 50)
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(("john", 1, 65.0)), Set(), Set())
@@ -178,7 +112,7 @@ class FilterSpec extends StreamFlowSpecification {
         Set(("jake", 4, 62.0), ("john", 3, 95.0)))
     }
     "evaluate `or`" in {
-      val f = Filter($"score" < 70 or $"name" ~ "jo.*")
+      val f = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)),
@@ -209,7 +143,7 @@ class FilterSpec extends StreamFlowSpecification {
       runAndAssertOutput(f, 1, 2, Set(("jake", "jake", 13, 13.0)), Set(("jack", "j j", 7, 12.3)))
     }
     "evaluate string fields" in {
-      val f = Filter($"name" == $"login")
+      val f = Filter($"name" === $"login")
       queue3 --> f
 
       runAndAssertOutput(f, 0, 2, Set(("jake", "jake", 13, 13.0)), Set())
@@ -218,47 +152,18 @@ class FilterSpec extends StreamFlowSpecification {
     }
   }
 
-  "Filter for field-var expressions" should {
-    "evaluate numeric fields" in {
-      val sv = SetVariables("threshold" -> 80)
-      val f = Filter($"score" > v"threshold")
-      queue --> sv --> f
+  "Filter" should {
+    "save to/load from xml" in {
+      import com.ignition.util.XmlUtils._
 
-      runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0)), Set(("john", 3, 95.0)))
-      runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)),
-        Set(("jane", 1, 46.0)), Set(("jake", 4, 62.0)))
+      val f1 = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
+      (f1.toXml \ "condition" asString) === "((score < 70) or (name RLIKE 'jo.*'))"
     }
-    "evaluate string fields" in {
-      val sv = SetVariables("pattern" -> "ja.*")
-      val f = Filter($"name" ~ v"pattern")
-      queue --> sv --> f
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
 
-      runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0), ("jane", 1, 46.0)),
-        Set(("jake", 4, 62.0)))
-      runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)), Set(),
-        Set(("john", 3, 95.0)))
-    }
-  }
-
-  "Filter for field-env expressions" should {
-    "evaluate numeric fields" in {
-      System.setProperty("threshold", "80")
-      val f = Filter($"score" > e"threshold")
-      queue --> f
-
-      runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0)), Set(("john", 3, 95.0)))
-      runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)),
-        Set(("jane", 1, 46.0)), Set(("jake", 4, 62.0)))
-    }
-    "evaluate string fields" in {
-      System.setProperty("pattern", "ja.*")
-      val f = Filter($"name" ~ e"pattern")
-      queue --> f
-
-      runAndAssertOutput(f, 0, 3, Set(), Set(("jane", 2, 85.0), ("jane", 1, 46.0)),
-        Set(("jake", 4, 62.0)))
-      runAndAssertOutput(f, 1, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)), Set(),
-        Set(("john", 3, 95.0)))
+      val f1 = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
+      f1.toJson === ("tag" -> "stream-filter") ~ ("condition" -> "((score < 70) or (name RLIKE 'jo.*'))")
     }
   }
 }

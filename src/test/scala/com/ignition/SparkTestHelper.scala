@@ -21,8 +21,7 @@ trait SparkTestHelper extends BeforeAllAfterAll {
   protected def sparkConf = new SparkConf(true).
     set("spark.cassandra.connection.host", CassandraBaseTestHelper.host).
     set("spark.cassandra.connection.native.port", CassandraBaseTestHelper.port.toString).
-    set("spark.cassandra.connection.rpc.port", CassandraBaseTestHelper.thriftPort.toString).
-    set("spark.streaming.clock", "org.apache.spark.util.ManualClock")
+    set("spark.cassandra.connection.rpc.port", CassandraBaseTestHelper.thriftPort.toString)
 
   val masterUrl = config.getString("master-url")
   val appName = config.getString("app-name")

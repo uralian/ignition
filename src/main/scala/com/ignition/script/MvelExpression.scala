@@ -1,12 +1,20 @@
 package com.ignition.script
 
+import java.math.BigDecimal
+import java.sql.{ Date, Timestamp }
+
 import scala.collection.JavaConverters.mapAsJavaMapConverter
-import scala.reflect.runtime.universe.runtimeMirror
+import scala.xml.{ Elem, Node }
 
-import org.apache.spark.sql._
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
-
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ pair2Assoc, string2jvalue }
+import org.json4s.jvalue2monadic
 import org.mvel2.{ MVEL, ParserContext }
+
+import com.ignition.util.JsonUtils.RichJValue
+import com.ignition.util.XmlUtils.RichNodeSeq
 
 /**
  * Mvel expression processor. Uses strict mode for the best performance.
@@ -30,7 +38,6 @@ case class MvelExpression(val expression: String) extends RowExpression[DataType
   private def createParserContext(schema: StructType) = {
     val pctx = new ParserContext
     pctx.setStrictTypeEnforcement(true)
-    val mirror = runtimeMirror(getClass.getClassLoader)
     val inputs: Seq[(String, Class[_])] = schema map {
       case StructField(name, BinaryType, _, _) => name -> classOf[Array[Byte]]
       case StructField(name, BooleanType, _, _) => name -> classOf[Boolean]
@@ -51,4 +58,17 @@ case class MvelExpression(val expression: String) extends RowExpression[DataType
     }
     pctx
   }
+
+  def toXml: Elem = <mvel>{ expression }</mvel>
+
+  def toJson: JValue = ("type" -> "mvel") ~ ("expression" -> expression)
+}
+
+/**
+ * MVEL Expression companion object.
+ */
+object MvelExpression {
+  def fromXml(xml: Node) = apply(xml.child.head asString)
+
+  def fromJson(json: JValue) = apply(json \ "expression" asString)
 }

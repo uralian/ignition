@@ -7,7 +7,7 @@ import com.ignition.frame.DataGrid
 import com.ignition.frame.FrameTransformer
 import com.ignition.frame.FrameProducer
 import org.apache.spark.sql.DataFrame
-import com.ignition.frame.FlowInput
+import com.ignition.frame.SubFlow.FlowInput
 import com.ignition.frame.FrameSplitter
 import com.ignition.Splitter
 
@@ -33,6 +33,8 @@ case class Foreach(flow: SubFlow) extends StreamSplitter(flow.outputCount) {
             optLimit(df, limit)
           }
           override protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+          def toXml: scala.xml.Elem = ???
+          def toJson: org.json4s.JValue = ???
         }
         source --> flow
         flow.output(index).rdd
@@ -42,6 +44,9 @@ case class Foreach(flow: SubFlow) extends StreamSplitter(flow.outputCount) {
 
   protected def computeSchema(inSchema: StructType, index: Int)(implicit runtime: SparkRuntime): StructType =
     computedSchema(index)
+
+  def toXml: scala.xml.Elem = ???
+  def toJson: org.json4s.JValue = ???
 }
 
 /**

@@ -1,7 +1,11 @@
 package com.ignition.frame
 
+import scala.xml.{ Elem, Node }
+
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ pair2jvalue, string2jvalue }
 
 import com.ignition.SparkRuntime
 
@@ -12,6 +16,7 @@ import com.ignition.SparkRuntime
  * @author Vlad Orzhekhovskiy
  */
 case class Intersection() extends FrameMerger(Intersection.MAX_INPUTS) {
+  import Intersection._
 
   override val allInputsRequired = false
 
@@ -27,11 +32,21 @@ case class Intersection() extends FrameMerger(Intersection.MAX_INPUTS) {
     assert(schemas.tail.forall(_ == schemas.head), "Input schemas do not match")
     inSchemas.head
   }
+
+  def toXml: Elem = <node/>.copy(label = tag)
+
+  def toJson: JValue = ("tag" -> tag)
 }
 
 /**
  * Intersection companion object.
  */
 object Intersection {
+  val tag = "intersection"
+
   val MAX_INPUTS = 10
+
+  def fromXml(xml: Node) = apply()
+
+  def fromJson(json: JValue) = apply()
 }

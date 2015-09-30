@@ -2,52 +2,106 @@ package com.ignition.frame
 
 import scala.util.Try
 import scala.util.control.NonFatal
+import scala.xml.{ Elem, Node }
 
 import org.apache.spark.sql.{ DataFrame, Row }
-import org.apache.spark.sql.types.{ DataType, StructType }
+import org.apache.spark.sql.types.{ DataType, StringType, StructField, StructType }
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ jobject2assoc, option2jvalue, pair2Assoc, pair2jvalue, string2jvalue }
+import org.json4s.jvalue2monadic
 
 import com.ignition.SparkRuntime
+import com.ignition.types.{ fieldToRichStruct, string }
 import com.ignition.types.TypeUtils.valueOf
+import com.ignition.util.JsonUtils.RichJValue
+import com.ignition.util.XmlUtils.RichNodeSeq
 
 /**
  * Reads CSV files.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class CsvFileInput(path: String, separator: String, schema: StructType) extends FrameProducer {
+case class CsvFileInput(path: String, separator: Option[String] = Some(","),
+                        schema: Option[StructType] = None) extends FrameProducer {
+
   import CsvFileInput._
 
-  def separator(sep: String) = copy(separator = sep)
+  def separator(sep: Option[String]): CsvFileInput = copy(separator = sep)
+  def separator(sep: String): CsvFileInput = separator(Some(sep))
+
+  def schema(schema: StructType): CsvFileInput = copy(schema = Some(schema))
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val schema = this.schema
+    val path = injectGlobals(this.path)
     val separator = this.separator
 
-    val path = (injectEnvironment _ andThen injectVariables)(this.path)
+    val lines = ctx.sparkContext.textFile(path)
 
-    val rdd = ctx.sparkContext.textFile(path) map { line =>
-      val arr = line.split(separator) zip schema map {
+    // if schema not defined, take first line, split by separator and derive schema
+    val derivedSchema = schema getOrElse (lines.take(1) match {
+      case Array(line: String) =>
+        val arr = separator map line.split getOrElse Array(line)
+        val fields = (0 until arr.length) map (idx => StructField(s"COL$idx", StringType))
+        StructType(fields)
+      case _ =>
+        string("COL0").schema
+    })
+
+    val rdd = lines map { line =>
+      val arr = separator map line.split getOrElse Array(line)
+      val data = arr zip derivedSchema map {
         case (str, field) => convert(str, field.dataType, field.nullable)
       }
-      Row.fromSeq(arr)
+      Row.fromSeq(data)
     }
 
-    val df = ctx.createDataFrame(rdd, schema)
+    val df = ctx.createDataFrame(rdd, derivedSchema)
     optLimit(df, limit)
   }
 
-  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+  protected def computeSchema(implicit runtime: SparkRuntime): StructType = computedSchema(0)
+
+  def toXml: Elem =
+    <node>
+      <path>{ path }</path>
+      { separator map (s => <separator>{ s }</separator>) toList }
+      { schema map (s => DataGrid.schemaToXml(s)) toList }
+    </node>.copy(label = tag)
+
+  def toJson: JValue = ("tag" -> tag) ~ ("path" -> path) ~ ("separator" -> separator) ~
+    ("schema" -> (schema map DataGrid.schemaToJson))
 }
 
 /**
  * CSV Input companion object.
  */
 object CsvFileInput {
+  val tag = "csv-file-input"
 
   /**
-   * Creates a new CsvFileInput step with "," as the field separator.
+   * Creates a new CsvFileInput with the specified separator.
    */
-  def apply(path: String, schema: StructType): CsvFileInput = apply(path, ",", schema)
+  def apply(path: String, separator: String): CsvFileInput = apply(path, Some(separator))
+
+  /**
+   * Creates a new CsvFileInput with the specified separator and schema.
+   */
+  def apply(path: String, separator: String, schema: StructType): CsvFileInput =
+    apply(path, Some(separator), Some(schema))
+
+  def fromXml(xml: Node) = {
+    val path = xml \ "path" asString
+    val separator = xml \ "separator" getAsString
+    val schema = (xml \ "schema").headOption map DataGrid.xmlToSchema
+    apply(path, separator, schema)
+  }
+
+  def fromJson(json: JValue) = {
+    val path = json \ "path" asString
+    val separator = json \ "separator" getAsString
+    val schema = (json \ "schema").toOption map DataGrid.jsonToSchema
+    apply(path, separator, schema)
+  }
 
   /**
    * Parses a string and returns a value consistent with the specified data type.

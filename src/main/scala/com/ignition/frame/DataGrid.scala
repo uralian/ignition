@@ -5,9 +5,13 @@ import scala.xml.NodeSeq.seqToNodeSeq
 
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.{ StructField, StructType }
+import org.json4s.JValue
+import org.json4s.JsonDSL._
+import org.json4s.jvalue2monadic
 
-import com.ignition.{ SparkRuntime, XmlExport }
-import com.ignition.types.TypeUtils.{ typeForName, typeForValue, valueToXml, xmlToValue }
+import com.ignition.SparkRuntime
+import com.ignition.types.TypeUtils._
+import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText }
 
 /**
@@ -15,7 +19,7 @@ import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText }
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer with XmlExport {
+case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer {
   import DataGrid._
 
   validate
@@ -24,13 +28,7 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer wi
 
   def addRow(values: Any*): DataGrid = addRow(Row(values: _*))
 
-  def rows(tuples: Any*): DataGrid = {
-    val rs = tuples map {
-      case p: Product => Row.fromTuple(p)
-      case v => Row(v)
-    }
-    copy(rows = rs)
-  }
+  def rows(tuples: Product*): DataGrid = copy(rows = tuples map Row.fromTuple)
 
   protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
     val data = limit map rows.take getOrElse rows
@@ -41,7 +39,7 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer wi
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
 
   def toXml: Elem =
-    <datagrid>
+    <node>
       { schemaToXml(schema) }
       <rows>
         {
@@ -52,7 +50,10 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer wi
           }
         }
       </rows>
-    </datagrid>
+    </node>.copy(label = tag)
+
+  def toJson: JValue = ("tag" -> tag) ~ ("schema" -> schemaToJson(schema)) ~
+    ("rows" -> rows.map(_.toSeq map valueToJson))
 
   /**
    * Validate:
@@ -80,6 +81,7 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer wi
  * Data grid companion object.
  */
 object DataGrid {
+  val tag = "datagrid"
 
   def apply(schema: StructType): DataGrid = apply(schema, Nil)
 
@@ -91,7 +93,7 @@ object DataGrid {
       }
       Row.fromSeq(items)
     }
-    DataGrid(schema, rows)
+    apply(schema, rows)
   }
 
   def schemaToXml(schema: StructType) =
@@ -105,9 +107,36 @@ object DataGrid {
 
   def xmlToSchema(xml: Node) = {
     val fields = (xml \ "field") map { node =>
-      val name = (node \ "@name").asString
-      val dataType = typeForName((node \ "@type").asString)
-      val nullable = (node \ "@nullable").asBoolean
+      val name = node \ "@name" asString
+      val dataType = typeForName(node \ "@type" asString)
+      val nullable = node \ "@nullable" asBoolean
+
+      StructField(name, dataType, nullable)
+    }
+    StructType(fields)
+  }
+
+  def fromJson(json: JValue) = {
+    val schema = jsonToSchema(json \ "schema")
+    val rows = (json \ "rows" asArray) map { jr =>
+      val items = schema zip jr.asArray map {
+        case (field, value) => jsonToValue(field.dataType, value)
+      }
+      Row.fromSeq(items)
+    }
+    apply(schema, rows)
+  }
+
+  def schemaToJson(schema: StructType): JValue = schema.fields.toList map { field =>
+    ("name" -> field.name) ~ ("type" -> field.dataType.typeName) ~ ("nullable" -> field.nullable)
+  }
+
+  def jsonToSchema(json: JValue) = {
+    val fields = (json asArray) map { jf =>
+      val name = jf \ "name" asString
+      val dataType = typeForName(jf \ "type" asString)
+      val nullable = jf \ "nullable" asBoolean
+
       StructField(name, dataType, nullable)
     }
     StructType(fields)

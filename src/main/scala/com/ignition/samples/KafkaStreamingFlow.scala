@@ -1,14 +1,9 @@
 package com.ignition.samples
 
-import com.ignition._
-import com.ignition.stream._
-import com.ignition.types._
-import com.ignition.SparkPlug
-import com.ignition.frame.DebugOutput
-import com.ignition.frame.JoinType
-import com.ignition.frame.SQLQuery
-import com.ignition.frame.SubFlow
-import com.ignition.frame.DataGrid
+import com.ignition.{ RichProduct, SparkPlug }
+import com.ignition.frame.{ DataGrid, DebugOutput, JoinType, SQLQuery, SubFlow }
+import com.ignition.stream.{ Join, KafkaInput, QueueInput, StreamFlow, foreach }
+import com.ignition.types.{ fieldToRichStruct, int, string }
 
 object KafkaStreamingFlow extends App {
 

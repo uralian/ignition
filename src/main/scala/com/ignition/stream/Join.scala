@@ -1,11 +1,11 @@
 package com.ignition.stream
 
-import com.ignition.frame.RowCondition
-import com.ignition.frame.JoinType._
-import com.ignition.SparkRuntime
-import org.apache.spark.sql.types.StructType
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.{ Column, Row }
+import org.apache.spark.sql.types.StructType
+
+import com.ignition.SparkRuntime
+import com.ignition.frame.JoinType.{ INNER, JoinType }
 
 /**
  * Performs join of the two data streams.
@@ -14,7 +14,7 @@ import org.apache.spark.sql.Row
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Join(condition: Option[RowCondition], joinType: JoinType) extends StreamMerger(2) {
+case class Join(condition: Option[Column], joinType: JoinType) extends StreamMerger(2) {
 
   def joinType(jt: JoinType) = copy(joinType = jt)
 
@@ -28,7 +28,7 @@ case class Join(condition: Option[RowCondition], joinType: JoinType) extends Str
       else {
         val df1 = ctx.createDataFrame(rdd1, rdd1.first.schema).as('input0)
         val df2 = ctx.createDataFrame(rdd2, rdd2.first.schema).as('input1)
-        val df = condition map (c => df1.join(df2, c.column, joinType.toString)) getOrElse df1.join(df2)
+        val df = condition map (c => df1.join(df2, c, joinType.toString)) getOrElse df1.join(df2)
         df.rdd
       }
     })
@@ -36,12 +36,23 @@ case class Join(condition: Option[RowCondition], joinType: JoinType) extends Str
 
   protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
     computedSchema(0)
+
+  def toXml: scala.xml.Elem = ???
+  def toJson: org.json4s.JValue = ???
 }
 
 /**
  * Join companion object.
  */
 object Join {
+
   def apply(): Join = apply(None, INNER)
-  def apply(condition: RowCondition, joinType: JoinType = INNER): Join = apply(Some(condition), joinType)
+
+  def apply(condition: Column): Join = apply(condition, INNER)
+
+  def apply(condition: Column, joinType: JoinType): Join = apply(Some(condition), joinType)
+
+  def apply(condition: String): Join = apply(condition, INNER)
+
+  def apply(condition: String, joinType: JoinType): Join = apply(new Column(condition), joinType)
 }

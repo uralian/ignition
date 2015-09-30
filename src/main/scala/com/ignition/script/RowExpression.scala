@@ -1,7 +1,11 @@
 package com.ignition.script
 
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
+import scala.xml.{ Elem, Node }
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.{ DataType, StructType }
+import org.json4s.{ JString, JValue, jvalue2monadic }
+
 import com.ignition.types.TypeUtils
 
 /**
@@ -25,4 +29,33 @@ trait RowExpression[T <: DataType] extends Serializable {
    * Evaluates the data row and computes the result.
    */
   def evaluate(schema: StructType)(row: Row): Any
+
+  /**
+   * Converts the expression into XML.
+   */
+  def toXml: Elem
+
+  /**
+   * Converts the expression into JSON.
+   */
+  def toJson: JValue
+}
+
+/**
+ * Row Expression companion object.
+ */
+object RowExpression {
+
+  def fromXml(xml: Node) = xml match {
+    case <xpath>{ _* }</xpath> => XPathExpression.fromXml(xml)
+    case <json>{ _* }</json> => JsonPathExpression.fromXml(xml)
+    case <mvel>{ _* }</mvel> => MvelExpression.fromXml(xml)
+  }
+
+  def fromJson(json: JValue) = json \ "type" match {
+    case JString("xpath") => XPathExpression.fromJson(json)
+    case JString("mvel") => MvelExpression.fromJson(json)
+    case JString("json") => JsonPathExpression.fromJson(json)
+    case x @ _ => throw new IllegalArgumentException(s"Unknown expression type: $x")
+  }
 }

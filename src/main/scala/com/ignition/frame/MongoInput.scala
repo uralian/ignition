@@ -1,5 +1,7 @@
 package com.ignition.frame
 
+import scala.xml.{ Elem, Node }
+
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types._
 
@@ -9,6 +11,13 @@ import com.ignition.util.MongoUtils
 import com.ignition.util.MongoUtils.DBObjectHelper
 import com.mongodb.DBObject
 import com.mongodb.casbah.Imports._
+
+import org.json4s._
+import org.json4s.JsonDSL._
+
+import com.ignition.types.TypeUtils._
+import com.ignition.util.XmlUtils.{ intToText, RichNodeSeq }
+import com.ignition.util.JsonUtils._
 
 /**
  * Used to limit the results returned from data store queries.
@@ -30,14 +39,14 @@ case class SortOrder(field: String, ascending: Boolean = true)
  * @author Vlad Orzhekhovskiy
  */
 case class MongoInput(db: String, coll: String, schema: StructType,
-  filter: Map[String, Any] = Map.empty, sort: Iterable[SortOrder] = List.empty,
-  page: Page = Page.default) extends FrameProducer {
+                      filter: Map[String, Any] = Map.empty, sort: Iterable[SortOrder] = List.empty,
+                      page: Page = Page.default) extends FrameProducer {
 
+  import MongoInput._
   import MongoUtils._
 
   def where(filter: (String, Any)*) = copy(filter = filter.toMap)
-  def sort(sort: Iterable[SortOrder]) = copy(sort = sort)
-  def orderBy(field: String, ascending: Boolean) = copy(sort = sort.toSeq :+ SortOrder(field, ascending))
+  def orderBy(tuples: (String, Boolean)*) = copy(sort = tuples.map(t => SortOrder(t._1, t._2)))
   def limit(limit: Int) = copy(page = Page(limit, this.page.offset))
   def offset(offset: Int) = copy(page = Page(this.page.limit, offset))
 
@@ -75,6 +84,51 @@ case class MongoInput(db: String, coll: String, schema: StructType,
   }
 
   protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+
+  def toXml: Elem =
+    <node db={ db } coll={ coll }>
+      { DataGrid.schemaToXml(schema) }
+      {
+        if (!filter.isEmpty)
+          <filter>
+            {
+              filter map {
+                case (name, value) =>
+                  <field name={ name } type={ typeForValue(value).typeName }>{ valueToXml(value) }</field>
+              }
+            }
+          </filter>
+      }
+      {
+        if (!sort.isEmpty)
+          <sort-by>
+            {
+              sort map (so => <field name={ so.field } direction={ so.ascending ? ("asc", "desc") }/>)
+            }
+          </sort-by>
+      }
+      {
+        if (page != Page.unbounded)
+          <page limit={ page.limit } offset={ page.offset }/>
+      }
+    </node>.copy(label = tag)
+
+  def toJson: JValue = {
+    val filterJson = if (filter.isEmpty) None else Some(filter.map {
+      case (name, value) => ("name" -> name) ~ ("type" -> typeForValue(value).typeName) ~ ("value" -> valueToJson(value))
+    })
+    val sortJson = if (sort.isEmpty) None else Some(sort.map {
+      case SortOrder(name, asc) => JObject("name" -> name, "direction" -> asc ? ("asc", "desc"))
+    })
+    val pageJson = if (page == Page.unbounded) None else Some(
+      ("limit" -> page.limit) ~ ("offset" -> page.offset))
+
+    ("tag" -> tag) ~ ("db" -> db) ~ ("coll" -> coll) ~
+      ("schema" -> DataGrid.schemaToJson(schema)) ~
+      ("filter" -> filterJson) ~
+      ("sortBy" -> sortJson) ~
+      ("page" -> pageJson)
+  }
 
   private def filterToDBObject(filter: Map[String, Any]): DBObject = filter map {
     case (key, value: List[Any]) => key -> MongoDBList(value: _*)
@@ -119,5 +173,57 @@ case class MongoInput(db: String, coll: String, schema: StructType,
     case DateType => doc.getAs[java.util.Date](key) map (x => new java.sql.Date(x.getTime))
     case TimestampType => doc.getAs[java.util.Date](key) map (x => new java.sql.Timestamp(x.getTime))
     case dt => throw new IllegalArgumentException(s"Invalid data type: $dt")
+  }
+}
+
+/**
+ * Mongo Input companion object.
+ */
+object MongoInput {
+  val tag = "mongo-input"
+
+  def fromXml(xml: Node) = {
+    val db = xml \ "@db" asString
+    val coll = xml \ "@coll" asString
+    val schema = DataGrid.xmlToSchema((xml \ "schema").head)
+    val filter = xml \ "filter" \ "field" map { node =>
+      val name = node \ "@name" asString
+      val dataType = typeForName(node \ "@type" asString)
+      val value = xmlToValue(dataType, node.child)
+      name -> value
+    } toMap
+    val sort = xml \ "sort-by" \ "field" map { node =>
+      val name = node \ "@name" asString
+      val asc = (node \ "@direction" asString).toLowerCase startsWith "asc"
+      SortOrder(name, asc)
+    }
+    val page = (xml \ "page").headOption map { node =>
+      val limit = node \ "@limit" asInt
+      val offset = node \ "@offset" asInt
+
+      Page(limit, offset)
+    } getOrElse Page.unbounded
+    apply(db, coll, schema, filter, sort, page)
+  }
+
+  def fromJson(json: JValue) = {
+    val db = json \ "db" asString
+    val coll = json \ "coll" asString
+    val schema = DataGrid.jsonToSchema(json \ "schema")
+    val filter = (json \ "filter" asArray) map { node =>
+      val name = node \ "name" asString
+      val dataType = typeForName(node \ "type" asString)
+      val value = jsonToValue(dataType, node \ "value")
+      name -> value
+    } toMap
+    val sort = (json \ "sortBy" asArray) map { node =>
+      val name = node \ "name" asString
+      val asc = (node \ "direction" asString).toLowerCase startsWith "asc"
+      SortOrder(name, asc)
+    }
+    val limit = json \ "page" \ "limit" getAsInt
+    val offset = json \ "page" \ "offset" getAsInt
+    val page = (for (l <- limit; o <- offset) yield Page(l, o)) getOrElse Page.unbounded
+    apply(db, coll, schema, filter, sort, page)
   }
 }

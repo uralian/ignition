@@ -1,9 +1,6 @@
 package com.ignition.stream
 
-import com.ignition._
-import org.apache.spark.streaming.dstream.DStream
-import org.apache.spark.sql.Row
-import org.apache.spark.streaming.StreamingContext
+import com.ignition.{ Merger, Module, Producer, SparkRuntime, Splitter, Step, Transformer }
 
 /**
  * Workflow step that emits DataStream as the output.
@@ -14,7 +11,7 @@ trait StreamStep extends Step[DataStream] {
    * Returns the implicit SQLContext.
    */
   protected def ctx(implicit runtime: SparkRuntime) = runtime.ctx
-  
+
   /**
    * Returns the implicit SparkContext.
    */
@@ -24,7 +21,7 @@ trait StreamStep extends Step[DataStream] {
    * Returns the implicit StreamingContext.
    */
   protected def ssc(implicit runtime: SparkRuntime) = runtime.ssc
-  
+
   /**
    * The automatically computed schema is not available for streams.
    */

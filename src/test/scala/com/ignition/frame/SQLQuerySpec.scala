@@ -4,7 +4,7 @@ import org.apache.spark.sql.types.Decimal
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.{ExecutionException, RichProduct}
+import com.ignition.{ ExecutionException, RichProduct }
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
@@ -56,13 +56,17 @@ class SQLQuerySpec extends FrameFlowSpecification {
       val query = SQLQuery("SELECT * FROM input0")
       query.output must throwA[ExecutionException]
     }
-    "save to xml" in {
+    "save to/load from xml" in {
       val query = SQLQuery("SELECT * FROM input0 WHERE amount > 5")
-      <sql>SELECT * FROM input0 WHERE amount > 5</sql> must ==/(query.toXml)
+      query.toXml must ==/(<sql>SELECT * FROM input0 WHERE amount > 5</sql>)
+      SQLQuery.fromXml(query.toXml) === query
     }
-    "load from xml" in {
-      SQLQuery.fromXml(<sql>SELECT * FROM input0 WHERE amount > 5</sql>) ===
-        SQLQuery("SELECT * FROM input0 WHERE amount > 5")
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val query = SQLQuery("SELECT * FROM input0 WHERE amount > 5")
+      query.toJson === ("tag" -> "sql") ~ ("query" -> "SELECT * FROM input0 WHERE amount > 5")
+      SQLQuery.fromJson(query.toJson) === query
     }
     "be unserializable" in assertUnserializable(SQLQuery("SELECT * FROM input0"))
   }

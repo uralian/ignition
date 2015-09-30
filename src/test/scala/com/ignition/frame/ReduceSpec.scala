@@ -26,11 +26,49 @@ class ReduceSpec extends FrameFlowSpecification {
       assertOutput(reduce, 0, (14, 46.0, 95.0))
     }
     "compute with grouping" in {
-      val reduce = Reduce("item" -> SUM, "score" -> SUM) groupBy ("name")
+      val reduce = Reduce() % SUM("item") % SUM("score") groupBy ("name")
       grid --> reduce
 
       assertSchema(string("name") ~ int("item_SUM") ~ double("score_SUM"), reduce, 0)
       assertOutput(reduce, 0, ("john", 7, 238.0), ("jane", 3, 131.0), ("jake", 4, 62.0))
     }
+    "save to/load from xml" in {
+      val r1 = Reduce("item" -> SUM, "score" -> MIN)
+      r1.toXml must ==/(
+        <reduce>
+          <aggregate>
+            <field name="item" type="SUM"/><field name="score" type="MIN"/>
+          </aggregate>
+        </reduce>)
+      Reduce.fromXml(r1.toXml) === r1
+
+      val r2 = Reduce() % SUM("item") % SUM("score") groupBy ("name")
+      r2.toXml must ==/(
+        <reduce>
+          <aggregate>
+            <field name="item" type="SUM"/><field name="score" type="SUM"/>
+          </aggregate>
+          <group-by>
+            <field name="name"/>
+          </group-by>
+        </reduce>)
+      Reduce.fromXml(r2.toXml) === r2
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val r1 = Reduce("item" -> SUM, "score" -> MIN)
+      r1.toJson === ("tag" -> "reduce") ~
+        ("groupBy" -> (None: Option[String])) ~
+        ("aggregate" -> List("item" -> "SUM", "score" -> "MIN"))
+      Reduce.fromJson(r1.toJson) === r1
+
+      val r2 = Reduce() % SUM("item") % SUM("score") groupBy ("name")
+      r2.toJson === ("tag" -> "reduce") ~
+        ("groupBy" -> List("name")) ~
+        ("aggregate" -> List("item" -> "SUM", "score" -> "SUM"))
+        Reduce.fromJson(r2.toJson) === r2
+    }
+    "be unserializable" in assertUnserializable(Reduce("item" -> SUM, "score" -> MIN))
   }
 }

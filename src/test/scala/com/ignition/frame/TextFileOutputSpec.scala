@@ -23,8 +23,7 @@ class TextFileOutputSpec extends FrameFlowSpecification {
   "TextFileOutput" should {
     "work for string data" in {
       val file = createTestFile
-      val csv = TextFileOutput(file.getPath, "ssn" -> "%12s", "name" -> "%-5s", "name" -> "%s")
-        .copy(separator = "|", outputHeader = false)
+      val csv = TextFileOutput(file.getPath) % ("ssn" -> "%12s", "name" -> "%-5s") % "name" separator "|" header false
       grid --> csv
       csv.output
 
@@ -69,6 +68,29 @@ class TextFileOutputSpec extends FrameFlowSpecification {
         "\"John \",111-22-3333,165.30",
         "\"Jane \",222-33-4444,124.00",
         "\"Jake \",333-00-1111,192.40")
+    }
+    "save to/load from xml" in {
+      val csv = TextFileOutput("/tmp/myfile") % ("ssn" -> "%12s", "name" -> "%-5s") separator "|" header false
+      csv.toXml must ==/(
+        <text-file-output outputHeader="false">
+          <path>/tmp/myfile</path>
+          <separator>|</separator>
+          <fields>
+            <field name="ssn">%12s</field>
+            <field name="name">%-5s</field>
+          </fields>
+        </text-file-output>)
+      TextFileOutput.fromXml(csv.toXml) === csv
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val csv = TextFileOutput("/tmp/myfile") % ("ssn" -> "%12s", "name" -> "%-5s") separator "|" header false
+      csv.toJson === ("tag" -> "text-file-output") ~ ("outputHeader" -> false) ~
+        ("path" -> "/tmp/myfile") ~ ("separator" -> "|") ~ ("fields" -> List(
+          ("name" -> "ssn") ~ ("format" -> "%12s"),
+          ("name" -> "name") ~ ("format" -> "%-5s")))
+      TextFileOutput.fromJson(csv.toJson) === csv
     }
   }
 

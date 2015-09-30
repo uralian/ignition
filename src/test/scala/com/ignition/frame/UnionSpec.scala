@@ -49,6 +49,19 @@ class UnionSpec extends FrameFlowSpecification {
       union.outSchema must throwA[ExecutionException]
       union.output.collect must throwA[ExecutionException]
     }
+    "save to/load from xml" in {
+      val union = Union()
+      union.toXml must ==/(<union/>)
+      Union.fromXml(union.toXml) === union
+    }
+    "save to/load from json" in {
+      import org.json4s.JValue
+      import org.json4s.JsonDSL._
+
+      val union = Union()
+      union.toJson === (("tag" -> "union"): JValue)
+      Union.fromJson(union.toJson) === union
+    }
     "be unserializable" in assertUnserializable(Union())
   }
 }

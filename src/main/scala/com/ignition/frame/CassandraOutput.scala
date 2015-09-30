@@ -4,6 +4,9 @@ import scala.xml.{ Elem, Node }
 
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
+import org.json4s.JValue
+import org.json4s.JsonDSL.{ jobject2assoc, pair2Assoc, pair2jvalue, string2jvalue }
+import org.json4s.jvalue2monadic
 
 import com.datastax.driver.core.{ BoundStatement, PreparedStatement, ProtocolVersion }
 import com.datastax.spark.connector.SomeColumns
@@ -11,6 +14,7 @@ import com.datastax.spark.connector.cql.TableDef
 import com.datastax.spark.connector.toRDDFunctions
 import com.datastax.spark.connector.writer.{ RowWriter, RowWriterFactory }
 import com.ignition.{ SparkRuntime, XmlExport }
+import com.ignition.util.JsonUtils.RichJValue
 
 /**
  * Cassandra row writer for DataFrame objects.
@@ -43,6 +47,8 @@ case class DataRowWriter(schema: StructType, tableDef: TableDef) extends RowWrit
  */
 case class CassandraOutput(keyspace: String, table: String) extends FrameTransformer with XmlExport {
 
+  import CassandraOutput._
+
   implicit protected def rowWriterFactory(implicit runtime: SparkRuntime) =
     new RowWriterFactory[Row] {
       def rowWriter(table: TableDef, columnNames: Seq[String]) =
@@ -60,16 +66,28 @@ case class CassandraOutput(keyspace: String, table: String) extends FrameTransfo
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
 
-  def toXml: Elem = <cassandra-output keyspace={ keyspace } table={ table }/>
+  def toXml: Elem = <node keyspace={ keyspace } table={ table }/>.copy(label = tag)
+
+  def toJson: JValue = ("tag" -> tag) ~ ("keyspace" -> keyspace) ~ ("table" -> table)
 }
 
 /**
  * Cassandra Output companion object.
  */
 object CassandraOutput {
+  val tag = "cassandra-output"
+
   def fromXml(xml: Node): CassandraOutput = {
     val keyspace = (xml \ "@keyspace").text
     val table = (xml \ "@table").text
+
+    CassandraOutput(keyspace, table)
+  }
+
+  def fromJson(json: JValue): CassandraOutput = {
+    val keyspace = json \ "keyspace" asString
+    val table = json \ "table" asString
+
     CassandraOutput(keyspace, table)
   }
 }

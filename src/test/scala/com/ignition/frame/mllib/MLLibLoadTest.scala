@@ -3,12 +3,12 @@ package com.ignition.frame.mllib
 import scala.util.Random
 
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.{ Row, SQLContext }
 import org.apache.spark.streaming.StreamingContext
 
-import com.ignition.{DefaultSparkRuntime, TestDataHelper}
+import com.ignition.{ DefaultSparkRuntime, TestDataHelper }
 import com.ignition.frame.DataGrid
-import com.ignition.types.{RichStructType, double, fieldToRichStruct, int, long, string}
+import com.ignition.types.{ RichStructType, double, fieldToRichStruct, int, long, string }
 
 object MLLibLoadTest extends App with TestDataHelper {
 
@@ -38,7 +38,7 @@ object MLLibLoadTest extends App with TestDataHelper {
     assert(rows.size == rowCount)
 
     val grid = DataGrid(schema, rows)
-    val stats = ColumnStats() groupBy ("key1", "key2") columns ("intVal", "dblVal", "lngVal")
+    val stats = ColumnStats() groupBy ("key1", "key2") add ("intVal", "dblVal", "lngVal")
     grid --> stats
     println("ColumnStats - computing...")
 
@@ -64,7 +64,7 @@ object MLLibLoadTest extends App with TestDataHelper {
     assert(rows.size == rowCount)
 
     val grid = DataGrid(schema, rows)
-    val stats = Correlation() groupBy ("key1", "key2") columns ("intVal", "dblVal", "lngVal")
+    val stats = Correlation() % ("intVal", "dblVal", "lngVal") groupBy ("key1", "key2")
     grid --> stats
     println("Correlation - computing...")
 
@@ -91,7 +91,7 @@ object MLLibLoadTest extends App with TestDataHelper {
     assert(rows.size == rowCount)
 
     val grid = DataGrid(schema, rows)
-    val reg = Regression("label") columns ("feature1", "feature2") groupBy ("key1", "key2")
+    val reg = Regression("label") features ("feature1", "feature2") groupBy ("key1", "key2")
     grid --> reg
     println("Regression - computing...")
 

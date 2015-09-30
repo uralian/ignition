@@ -3,8 +3,8 @@ package com.ignition.frame
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.{ExecutionException, RichProduct}
-import com.ignition.types.{RichStructType, boolean, fieldToRichStruct, int, string}
+import com.ignition.{ ExecutionException, RichProduct }
+import com.ignition.types.{ RichStructType, boolean, fieldToRichStruct, int, string }
 
 @RunWith(classOf[JUnitRunner])
 class IntersectionSpec extends FrameFlowSpecification {
@@ -69,6 +69,19 @@ class IntersectionSpec extends FrameFlowSpecification {
       val inter = Intersection()
       inter.outSchema must throwA[ExecutionException]
       inter.output.collect must throwA[ExecutionException]
+    }
+    "save to/load from xml" in {
+      val inter = Intersection()
+      inter.toXml must ==/(<intersection/>)
+      Intersection.fromXml(inter.toXml) === inter
+    }
+    "save to/load from json" in {
+      import org.json4s.JValue
+      import org.json4s.JsonDSL._
+
+      val inter = Intersection()
+      inter.toJson === (("tag" -> "intersection"): JValue)
+      Intersection.fromJson(inter.toJson) === inter
     }
     "be unserializable" in assertUnserializable(Intersection())
   }

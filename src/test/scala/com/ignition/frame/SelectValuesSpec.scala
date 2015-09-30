@@ -4,7 +4,7 @@ import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.frame.SelectAction.{Remove, Rename, Retain, Retype}
+import com.ignition.frame.SelectAction.{ Remove, Rename, Retain, Retype }
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
@@ -83,6 +83,28 @@ class SelectValuesSpec extends FrameFlowSpecification {
       grid --> select
       assertOutput(select, 0, Seq(javaBD("25.2")))
       assertSchema(decimal("x").schema, select, 0)
+    }
+    "save to/load from xml" in {
+      val s = SelectValues().rename("a" -> "x").retype("x" -> "decimal").remove("b", "c").retain("z")
+      s.toXml must ==/(
+        <select-values>
+          <rename><field oldName="a" newName="x"/></rename>
+          <retype><field name="x" type="decimal"/></retype>
+          <remove><field name="b"/><field name="c"/></remove>
+          <retain><field name="z"/></retain>
+        </select-values>)
+      SelectValues.fromXml(s.toXml) === s
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val s = SelectValues().rename("a" -> "x").retype("x" -> "decimal").remove("b", "c").retain("z")
+      s.toJson === ("tag" -> "select-values") ~ ("actions" -> List(
+        ("action" -> "rename") ~ ("fields" -> List(("oldName" -> "a") ~ ("newName" -> "x"))),
+        ("action" -> "retype") ~ ("fields" -> List(("name" -> "x") ~ ("type" -> "decimal"))),
+        ("action" -> "remove") ~ ("fields" -> List("b", "c")),
+        ("action" -> "retain") ~ ("fields" -> List("z"))))
+      SelectValues.fromJson(s.toJson) === s
     }
     "be unserializable" in assertUnserializable(SelectValues())
   }
