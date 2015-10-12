@@ -42,7 +42,7 @@ class CassandraInputSpec extends FrameFlowSpecification with CassandraSpec {
 
       // testing BLOB separately
       val cass2 = CassandraInput("ignition", "all_types") % ("rowkey", "x_blob")
-      val out2 = cass2.output(0).collect.toSet
+      val out2 = cass2.output.collect.toSet
       val blob = Array(98.toByte, 108.toByte, 97.toByte, 104.toByte)
       out2 foreach { row =>
         val key = row(0)
@@ -98,7 +98,7 @@ class CassandraInputSpec extends FrameFlowSpecification with CassandraSpec {
     }
     "preview a subset of rows" in {
       val cass = CassandraInput("ignition", "orders")
-      cass.output(Some(5)).count === 5
+      cass.output(true).count <= FrameStep.previewSize
     }
     "save to xml/load from xml" in {
       val c1 = CassandraInput("ignition", "orders")

@@ -49,10 +49,10 @@ trait RowAggregator[U] extends Serializable {
 abstract class AbstractAggregate[U: ClassTag](aggregator: RowAggregator[U], groupFields: Iterable[String] = Nil)
   extends FrameTransformer with PairFunctions {
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val groupFields = this.groupFields
 
-    val df = optLimit(arg, limit)
+    val df = optLimit(arg, preview)
 
     val rdd = toPair(df, df.schema.fieldNames, groupFields)
     rdd.persist
@@ -67,9 +67,5 @@ abstract class AbstractAggregate[U: ClassTag](aggregator: RowAggregator[U], grou
     val targetSchema = StructType(targetFields)
 
     ctx.createDataFrame(targetRDD, targetSchema)
-  }
-
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = {
-    compute(input(Some(1)), Some(1)) schema
   }
 }

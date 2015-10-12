@@ -9,37 +9,70 @@ package object ignition {
 
   val STEPS_SERIALIZABLE = "step.serializable"
 
-  /**
-   * An extension for Int to be used for connecting an output port of an MultiOutput
-   * step with |: notation like this:
-   * a|:2 --> 1:|b  // connect 2nd output of a to 1st input of b
-   * a|:1 --> b     // connect 1st output of a to the only input of b
-   */
-  implicit class RichInt(val outIndex: Int) extends AnyVal {
-    def -->(inIndex: Int) = OutInIndices(outIndex, inIndex)
-    def -->[T](tgtStep: Step[T] with SingleInput[T]) = SInStepOutIndex(outIndex, tgtStep)
-  }
+  private type CSrc[T] = ConnectionSource[T]
 
-  /**
-   * An extension of Scala product (a1, a2, ...) object to be used for connecting
-   * to the input ports of an MultiInput step.
-   *
-   * (a, b, c) --> d  // connect the outputs of a, b, and c to the inputs of d
-   * (a.out(1), b) --> d // connect output 1 of a and output 0 of b to the inputs of d
-   */
-  implicit class RichProduct(val product: Product) extends AnyVal {
-    def to[T](tgtStep: Step[T] with MultiInput[T]): tgtStep.type = {
-      product.productIterator.zipWithIndex foreach {
-        case (src: (Step[_] with MultiOutput[_])#OutPort, index) => tgtStep.from(index, src.outer.asInstanceOf[Step[T] with MultiOutput[T]], src.outIndex)
-        case (srcStep: Step[_] with SingleOutput[_], index) => tgtStep.from(index, srcStep.asInstanceOf[Step[T] with SingleOutput[T]])
-      }
-      tgtStep
+  /* implicits for connecting tuples of ConnectionSource to a multi-input step */
+
+  implicit class CSource2[T](val tuple: Product2[CSrc[T], CSrc[T]]) extends AnyVal {
+    def to(tgt: MultiInputStep[T]): tgt.type = {
+      tuple._1 to tgt.in(0)
+      tuple._2 to tgt.in(1)
+      tgt
     }
-    def -->[T](tgtStep: Step[T] with MultiInput[T]): tgtStep.type = to(tgtStep)
+    def -->(tgt: MultiInputStep[T]): tgt.type = to(tgt)
+  }
+
+  implicit class CSource3[T](val tuple: Product3[CSrc[T], CSrc[T], CSrc[T]]) extends AnyVal {
+    def to(tgt: MultiInputStep[T]): tgt.type = {
+      (tuple._1, tuple._2) to tgt
+      tuple._3 to tgt.in(2)
+      tgt
+    }
+    def -->(tgt: MultiInputStep[T]): tgt.type = to(tgt)
+  }
+
+  implicit class CSource4[T](val tuple: Product4[CSrc[T], CSrc[T], CSrc[T], CSrc[T]]) extends AnyVal {
+    def to(tgt: MultiInputStep[T]): tgt.type = {
+      (tuple._1, tuple._2, tuple._3) to tgt
+      tuple._4 to tgt.in(3)
+      tgt
+    }
+    def -->(tgt: MultiInputStep[T]): tgt.type = to(tgt)
+  }
+
+  implicit class CSource5[T](val tuple: Product5[CSrc[T], CSrc[T], CSrc[T], CSrc[T], CSrc[T]]) extends AnyVal {
+    def to(tgt: MultiInputStep[T]): tgt.type = {
+      (tuple._1, tuple._2, tuple._3, tuple._4) to tgt
+      tuple._5 to tgt.in(4)
+      tgt
+    }
+    def -->(tgt: MultiInputStep[T]): tgt.type = to(tgt)
   }
 
   /**
-   * Converts a single value to a Product of size 1.
+   * Converts a single value to a Product of size 1 for consistency in some API calls.
    */
   implicit def value2tuple[T](x: T): Tuple1[T] = Tuple1(x)
+
+  /**
+   * Returns the outbound ports of a step.
+   * Having this private convenience function rather than making Step more generic and
+   * less type safe.
+   */
+  private[ignition] def outs[T](step: Step[T]): Seq[ConnectionSource[T]] = step match {
+    case x if x.isInstanceOf[SingleOutputStep[T]] => List(x.asInstanceOf[SingleOutputStep[T]])
+    case x if x.isInstanceOf[MultiOutputStep[T]] => x.asInstanceOf[MultiOutputStep[T]].out
+    case _ => Nil
+  }
+
+  /**
+   * Returns the inbounds ports of a step.
+   * Having this private convenience function rather than making Step more generic and
+   * less type safe.
+   */
+  private[ignition] def ins[T](step: Step[T]): Seq[ConnectionTarget[T]] = step match {
+    case x if x.isInstanceOf[SingleInputStep[T]] => List(x.asInstanceOf[SingleInputStep[T]])
+    case x if x.isInstanceOf[MultiInputStep[T]] => x.asInstanceOf[MultiInputStep[T]].in
+    case _ => Nil
+  }
 }

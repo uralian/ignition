@@ -28,17 +28,17 @@ case class TextFolderInput(path: String, nameField: String = "filename",
 
   val schema = string(nameField) ~ string(dataField)
 
-  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val path = injectGlobals(this.path)
 
     val rdd = ctx.sparkContext.wholeTextFiles(path) map {
       case (fileName, contents) => Row(fileName, contents)
     }
     val df = ctx.createDataFrame(rdd, schema)
-    optLimit(df, limit)
+    optLimit(df, preview)
   }
 
-  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = schema
 
   def toXml: Elem = <node path={ path } nameField={ nameField } dataField={ dataField }/>.copy(label = tag)
 

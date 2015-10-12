@@ -36,11 +36,11 @@ abstract class StreamProducer extends Producer[DataStream] with StreamStep
 
 abstract class StreamTransformer extends Transformer[DataStream] with StreamStep
 
-abstract class StreamSplitter(outputCount: Int)
-  extends Splitter[DataStream](outputCount) with StreamStep
+abstract class StreamSplitter(val outputCount: Int)
+  extends Splitter[DataStream] with StreamStep
 
-abstract class StreamMerger(inputCount: Int)
-  extends Merger[DataStream](inputCount) with StreamStep
+abstract class StreamMerger(val inputCount: Int)
+  extends Merger[DataStream] with StreamStep
 
-abstract class StreamModule(inputCount: Int, outputCount: Int)
-  extends Module[DataStream](inputCount, outputCount) with StreamStep
+abstract class StreamModule(val inputCount: Int, val outputCount: Int)
+  extends Module[DataStream] with StreamStep

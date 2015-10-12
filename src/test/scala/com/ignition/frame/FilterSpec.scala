@@ -63,31 +63,31 @@ class FilterSpec extends FrameFlowSpecification {
 
   "Filter for string expressions" should {
     "evaluate `==`" in {
-      val f = Filter($"name" === "john")
+      val f = Filter($"name" === "'john'")
       grid --> f
       assertOutput(f, 0, ("john", 1, 65.0), ("john", 3, 78.0), ("john", 3, 95.0))
       assertOutput(f, 1, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
     }
     "evaluate `!==`" in {
-      val f = Filter($"name" !== "john")
+      val f = Filter($"name" !== "'john'")
       grid --> f
       assertOutput(f, 0, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
       assertOutput(f, 1, ("john", 1, 65.0), ("john", 3, 78.0), ("john", 3, 95.0))
     }
     "evaluate `like`" in {
-      val f = Filter($"name" like "ja%")
+      val f = Filter($"name" like "'ja%'")
       grid --> f
       assertOutput(f, 0, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
       assertOutput(f, 1, ("john", 1, 65.0), ("john", 3, 78.0), ("john", 3, 95.0))
     }
     "evaluate `rlike`" in {
-      val f = Filter($"name" rlike "ja.e")
+      val f = Filter($"name" rlike "'ja.e'")
       grid --> f
       assertOutput(f, 0, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
       assertOutput(f, 1, ("john", 1, 65.0), ("john", 3, 78.0), ("john", 3, 95.0))
     }
     "evaluate `IN`" in {
-      val f = Filter($"name" IN ("jack", "jane", "jake"))
+      val f = Filter($"name" IN ("'jack'", "'jane'", "'jake'"))
       grid --> f
       assertOutput(f, 0, ("jane", 2, 85.0), ("jane", 1, 46.0), ("jake", 4, 62.0))
       assertOutput(f, 1, ("john", 1, 65.0), ("john", 3, 78.0), ("john", 3, 95.0))
@@ -119,7 +119,7 @@ class FilterSpec extends FrameFlowSpecification {
       assertOutput(f, 1, (javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15)))
     }
     "evaluate `<`" in {
-      val f = Filter($"date" < javaDate(1960, 1, 1))
+      val f = Filter($"date" < "cast('1960-01-01' as date)")
       grid2 --> f
       assertOutput(f, 0, (javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30)),
         (javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15)),
@@ -127,7 +127,7 @@ class FilterSpec extends FrameFlowSpecification {
       assertOutput(f, 1, (javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25)))
     }
     "evaluate `>`" in {
-      val f = Filter($"date" > javaDate(1951, 2, 10))
+      val f = Filter($"date" > "cast('1951-02-10' as date)")
       grid2 --> f
       assertOutput(f, 0, (javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15)),
         (javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25)))
@@ -138,12 +138,12 @@ class FilterSpec extends FrameFlowSpecification {
 
   "Filter for complex expressions" should {
     "evaluate `and`" in {
-      val f = Filter($"item" === 1 and $"score" > 50)
+      val f = Filter("item = 1 and score > 50")
       grid --> f
       assertOutput(f, 0, ("john", 1, 65.0))
     }
     "evaluate `or`" in {
-      val f = Filter(($"score" < 70) or ($"name" rlike "jo.*"))
+      val f = Filter("score < 70 or name rlike 'jo.*'")
       grid --> f
       assertOutput(f, 0, ("john", 1, 65.0), ("john", 3, 78.0),
         ("jane", 1, 46.0), ("jake", 4, 62.0), ("john", 3, 95.0))

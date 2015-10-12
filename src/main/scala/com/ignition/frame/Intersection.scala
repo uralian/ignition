@@ -20,16 +20,20 @@ case class Intersection() extends FrameMerger(Intersection.MAX_INPUTS) {
 
   override val allInputsRequired = false
 
-  protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(args: IndexedSeq[DataFrame], preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    validateSchema
     val dfs = args filter (_ != null)
-    outSchema
     val result = dfs.tail.foldLeft(dfs.head)((acc: DataFrame, df: DataFrame) => acc.intersect(df))
-    optLimit(result, limit)
+    optLimit(result, preview)
   }
 
-  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType = {
-    val schemas = inSchemas.filter(_ != null)
-    assert(schemas.tail.forall(_ == schemas.head), "Input schemas do not match")
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = validateSchema
+
+  private def inSchemas(implicit runtime: SparkRuntime) = inputs(true) filter (_ != null) map (_.schema)
+
+  private def validateSchema(implicit runtime: SparkRuntime): StructType = {
+    assert(!inSchemas.isEmpty, "No inputs connected")
+    assert(inSchemas.tail.forall(_ == inSchemas.head), "Input schemas do not match")
     inSchemas.head
   }
 

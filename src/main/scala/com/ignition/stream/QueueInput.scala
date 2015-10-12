@@ -31,7 +31,7 @@ case class QueueInput(schema: StructType, data: List[Seq[Row]] = Nil) extends St
     copy(data = this.data :+ rs)
   }
 
-  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
     val rdds = dataWithSchema map (sc.parallelize(_))
 
     val queue = Queue(rdds: _*)

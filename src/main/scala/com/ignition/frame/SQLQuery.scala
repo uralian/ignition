@@ -8,7 +8,7 @@ import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2Assoc, string2jvalue }
 import org.json4s.jvalue2monadic
 
-import com.ignition.{ SparkRuntime, XmlExport }
+import com.ignition.SparkRuntime
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
 
@@ -18,12 +18,12 @@ import com.ignition.util.XmlUtils.RichNodeSeq
  *
  * @author Vlad Orzhekhovskiy
  */
-case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) with XmlExport {
+case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) {
   import SQLQuery._
 
   override val allInputsRequired = false
 
-  protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(args: IndexedSeq[DataFrame], preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     assert(args.exists(_ != null), "No connected inputs")
 
     args.zipWithIndex foreach {
@@ -34,11 +34,8 @@ case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) with
     val query = injectGlobals(this.query)
 
     val df = ctx.sql(query)
-    optLimit(df, limit)
+    optLimit(df, preview)
   }
-
-  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
-    computedSchema(0)
 
   def toXml: Elem = <node>{ query }</node>.copy(label = tag)
 

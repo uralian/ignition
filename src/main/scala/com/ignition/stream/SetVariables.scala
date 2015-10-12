@@ -12,9 +12,9 @@ import com.ignition.SparkRuntime
  */
 case class SetVariables(vars: Map[String, Any]) extends StreamTransformer {
 
-  override val allInputsRequired: Boolean = false
+//  override val allInputsRequired: Boolean = false
 
-  protected def compute(arg: DataStream, limit: Option[Int])(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
     vars foreach {
       case (name, null) => runtime.vars.drop(name)
       case (name, value) => runtime.vars(name) = value

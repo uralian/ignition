@@ -18,9 +18,9 @@ case class StreamFlow(targets: Iterable[StreamStep]) {
       index <- 0 until tgt.outputCount
     } yield (tgt, index)
 
-    ports foreach {
-      case (tgt, index) => tgt.output(index).foreachRDD(_ => {})
-    }
+//    ports foreach {
+//      case (tgt, index) => tgt.output(index).foreachRDD(_ => {})
+//    }
 
     runtime.ssc.start
     runtime.ssc.awaitTermination

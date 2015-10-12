@@ -113,12 +113,12 @@ case class Reduce(reducers: Iterable[(String, ReduceOp)], groupFields: Iterable[
 
   def groupBy(fields: String*) = copy(groupFields = fields)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val groupFields = this.groupFields
     val dataFields = reducers map (_._1) toSeq
     val ops = reducers map (_._2) toSeq
 
-    val df = optLimit(arg, limit)
+    val df = optLimit(arg, preview)
 
     val rdd = toPair(df, dataFields, groupFields)
     rdd.persist
@@ -141,9 +141,6 @@ case class Reduce(reducers: Iterable[(String, ReduceOp)], groupFields: Iterable[
 
     ctx.createDataFrame(targetRDD, targetSchema)
   }
-
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
-    computedSchema(0)
 
   def toXml: Elem =
     <node>

@@ -3,7 +3,6 @@ package com.ignition.frame
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.RichProduct
 import com.ignition.types.{ RichStructType, boolean, double, fieldToRichStruct, int, string }
 import com.ignition.util.XmlUtils
 

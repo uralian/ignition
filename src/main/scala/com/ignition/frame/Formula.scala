@@ -25,8 +25,8 @@ case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) ext
   def addField(name: String, expr: RowExpression[_ <: DataType]) = copy(fields = fields.toSeq :+ (name -> expr))
   def %(name: String, expr: RowExpression[_ <: DataType]) = addField(name, expr)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, limit)
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, preview)
 
     val executors = fields map {
       case (_, expr) => expr.evaluate(df.schema) _
@@ -36,11 +36,14 @@ case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) ext
       val computed = executors map (_(row))
       Row.fromSeq(row.toSeq ++ computed)
     }
-    ctx.createDataFrame(rdd, outSchema)
+    ctx.createDataFrame(rdd, computeSchema)
   }
+  
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = computeSchema
 
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = {
-    val df = inputs(Some(1))(runtime)(0)
+  private def computeSchema(implicit runtime: SparkRuntime): StructType = {
+    val df = input(true)
+    val inSchema = df.schema
     val newFields = fields map {
       case (name, expr) =>
         val targetType = expr.targetType getOrElse expr.computeTargetType(inSchema)(df.first)
