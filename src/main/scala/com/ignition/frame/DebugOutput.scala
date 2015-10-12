@@ -61,19 +61,25 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
 
     println(delimiter)
 
+    def formatValue(tuple: (Any, DataType, Int)) = tuple match {
+      case (obj, BinaryType, width) =>
+        s"%${width}s".format(obj.asInstanceOf[Array[Byte]].map("%02X" format _).mkString)
+      case (obj, ByteType, width) => s"%${width}d".format(obj)
+      case (obj, ShortType, width) => s"%${width}d".format(obj)
+      case (obj, IntegerType, width) => s"%${width}d".format(obj)
+      case (obj, LongType, width) => s"%${width}d".format(obj)
+      case (obj, FloatType, width) => s"%${width}f".format(obj)
+      case (obj, DoubleType, width) => s"%${width}f".format(obj)
+      case (obj, _: DecimalType, width) =>
+        s"%${width}s".format(obj.asInstanceOf[java.math.BigDecimal].toPlainString)
+      case (_, obj, width) => s"%${width}s".format(obj.toString.take(width))
+    }
+
     data foreach { row =>
-      val str = (dataTypes zip row.toSeq zip widths) map {
-        case ((BinaryType, obj), width) =>
-          s"%${width}s".format(obj.asInstanceOf[Array[Byte]].map("%02X" format _).mkString)
-        case ((ByteType, obj), width) => s"%${width}d".format(obj)
-        case ((ShortType, obj), width) => s"%${width}d".format(obj)
-        case ((IntegerType, obj), width) => s"%${width}d".format(obj)
-        case ((LongType, obj), width) => s"%${width}d".format(obj)
-        case ((FloatType, obj), width) => s"%${width}f".format(obj)
-        case ((DoubleType, obj), width) => s"%${width}f".format(obj)
-        case ((_: DecimalType, obj), width) =>
-          s"%${width}s".format(obj.asInstanceOf[java.math.BigDecimal].toPlainString)
-        case ((_, obj), width) => s"%${width}s".format(obj.toString.take(width))
+      val str = (row.toSeq zip dataTypes zip widths) map {
+        case ((obj, dt), width) => (obj, dt, width)
+      } map { tuple =>
+        formatValue(tuple).take(tuple._3)
       } mkString ("|", "|", "|")
       println(str)
     }
