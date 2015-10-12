@@ -23,15 +23,16 @@ case class SetVariables(vars: Map[String, Any]) extends FrameTransformer {
 
   override val allInputsRequired: Boolean = false
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     vars foreach {
       case (name, null) => runtime.vars.drop(name)
       case (name, value) => runtime.vars(name) = value
     }
-    optLimit(arg, limit)
+    optLimit(arg, preview)
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = 
+    input(true).schema
 
   def toXml: Elem =
     <node>

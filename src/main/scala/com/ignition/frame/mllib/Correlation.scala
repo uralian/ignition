@@ -44,8 +44,8 @@ case class Correlation(dataFields: Iterable[String], groupFields: Iterable[Strin
   def groupBy(fields: String*) = copy(groupFields = fields)
   def method(method: CorrelationMethod) = copy(method = method)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, limit)
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, preview)
 
     val rdd = toVectors(df, dataFields, groupFields)
     rdd.persist
@@ -72,9 +72,6 @@ case class Correlation(dataFields: Iterable[String], groupFields: Iterable[Strin
 
     ctx.createDataFrame(targetRDD, schema)
   }
-
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
-    compute(input(Some(10)), Some(10)) schema
 
   def toXml: Elem =
     <node method={ method.toString }>

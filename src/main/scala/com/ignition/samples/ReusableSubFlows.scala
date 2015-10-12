@@ -15,7 +15,7 @@ object ReusableSubFlows extends App {
   val orderSchema = date("order_date") ~ decimal("amount") ~ string("name")
 
   // subflow0 | data provider: no inputs, three outputs
-  val provider = SubFlow(3) { output =>
+  val provider = FrameSubModule {
     val abGrid = DataGrid(abSchema) rows ((2, 3), (4, 2), (2, 2), (3, 1))
     val customerGrid = DataGrid(customerSchema) rows (
       ("john", true, 25.36), ("jack", false, 74.15), ("jane", true, 19.99))
@@ -25,27 +25,26 @@ object ReusableSubFlows extends App {
       (javaDate(2010, 2, 9), Decimal(44.17), "john"),
       (javaDate(2010, 5, 10), Decimal(66.99), "jane"),
       (javaDate(2010, 1, 3), Decimal(55.08), "john"))
-    (abGrid, customerGrid, orderGrid) --> output
+    (Nil, Seq(abGrid, customerGrid, orderGrid))
   }
 
   // subflow1 | simple multiplier: one input - one output
-  val multiplier = SubFlow(1, 1) { (input, output) =>
+  val multiplier = FrameSubTransformer {
     val formula = Formula("ab" -> "a * b".mvel)
     val select = SelectValues() rename ("ab" -> "total") retype ("total" -> "double")
-    input --> formula --> select --> output
+    formula --> select
+    (formula, select)
   }
 
-  // subflow2 | joiner/splitter: two inputs - three outputs
-  val joiner = SubFlow(2, 3) { (input, output) =>
+  // subflow2 | joiner: two inputs - one output
+  val joiner = FrameSubMerger {
     val query = SQLQuery("""
-          SELECT o.order_date, o.amount, c.name, c.cost, o.amount + c.cost AS total
-          FROM input0 c
-          JOIN input1 o
-          ON o.name = c.name
-          ORDER BY c.name, total""")
-    input.out(0) --> (output.in(1), query.in(0))
-    input.out(1) --> (output.in(0), query.in(1))
-    query --> 2 :| output
+            SELECT o.order_date, o.amount, c.name, c.cost, o.amount + c.cost AS total
+            FROM input0 c
+            JOIN input1 o
+            ON o.name = c.name
+            ORDER BY c.name, total""")
+    (query.in, query)
   }
 
   // main data flow | uses all subflows defined above
@@ -62,6 +61,4 @@ object ReusableSubFlows extends App {
   }
 
   SparkPlug.runDataFlow(flow)
-
-  private def javaDate(year: Int, month: Int, day: Int) = java.sql.Date.valueOf(s"$year-$month-$day")
 }

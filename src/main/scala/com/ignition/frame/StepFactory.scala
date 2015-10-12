@@ -4,7 +4,7 @@ import scala.xml.Node
 
 import org.json4s.{ JValue, jvalue2monadic }
 
-import com.ignition.Step
+import com.ignition.SubFlow
 import com.ignition.util.JsonUtils.RichJValue
 
 /**
@@ -14,7 +14,7 @@ object StepFactory {
 
   private val xmlParsers = collection.mutable.HashMap.empty[String, Node => FrameStep]
   def registerXml(tag: String, builder: Node => FrameStep) = { xmlParsers(tag) = builder }
-  
+
   private val jsonParsers = collection.mutable.HashMap.empty[String, JValue => FrameStep]
   def registerJson(tag: String, builder: JValue => FrameStep) = { jsonParsers(tag) = builder }
 
@@ -39,7 +39,7 @@ object StepFactory {
     case SelectValues.tag => SelectValues.fromXml(xml)
     case SetVariables.tag => SetVariables.fromXml(xml)
     case SQLQuery.tag => SQLQuery.fromXml(xml)
-    case SubFlow.tag => SubFlow.fromXml(xml)
+    case SubFlow.tag => FrameSubFlow.fromXml(xml)
     case TextFileInput.tag => TextFileInput.fromXml(xml)
     case TextFileOutput.tag => TextFileOutput.fromXml(xml)
     case TextFolderInput.tag => TextFolderInput.fromXml(xml)
@@ -71,7 +71,7 @@ object StepFactory {
     case SelectValues.tag => SelectValues.fromJson(json)
     case SetVariables.tag => SetVariables.fromJson(json)
     case SQLQuery.tag => SQLQuery.fromJson(json)
-    case SubFlow.tag => SubFlow.fromJson(json)
+    case SubFlow.tag => FrameSubFlow.fromJson(json)
     case TextFileInput.tag => TextFileInput.fromJson(json)
     case TextFileOutput.tag => TextFileOutput.fromJson(json)
     case TextFolderInput.tag => TextFolderInput.fromJson(json)

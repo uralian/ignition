@@ -18,7 +18,7 @@ case class Join(condition: Option[Column], joinType: JoinType) extends StreamMer
 
   def joinType(jt: JoinType) = copy(joinType = jt)
 
-  protected def compute(args: Seq[DataStream], limit: Option[Int])(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(args: IndexedSeq[DataStream], preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
     val stream1 = args(0)
     val stream2 = args(1)
 

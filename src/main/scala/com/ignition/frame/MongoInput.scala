@@ -1,23 +1,22 @@
 package com.ignition.frame
 
 import scala.xml.{ Elem, Node }
+import scala.xml.NodeSeq.seqToNodeSeq
 
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types._
+import org.json4s.{ JObject, JValue }
+import org.json4s.JsonDSL._
+import org.json4s.jvalue2monadic
 
 import com.ignition.SparkRuntime
 import com.ignition.types.RichBoolean
+import com.ignition.types.TypeUtils._
+import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.MongoUtils
-import com.ignition.util.MongoUtils.DBObjectHelper
+import com.ignition.util.XmlUtils.{ RichNodeSeq, intToText }
 import com.mongodb.DBObject
 import com.mongodb.casbah.Imports._
-
-import org.json4s._
-import org.json4s.JsonDSL._
-
-import com.ignition.types.TypeUtils._
-import com.ignition.util.XmlUtils.{ intToText, RichNodeSeq }
-import com.ignition.util.JsonUtils._
 
 /**
  * Used to limit the results returned from data store queries.
@@ -50,7 +49,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
   def limit(limit: Int) = copy(page = Page(limit, this.page.offset))
   def offset(offset: Int) = copy(page = Page(this.page.limit, offset))
 
-  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val collection = MongoUtils.collection(db, coll)
 
     val fields = schema map (f => f.copy(name = f.name.replace('#', '.')))
@@ -61,11 +60,13 @@ case class MongoInput(db: String, coll: String, schema: StructType,
 
     val cursor = collection.find(query, keys).sort(orderBy)
     val cursorWithOffset = if (page.offset > 0) cursor.skip(page.offset) else cursor
-    val size = limit map { n =>
-      if (page.limit > 0) math.min(n, page.limit) else n
-    } orElse {
-      if (page.limit > 0) Some(page.limit) else None
+    val size = (page.limit, preview) match {
+      case (limit, false) if limit < 1 => None
+      case (limit, true) if limit < 1 => Some(FrameStep.previewSize)
+      case (limit, false) => Some(limit)
+      case (limit, true) => Some(math.min(FrameStep.previewSize, limit))
     }
+
     val cursorWithLimit = size map cursorWithOffset.limit getOrElse cursorWithOffset
 
     val rows = cursorWithLimit map { obj =>
@@ -83,7 +84,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = schema
 
   def toXml: Elem =
     <node db={ db } coll={ coll }>

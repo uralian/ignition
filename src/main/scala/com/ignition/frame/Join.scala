@@ -39,16 +39,13 @@ case class Join(condition: Option[Column], joinType: JoinType) extends FrameMerg
 
   def joinType(jt: JoinType) = copy(joinType = jt)
 
-  protected def compute(args: Seq[DataFrame], limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(args: IndexedSeq[DataFrame], preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
 
-    val df1 = optLimit(args(0), limit).as('input0)
-    val df2 = optLimit(args(1), limit).as('input1)
+    val df1 = optLimit(args(0), preview).as('input0)
+    val df2 = optLimit(args(1), preview).as('input1)
 
     condition map (c => df1.join(df2, c, joinType.toString)) getOrElse df1.join(df2)
   }
-
-  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
-    computedSchema(0)
 
   def toXml: Elem =
     <node type={ joinType.toString }>

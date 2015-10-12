@@ -1,6 +1,6 @@
 package com.ignition.samples
 
-import com.ignition.{ RichProduct, SparkPlug }
+import com.ignition.SparkPlug
 import com.ignition.frame.{ DataFlow, DataGrid, DebugOutput, TextFileOutput, Union }
 import com.ignition.types.{ RichStructType, date, fieldToRichStruct, int, string }
 
@@ -34,6 +34,6 @@ object UnionFlow extends App {
 
     (debug, csv)
   }
-
+  
   SparkPlug.runDataFlow(flow)
 }

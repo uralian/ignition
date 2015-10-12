@@ -1,6 +1,6 @@
 package com.ignition.samples
 
-import com.ignition.{ RichProduct, SparkPlug }
+import com.ignition.SparkPlug
 import com.ignition.frame._
 import com.ignition.types.{ RichStructType, date, fieldToRichStruct, fieldToStructType, int, string }
 import com.ignition.value2tuple

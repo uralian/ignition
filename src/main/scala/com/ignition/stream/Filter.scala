@@ -22,7 +22,7 @@ case class Filter(condition: Column) extends StreamSplitter(2) {
 
   val expressions = Array(toSQL(condition), "NOT (" + toSQL(condition) + ")")
 
-  protected def compute(arg: DataStream, index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
 
     val expr = expressions(index)
     val filterFunc = (df: DataFrame) => df.filter(expr)

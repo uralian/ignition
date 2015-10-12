@@ -4,8 +4,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.streaming.dstream.DStream
 
-import com.ignition.frame.{ FrameSplitter, FrameTransformer, SubFlow }
-import com.ignition.stream.Foreach
+//import com.ignition.frame.{ FrameSplitter, FrameTransformer, SubFlow }
+//import com.ignition.stream.Foreach
 
 /**
  * Data types, implicits, aliases for DStream-based workflows.
@@ -15,9 +15,9 @@ import com.ignition.stream.Foreach
 package object stream {
   type DataStream = DStream[Row]
 
-  def foreach(flow: SubFlow): Foreach = Foreach(flow)
-  def foreach(tx: FrameTransformer): Foreach = Foreach(tx)
-  def foreach(sp: FrameSplitter): Foreach = Foreach(sp)
+//  def foreach(flow: SubFlow): Foreach = Foreach(flow)
+//  def foreach(tx: FrameTransformer): Foreach = Foreach(tx)
+//  def foreach(sp: FrameSplitter): Foreach = Foreach(sp)
   
   /**
    * Converts this RDD into a DataFrame using the schema of the first row, then applies the

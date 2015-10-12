@@ -12,7 +12,7 @@ import com.ignition.SparkRuntime
  */
 
 case class Window(windowDuration: Duration, slideDuration: Option[Duration] = None) extends StreamTransformer {
-  protected def compute(arg: DataStream, limit: Option[Int])(implicit runtime: SparkRuntime): DataStream =
+  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkRuntime): DataStream =
     arg.window(windowDuration, slideDuration getOrElse arg.slideDuration)
 
   protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema

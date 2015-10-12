@@ -3,7 +3,7 @@ package com.ignition.frame
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.{ ExecutionException, RichProduct }
+import com.ignition.ExecutionException
 import com.ignition.types.{ RichStructType, boolean, fieldToRichStruct, int, string }
 
 @RunWith(classOf[JUnitRunner])
