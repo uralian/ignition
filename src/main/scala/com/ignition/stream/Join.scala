@@ -14,7 +14,7 @@ import com.ignition.frame.JoinType.{ INNER, JoinType }
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Join(condition: Option[Column], joinType: JoinType) extends StreamMerger(2) {
+case class Join(condition: Option[String], joinType: JoinType) extends StreamMerger(2) {
 
   def joinType(jt: JoinType) = copy(joinType = jt)
 
@@ -28,14 +28,11 @@ case class Join(condition: Option[Column], joinType: JoinType) extends StreamMer
       else {
         val df1 = ctx.createDataFrame(rdd1, rdd1.first.schema).as('input0)
         val df2 = ctx.createDataFrame(rdd2, rdd2.first.schema).as('input1)
-        val df = condition map (c => df1.join(df2, c, joinType.toString)) getOrElse df1.join(df2)
+        val df = condition map (c => df1.join(df2, new Column(c), joinType.toString)) getOrElse df1.join(df2)
         df.rdd
       }
     })
   }
-
-  protected def computeSchema(inSchemas: Seq[StructType])(implicit runtime: SparkRuntime): StructType =
-    computedSchema(0)
 
   def toXml: scala.xml.Elem = ???
   def toJson: org.json4s.JValue = ???
@@ -48,11 +45,11 @@ object Join {
 
   def apply(): Join = apply(None, INNER)
 
-  def apply(condition: Column): Join = apply(condition, INNER)
-
-  def apply(condition: Column, joinType: JoinType): Join = apply(Some(condition), joinType)
-
   def apply(condition: String): Join = apply(condition, INNER)
 
   def apply(condition: String, joinType: JoinType): Join = apply(new Column(condition), joinType)
+
+  def apply(condition: Column): Join = apply(condition, INNER)
+
+  def apply(condition: Column, joinType: JoinType): Join = apply(Some(condition.toString), joinType)
 }
