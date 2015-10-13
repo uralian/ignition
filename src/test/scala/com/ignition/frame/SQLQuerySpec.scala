@@ -4,7 +4,7 @@ import org.apache.spark.sql.types.Decimal
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.{ ExecutionException, RichProduct }
+import com.ignition.ExecutionException
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
@@ -29,7 +29,7 @@ class SQLQuerySpec extends FrameFlowSpecification {
   "SQLQuery" should {
     "yield result from one source" in {
       val query = SQLQuery("SELECT order_date, SUM(amount) AS total FROM input0 GROUP BY order_date")
-      orderGrid --> 0 :| query
+      orderGrid --> query.in(0)
       assertOutput(query, 0,
         Seq(javaDate(2010, 1, 3), javaBD(175.63)),
         Seq(javaDate(2010, 2, 9), javaBD(44.17)),

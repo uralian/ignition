@@ -29,9 +29,9 @@ case class AddFields(fields: Iterable[(String, Any)]) extends FrameTransformer {
 
   def add(tuple: (String, Any)) = copy(fields = this.fields.toSeq :+ tuple)
   def %(tuple: (String, Any)) = add(tuple)
-
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, limit)
+  
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, preview)
 
     def column(name: String, expr: Any) = lit(expr).as(name)
 
@@ -44,9 +44,6 @@ case class AddFields(fields: Iterable[(String, Any)]) extends FrameTransformer {
     val allColumns = List(new Column("*")) ++ newColumns
     df.select(allColumns: _*)
   }
-
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
-    computedSchema(0)
 
   def toXml: Elem = {
     def xmlField(name: String, dType: String, value: NodeSeq) = {

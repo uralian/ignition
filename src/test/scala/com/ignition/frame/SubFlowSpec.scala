@@ -1,145 +1,310 @@
 package com.ignition.frame
 
-import org.apache.spark.sql.types.Decimal
-import org.json4s.{ JsonDSL, jvalue2monadic }
+import org.apache.spark.sql.Row
+import org.json4s.JArray
+import org.json4s.JsonDSL.{ int2jvalue, jobject2assoc, pair2Assoc, pair2jvalue, string2jvalue }
+import org.json4s.jvalue2monadic
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.RichProduct
-import com.ignition.script.RichString
-import com.ignition.types._
-import com.ignition.util.JsonUtils
+import com.ignition.CSource2
+import com.ignition.types.{ RichStructType, fieldToRichStruct, fieldToStructType, int, string }
+import com.ignition.util.JsonUtils.RichJValue
 
 @RunWith(classOf[JUnitRunner])
 class SubFlowSpec extends FrameFlowSpecification {
   sequential
 
-  val customerSchema = string("name") ~ boolean("local") ~ double("cost")
-  val orderSchema = date("order_date") ~ decimal("amount") ~ string("name")
-
-  val customerGrid = DataGrid(customerSchema)
-    .addRow("john", true, 25.36)
-    .addRow("jack", false, 74.15)
-    .addRow("jane", true, 19.99)
-
-  val orderGrid = DataGrid(orderSchema)
-    .addRow(javaDate(2010, 1, 3), Decimal(120.55), "john")
-    .addRow(javaDate(2010, 3, 10), Decimal(42.85), "jack")
-    .addRow(javaDate(2010, 2, 9), Decimal(44.17), "john")
-    .addRow(javaDate(2010, 5, 10), Decimal(66.99), "jane")
-    .addRow(javaDate(2010, 1, 3), Decimal(55.08), "john")
-
-  val query = SQLQuery("""
-            SELECT o.order_date, o.amount, c.name, c.cost, o.amount + c.cost AS total
-            FROM input0 c
-            JOIN input1 o
-            ON o.name = c.name
-            ORDER BY c.name, total""")
-
-  "SubFlow" should {
-    "work for no inputs and multiple outputs" in {
-      val flow = SubFlow(3) { output =>
-        val g1 = DataGrid(customerSchema).addRow("jill", true, 12.34)
-        val g2 = DataGrid(orderSchema).addRow(javaDate(2015, 3, 3), Decimal(0.99), "jill")
-        (g1, g2) --> query
-        (g1, g2, query) --> output
-      }
-      assertOutput(flow, 0, ("jill", true, 12.34))
-      assertOutput(flow, 1, (javaDate(2015, 3, 3), javaBD(0.99), "jill"))
-      assertOutput(flow, 2, (javaDate(2015, 3, 3), javaBD(0.99), "jill", 12.34, javaBD(13.33)))
+  "FrameSubProducer" should {
+    val flow = FrameSubProducer {
+      val grid = DataGrid(string("name")) rows (Tuple1("john"), Tuple1("jane"), Tuple1("jake"))
+      val filter = Filter("name rlike 'ja.e'")
+      grid --> filter
+      filter.out(0)
     }
-    "work for multiple inputs and outputs" in {
-      val flow = SubFlow(2, 3) { (input, output) =>
-        input.out(0) --> (query.in(0), output.in(0))
-        input.out(1) --> (query.in(1), output.in(1))
-        query --> output.in(2)
-      }
-      (customerGrid, orderGrid) --> flow
-
-      flow.output(0).collect.toSet == customerGrid.output.collect.toSet
-      assertSchema(customerSchema, flow, 0)
-
-      flow.output(1).collect.toSet == orderGrid.output.collect.toSet
-      assertSchema(orderSchema, flow, 1)
-
-      assertOutput(flow, 2,
-        Seq(javaDate(2010, 3, 10), javaBD(42.85), "jack", 74.15, javaBD("117.00")),
-        Seq(javaDate(2010, 1, 3), javaBD(120.55), "john", 25.36, javaBD(145.91)),
-        Seq(javaDate(2010, 2, 9), javaBD(44.17), "john", 25.36, javaBD(69.53)),
-        Seq(javaDate(2010, 1, 3), javaBD(55.08), "john", 25.36, javaBD(80.44)),
-        Seq(javaDate(2010, 5, 10), javaBD(66.99), "jane", 19.99, javaBD(86.98)))
-      assertSchema(orderSchema ~ double("cost") ~ decimal("total"), flow, 2)
-    }
-    "be able to call another subflow" in {
-      val flow1 = SubFlow(1, 1) { (input, output) =>
-        val formula = Formula("sum" -> "a + b".mvel)
-        input --> formula --> output
-      }
-      val flow2 = SubFlow(1, 1) { (input, output) =>
-        val formula = Formula("product" -> "sum * c".mvel)
-        input --> flow1 --> formula --> output
-      }
-      val grid = DataGrid(int("a") ~ int("b") ~ int("c")) rows ((2, 4, 3), (1, 3, 2), (2, 2, 2))
-      grid --> flow2
-
-      assertSchema(int("a") ~ int("b") ~ int("c") ~ int("sum") ~ int("product"), flow2, 0)
-      assertOutput(flow2, 0, Seq(2, 4, 3, 6, 18), Seq(1, 3, 2, 4, 8), Seq(2, 2, 2, 4, 8))
+    "yield the output" in {
+      assertSchema(string("name"), flow, 0)
+      assertOutput(flow, 0, Row("jane"), Row("jake"))
     }
     "save to/load from xml" in {
-      val flow = SubFlow(2, 4) { (input, output) =>
-        input.out(0) --> (query.in(0), output.in(0))
-        customerGrid --> query.in(1)
-        customerGrid --> output.in(1)
-        val filter = Filter("abc < 3")
-        input.out(1) --> filter --> output.in(2)
-
-        query --> output.in(3)
-      }
-      val xml = flow.toXml
-      (xml \ "connections") must ==/(
-        <connections>
-          <connect src="INPUT" srcPort="1" tgt="filter0" tgtPort="0"/>
-          <connect src="INPUT" srcPort="0" tgt="sql0" tgtPort="0"/>
-          <connect src="datagrid0" srcPort="0" tgt="sql0" tgtPort="1"/>
-          <connect src="INPUT" srcPort="0" tgt="OUTPUT" tgtPort="0"/>
-          <connect src="datagrid0" srcPort="0" tgt="OUTPUT" tgtPort="1"/>
-          <connect src="filter0" srcPort="0" tgt="OUTPUT" tgtPort="2"/>
-          <connect src="sql0" srcPort="0" tgt="OUTPUT" tgtPort="3"/>
-        </connections>)
-
-      (xml \ "steps" \ DataGrid.tag).headOption must beSome
-      (xml \ "steps" \ Filter.tag).headOption must beSome
-      (xml \ "steps" \ SQLQuery.tag).headOption must beSome
-
-      SubFlow.fromXml(xml) === flow
+      flow.toXml must ==/(
+        <subflow>
+          <steps>
+            <filter id="filter0">
+              <condition>name rlike 'ja.e'</condition>
+            </filter>
+            <datagrid id="datagrid0">
+              <schema>
+                <field name="name" type="string" nullable="true"/>
+              </schema>
+              <rows>
+                <row><item>john</item></row>
+                <row><item>jane</item></row>
+                <row><item>jake</item></row>
+              </rows>
+            </datagrid>
+          </steps>
+          <connections><connect src="datagrid0" srcPort="0" tgt="filter0" tgtPort="0"/></connections>
+          <in-points/>
+          <out-points><step id="filter0" port="0"/></out-points>
+        </subflow>)
+      val flow2 = FrameSubFlow.fromXml(flow.toXml)
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      assertSchema(string("name"), flow2, 0)
+      assertOutput(flow2, 0, Row("jane"), Row("jake"))
     }
     "save to/load from json" in {
-      import org.json4s._
-      import org.json4s.JsonDSL._
-      import com.ignition.util.JsonUtils._
-
-      val flow = SubFlow(2, 4) { (input, output) =>
-        input.out(0) --> (query.in(0), output.in(0))
-        customerGrid --> query.in(1)
-        customerGrid --> output.in(1)
-        val filter = Filter("abc < 3")
-        input.out(1) --> filter --> output.in(2)
-
-        query --> output.in(3)
-      }
-
       val json = flow.toJson
-      (json \ "connections" asArray).toSet === Set(
-        ("src" -> "INPUT") ~ ("srcPort" -> 1) ~ ("tgt" -> "filter0") ~ ("tgtPort" -> 0),
-        ("src" -> "INPUT") ~ ("srcPort" -> 0) ~ ("tgt" -> "sql0") ~ ("tgtPort" -> 0),
-        ("src" -> "datagrid0") ~ ("srcPort" -> 0) ~ ("tgt" -> "sql0") ~ ("tgtPort" -> 1),
-        ("src" -> "INPUT") ~ ("srcPort" -> 0) ~ ("tgt" -> "OUTPUT") ~ ("tgtPort" -> 0),
-        ("src" -> "datagrid0") ~ ("srcPort" -> 0) ~ ("tgt" -> "OUTPUT") ~ ("tgtPort" -> 1),
-        ("src" -> "filter0") ~ ("srcPort" -> 0) ~ ("tgt" -> "OUTPUT") ~ ("tgtPort" -> 2),
-        ("src" -> "sql0") ~ ("srcPort" -> 0) ~ ("tgt" -> "OUTPUT") ~ ("tgtPort" -> 3))
-
-      ((json \ "steps" \ "tag" asArray) map (_ asString) toSet) === Set("datagrid", "filter", "sql")
+      (json \ "steps" asArray).length === 2
+      (json \ "steps").find(x => (x \ "tag" asString) == Filter.tag) must beSome
+      (json \ "steps").find(x => (x \ "tag" asString) == DataGrid.tag) must beSome
+      (json \ "connections") === JArray(List(
+        ("src" -> "datagrid0") ~ ("srcPort" -> 0) ~ ("tgt" -> "filter0") ~ ("tgtPort" -> 0)))
+      val flow2 = FrameSubFlow.fromJson(json)
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      assertSchema(string("name"), flow2, 0)
+      assertOutput(flow2, 0, Row("jane"), Row("jake"))
     }
-    "be unserializable" in assertUnserializable(SubFlow(2, 4)((input, output) => {}))
+    "be unserializable" in assertUnserializable(flow)
+  }
+
+  "FrameSubTransformer" should {
+    val flow = FrameSubTransformer {
+      import ReduceOp._
+
+      val select = SelectValues() rename ("name" -> "fname")
+      val reduce = Reduce("fname" -> CONCAT)
+      select --> reduce
+      (select, reduce)
+    }
+    val grid = DataGrid(string("name")) rows (Tuple1("john"), Tuple1("jane"), Tuple1("jake"))
+    "yield the output" in {
+      grid --> flow
+      assertSchema(string("fname_CONCAT"), flow, 0)
+      assertOutput(flow, 0, Row("johnjanejake"))
+    }
+    "save to/load from xml" in {
+      flow.toXml must ==/(
+        <subflow>
+          <steps>
+            <reduce id="reduce0">
+              <aggregate>
+                <field name="fname" type="CONCAT"/>
+              </aggregate>
+            </reduce>
+            <select-values id="select-values0">
+              <rename><field oldName="name" newName="fname"/></rename>
+            </select-values>
+          </steps>
+          <connections>
+            <connect src="select-values0" srcPort="0" tgt="reduce0" tgtPort="0"/>
+          </connections>
+          <in-points>
+            <step id="select-values0" port="0"/>
+          </in-points>
+          <out-points>
+            <step id="reduce0" port="0"/>
+          </out-points>
+        </subflow>)
+      val flow2 = FrameSubFlow.fromXml(flow.toXml).asInstanceOf[FrameSubTransformer]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      grid --> flow2
+      assertSchema(string("fname_CONCAT"), flow2, 0)
+      assertOutput(flow2, 0, Row("johnjanejake"))
+    }
+    "save to/load from json" in {
+      val json = flow.toJson
+      (json \ "steps" asArray).length === 2
+      (json \ "steps").find(x => (x \ "tag" asString) == SelectValues.tag) must beSome
+      (json \ "steps").find(x => (x \ "tag" asString) == Reduce.tag) must beSome
+      (json \ "connections") === JArray(List(
+        ("src" -> "select-values0") ~ ("srcPort" -> 0) ~ ("tgt" -> "reduce0") ~ ("tgtPort" -> 0)))
+      val flow2 = FrameSubFlow.fromJson(flow.toJson).asInstanceOf[FrameSubTransformer]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      grid --> flow2
+      assertSchema(string("fname_CONCAT"), flow2, 0)
+      assertOutput(flow2, 0, Row("johnjanejake"))
+    }
+    "be unserializable" in assertUnserializable(flow)
+  }
+
+  "FrameSubSplitter" should {
+    val flow = FrameSubSplitter {
+      val select = SelectValues() retain ("name")
+      val filter = Filter("name RLIKE 'jo.*'")
+      select --> filter
+      (select, filter.out)
+    }
+    val grid = DataGrid(string("name")) rows (Tuple1("john"), Tuple1("jane"), Tuple1("jake"))
+    "yield the output" in {
+      grid --> flow
+      assertSchema(string("name"), flow, 0)
+      assertOutput(flow, 0, Row("john"))
+      assertOutput(flow, 1, Row("jane"), Row("jake"))
+    }
+    "save to/load from xml" in {
+      flow.toXml must ==/(
+        <subflow>
+          <steps>
+            <filter id="filter0"><condition>name RLIKE 'jo.*'</condition></filter>
+            <select-values id="select-values0"><retain><field name="name"/></retain></select-values>
+          </steps>
+          <connections>
+            <connect src="select-values0" srcPort="0" tgt="filter0" tgtPort="0"/>
+          </connections>
+          <in-points>
+            <step id="select-values0" port="0"/>
+          </in-points>
+          <out-points>
+            <step id="filter0" port="0"/><step id="filter0" port="1"/>
+          </out-points>
+        </subflow>)
+      val flow2 = FrameSubFlow.fromXml(flow.toXml).asInstanceOf[FrameSubSplitter]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      grid --> flow2
+      assertSchema(string("name"), flow2, 0)
+      assertOutput(flow2, 0, Row("john"))
+      assertOutput(flow2, 1, Row("jane"), Row("jake"))
+    }
+    "save to/load from json" in {
+      val json = flow.toJson
+      (json \ "steps" asArray).length === 2
+      (json \ "steps").find(x => (x \ "tag" asString) == SelectValues.tag) must beSome
+      (json \ "steps").find(x => (x \ "tag" asString) == Filter.tag) must beSome
+      (json \ "connections") === JArray(List(
+        ("src" -> "select-values0") ~ ("srcPort" -> 0) ~ ("tgt" -> "filter0") ~ ("tgtPort" -> 0)))
+      val flow2 = FrameSubFlow.fromJson(flow.toJson).asInstanceOf[FrameSubSplitter]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      grid --> flow2
+      assertSchema(string("name"), flow2, 0)
+      assertOutput(flow2, 0, Row("john"))
+      assertOutput(flow2, 1, Row("jane"), Row("jake"))
+    }
+    "be unserializable" in assertUnserializable(flow)
+  }
+
+  "FrameSubMerger" should {
+    val flow = FrameSubMerger {
+      val select = SelectValues() retain ("name", "age")
+      val sql = SQLQuery("SELECT input0.name, age, weight FROM input0 JOIN input1 ON input0.name=input1.name")
+      select --> sql.in(0)
+      (Seq(select, sql.in(1)), sql)
+    }
+    val grid0 = DataGrid(string("name") ~ int("age")) rows (("john", 25), ("jane", 18), ("jake", 42))
+    val grid1 = DataGrid(string("name") ~ int("weight")) rows (("john", 165), ("jane", 105), ("jake", 180))
+    "yield the output" in {
+      (grid0, grid1) --> flow
+      assertSchema(string("name") ~ int("age") ~ int("weight"), flow, 0)
+      assertOutput(flow, 0, ("john", 25, 165), ("jake", 42, 180), ("jane", 18, 105))
+    }
+    "save to/load from xml" in {
+      flow.toXml must ==/(
+        <subflow>
+          <steps>
+            <sql id="sql0">SELECT input0.name, age, weight FROM input0 JOIN input1 ON input0.name=input1.name</sql>
+            <select-values id="select-values0">
+              <retain><field name="name"/><field name="age"/></retain>
+            </select-values>
+          </steps>
+          <connections>
+            <connect src="select-values0" srcPort="0" tgt="sql0" tgtPort="0"/>
+          </connections>
+          <in-points>
+            <step id="select-values0" port="0"/><step id="sql0" port="1"/>
+          </in-points>
+          <out-points>
+            <step id="sql0" port="0"/>
+          </out-points>
+        </subflow>)
+      val flow2 = FrameSubFlow.fromXml(flow.toXml).asInstanceOf[FrameSubMerger]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      (grid0, grid1) --> flow2
+      assertSchema(string("name") ~ int("age") ~ int("weight"), flow2, 0)
+      assertOutput(flow2, 0, ("john", 25, 165), ("jake", 42, 180), ("jane", 18, 105))
+    }
+    "save to/load from json" in {
+      val json = flow.toJson
+      (json \ "steps" asArray).length === 2
+      (json \ "steps").find(x => (x \ "tag" asString) == SelectValues.tag) must beSome
+      (json \ "steps").find(x => (x \ "tag" asString) == SQLQuery.tag) must beSome
+      (json \ "connections") === JArray(List(
+        ("src" -> "select-values0") ~ ("srcPort" -> 0) ~ ("tgt" -> "sql0") ~ ("tgtPort" -> 0)))
+      val flow2 = FrameSubFlow.fromJson(flow.toJson).asInstanceOf[FrameSubMerger]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      (grid0, grid1) --> flow2
+      assertSchema(string("name") ~ int("age") ~ int("weight"), flow2, 0)
+      assertOutput(flow2, 0, ("john", 25, 165), ("jake", 42, 180), ("jane", 18, 105))
+    }
+    "be unserializable" in assertUnserializable(flow)
+  }
+
+  "FrameSubModule" should {
+    val flow = FrameSubModule {
+      val sql = SQLQuery("SELECT input0.name, age, weight FROM input0 JOIN input1 ON input0.name=input1.name")
+      val filter = Filter("name RLIKE 'jo.*'")
+      sql --> filter
+      (sql.in, filter.out)
+    }
+    val grid0 = DataGrid(string("name") ~ int("age")) rows (("john", 25), ("jane", 18), ("jake", 42))
+    val grid1 = DataGrid(string("name") ~ int("weight")) rows (("john", 165), ("jane", 105), ("jake", 180))
+    "yield the output" in {
+      (grid0, grid1) --> flow
+      assertSchema(string("name") ~ int("age") ~ int("weight"), flow, 0)
+      assertOutput(flow, 0, ("john", 25, 165))
+      assertOutput(flow, 1, ("jake", 42, 180), ("jane", 18, 105))
+    }
+    "save to/load from xml" in {
+      flow.toXml must ==/(
+        <subflow>
+          <steps>
+            <filter id="filter0"><condition>name RLIKE 'jo.*'</condition></filter>
+            <sql id="sql0">SELECT input0.name, age, weight FROM input0 JOIN input1 ON input0.name=input1.name</sql>
+          </steps>
+          <connections>
+            <connect src="sql0" srcPort="0" tgt="filter0" tgtPort="0"/>
+          </connections>
+          <in-points>
+            <step id="sql0" port="0"/><step id="sql0" port="1"/>
+            <step id="sql0" port="2"/><step id="sql0" port="3"/>
+            <step id="sql0" port="4"/><step id="sql0" port="5"/>
+            <step id="sql0" port="6"/><step id="sql0" port="7"/>
+            <step id="sql0" port="8"/><step id="sql0" port="9"/>
+          </in-points>
+          <out-points>
+            <step id="filter0" port="0"/><step id="filter0" port="1"/>
+          </out-points>
+        </subflow>)
+      val flow2 = FrameSubFlow.fromXml(flow.toXml).asInstanceOf[FrameSubModule]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      (grid0, grid1) --> flow2
+      assertSchema(string("name") ~ int("age") ~ int("weight"), flow2, 0)
+      assertOutput(flow2, 0, ("john", 25, 165))
+      assertOutput(flow2, 1, ("jake", 42, 180), ("jane", 18, 105))
+    }
+    "save to/load from json" in {
+      val json = flow.toJson
+      (json \ "steps" asArray).length === 2
+      (json \ "steps").find(x => (x \ "tag" asString) == Filter.tag) must beSome
+      (json \ "steps").find(x => (x \ "tag" asString) == SQLQuery.tag) must beSome
+      (json \ "connections") === JArray(List(
+        ("src" -> "sql0") ~ ("srcPort" -> 0) ~ ("tgt" -> "filter0") ~ ("tgtPort" -> 0)))
+      val flow2 = FrameSubFlow.fromJson(flow.toJson).asInstanceOf[FrameSubModule]
+      flow.steps === flow2.steps
+      flow.connections === flow2.connections
+      (grid0, grid1) --> flow2
+      assertSchema(string("name") ~ int("age") ~ int("weight"), flow2, 0)
+      assertOutput(flow2, 0, ("john", 25, 165))
+      assertOutput(flow2, 1, ("jake", 42, 180), ("jane", 18, 105))
+    }
+    "be unserializable" in assertUnserializable(flow)
   }
 }

@@ -2,6 +2,7 @@ package com.ignition
 
 import org.apache.spark.sql.types.Decimal
 import com.eaio.uuid.UUID
+import com.ignition.frame.DataFlow
 
 /**
  * Helper functions for Ignition samples.
@@ -35,4 +36,16 @@ package object samples {
    * Constructs a java.math.BigDecimal instance.
    */
   protected[samples] def javaBD(str: String) = Decimal(str).toJavaBigDecimal
+
+  /**
+   * Prints out the XML representation of the data flow.
+   */
+  protected[samples] def printXml(flow: DataFlow) =
+    println(new scala.xml.PrettyPrinter(80, 2).format(flow.toXml))
+
+  /**
+   * Prints out the JSON representation of the data flow.
+   */
+  protected[samples] def printJson(flow: DataFlow) =
+    println(org.json4s.jackson.JsonMethods.pretty(flow.toJson))
 }

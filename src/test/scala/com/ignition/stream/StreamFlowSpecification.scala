@@ -1,16 +1,14 @@
 package com.ignition.stream
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.future
+import scala.util.control.NonFatal
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
-import org.apache.spark.streaming.ClockWrapper
-import com.ignition.{ ExecutionException, FlowSpecification }
-import com.ignition.DefaultSparkRuntime
-import org.apache.spark.streaming.scheduler.StreamingListener
-import org.apache.spark.streaming.scheduler.StreamingListenerBatchCompleted
-import scala.concurrent._
-import scala.util.control.NonFatal
-import org.apache.spark.streaming.scheduler.StreamingListenerReceiverError
+import org.apache.spark.streaming.scheduler._
+
+import com.ignition.{ DefaultSparkRuntime, ExecutionException, FlowSpecification }
 
 /**
  * Base trait for stream flow spec2 tests, includes some helper functions.
@@ -37,7 +35,7 @@ trait StreamFlowSpecification extends FlowSpecification {
     implicit val rt = new DefaultSparkRuntime(ctx, ssc)
 
     var buffer = ListBuffer.empty[Set[Row]]
-    step.output(index).foreachRDD(rdd => buffer += rdd.collect.toSet)
+    step.output(index, false).foreachRDD(rdd => buffer += rdd.collect.toSet)
 
     val listen = new StreamingListener {
       private var batchIndex = 0
@@ -73,6 +71,5 @@ trait StreamFlowSpecification extends FlowSpecification {
   /**
    * Checks if the data frame is identical to the supplied row set.
    */
-  protected def assertRDD(rdd: RDD[Row], rows: Row*) =
-    rdd.collect.toSet === rows.toSet
+  protected def assertRDD(rdd: RDD[Row], rows: Row*) = rdd.collect.toSet === rows.toSet
 }

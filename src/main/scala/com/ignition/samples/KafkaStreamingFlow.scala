@@ -1,7 +1,7 @@
 package com.ignition.samples
 
-import com.ignition.{ RichProduct, SparkPlug }
-import com.ignition.frame.{ DataGrid, DebugOutput, JoinType, SQLQuery, SubFlow }
+import com.ignition.{ CSource2, SparkPlug }
+import com.ignition.frame.{ DataGrid, DebugOutput, FrameSubTransformer, JoinType, SQLQuery }
 import com.ignition.stream.{ Join, KafkaInput, QueueInput, StreamFlow, foreach }
 import com.ignition.types.{ fieldToRichStruct, int, string }
 
@@ -26,10 +26,11 @@ object KafkaStreamingFlow extends App {
       addRows(("john", 30), ("jane", 35), ("jake", 38))
 
     val sql = foreach {
-      SubFlow(1, 1) { (input, output) =>
+      FrameSubTransformer {
         val grid = DataGrid(string("name") ~ int("age")) rows (("jane", 19), ("john", 35), ("jake", 54))
         val query = SQLQuery("select input0.name, age, score from input0 join input1 on input0.name=input1.name")
-        (input.out(0), grid) --> query --> output
+        grid --> query.in(1)
+        (query.in(0), query)
       }
     }
 

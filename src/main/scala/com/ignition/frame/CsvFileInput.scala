@@ -31,7 +31,7 @@ case class CsvFileInput(path: String, separator: Option[String] = Some(","),
 
   def schema(schema: StructType): CsvFileInput = copy(schema = Some(schema))
 
-  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val path = injectGlobals(this.path)
     val separator = this.separator
 
@@ -56,10 +56,8 @@ case class CsvFileInput(path: String, separator: Option[String] = Some(","),
     }
 
     val df = ctx.createDataFrame(rdd, derivedSchema)
-    optLimit(df, limit)
+    optLimit(df, preview)
   }
-
-  protected def computeSchema(implicit runtime: SparkRuntime): StructType = computedSchema(0)
 
   def toXml: Elem =
     <node>

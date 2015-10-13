@@ -122,8 +122,8 @@ case class Regression(labelField: String, dataFields: Iterable[String],
   def step(num: Double) = copy(config = config.step(num))
   def intercept(flag: Boolean) = copy(config = config.intercept(flag))
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, limit)
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, preview)
 
     val rdd = toLabeledPoints(df, labelField, dataFields, groupFields)
     rdd.persist
@@ -152,9 +152,6 @@ case class Regression(labelField: String, dataFields: Iterable[String],
 
     ctx.createDataFrame(targetRDD, schema)
   }
-
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
-    compute(input(Some(10)), Some(10)) schema
 
   def toXml: Elem =
     <node>

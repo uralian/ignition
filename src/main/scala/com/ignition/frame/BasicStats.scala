@@ -54,8 +54,8 @@ case class BasicStats(dataFields: Iterable[(String, BasicAggregator)],
 
   def groupBy(fields: String*) = copy(groupFields = fields)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, limit)
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, preview)
 
     val groupColumns = groupFields map df.col toSeq
     val aggrColumns = dataFields map {
@@ -64,9 +64,6 @@ case class BasicStats(dataFields: Iterable[(String, BasicAggregator)],
     val columns = groupColumns ++ aggrColumns
     df.groupBy(groupColumns: _*).agg(columns.head, columns.tail: _*)
   }
-
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
-    computedSchema(0)
 
   def toXml: Elem =
     <node>

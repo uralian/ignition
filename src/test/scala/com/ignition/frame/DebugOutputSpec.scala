@@ -51,10 +51,10 @@ class DebugOutputSpec extends FrameFlowSpecification {
       val lines = baos.toString.split("\\r?\\n")
 
       lines.length === 6
-      lines(1) === "|39abc670-5386-11e5-|johnjohnjohn|111222333|1980-|"
-      lines(2) === "|39abc670-5386-11e5-|janejanejane|444555666|1982-|"
-      lines(3) === "|39abc670-5386-11e5-|jakejakejake|777888999|1974-|"
-      lines(4) === "|39abc670-5386-11e5-|joshjoshjosh|111000000|1995-|"
+      lines(1) === "|39abc670-5386-11e5-|johnjohnjohn|1112|1980-|"
+      lines(2) === "|39abc670-5386-11e5-|janejanejane|4445|1982-|"
+      lines(3) === "|39abc670-5386-11e5-|jakejakejake|7778|1974-|"
+      lines(4) === "|39abc670-5386-11e5-|joshjoshjosh|1110|1995-|"
     }
     "save to/load from xml" in {
       val d1 = DebugOutput() showNames false showTypes false noTitle () unlimitedWidth ()

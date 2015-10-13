@@ -17,20 +17,21 @@ import com.ignition.util.XmlUtils.RichNodeSeq
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Filter(condition: Column) extends FrameSplitter(2) {
+case class Filter(condition: String) extends FrameSplitter(2) {
   import Filter._
 
-  protected def compute(arg: DataFrame, index: Int, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, limit)
-    val column = if (index == 0) condition else !condition
-    df.filter(column)
+  protected def compute(arg: DataFrame, index: Int, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, preview)
+    val expr = if (index == 0) condition else s"not($condition)"
+    df.filter(expr)
   }
 
-  protected def computeSchema(inSchema: StructType, index: Int)(implicit runtime: SparkRuntime): StructType = inSchema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
+    input(true).schema
 
-  def toXml: Elem = <node><condition>{ condition.toString }</condition></node>.copy(label = tag)
+  def toXml: Elem = <node><condition>{ condition }</condition></node>.copy(label = tag)
 
-  def toJson: JValue = ("tag" -> tag) ~ ("condition" -> condition.toString)
+  def toJson: JValue = ("tag" -> tag) ~ ("condition" -> condition)
 }
 
 /**
@@ -39,7 +40,7 @@ case class Filter(condition: Column) extends FrameSplitter(2) {
 object Filter {
   val tag = "filter"
 
-  def apply(condition: String): Filter = apply(new Column(condition))
+  def apply(column: Column): Filter = apply(column.toString)
 
   def fromXml(xml: Node) = apply(xml \ "condition" asString)
 

@@ -188,15 +188,15 @@ case class SelectValues(actions: Iterable[SelectAction]) extends FrameTransforme
   def remove(names: String*) = copy(actions = actions.toSeq :+ Remove(names.toSeq))
   def retype(pairs: (String, String)*) = copy(actions = actions.toSeq :+ Retype(pairs: _*))
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val actions = this.actions
 
-    val df = optLimit(arg, limit)
+    val df = optLimit(arg, preview)
     actions.foldLeft(df)((frame, action) => action(frame))
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
-    actions.foldLeft(inSchema)((schema, action) => action(schema))
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
+    actions.foldLeft(input(true).schema)((schema, action) => action(schema))
 
   def toXml: Elem = <node>{ actions map (_.toXml) }</node>.copy(label = tag)
 

@@ -32,9 +32,9 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
   def maxWidth(width: Int): DebugOutput = copy(maxWidth = Some(width))
   def unlimitedWidth(): DebugOutput = copy(maxWidth = None)
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val schema = arg.schema
-    val data = limit map arg.take getOrElse arg.collect
+    val data = if (preview) arg.take(FrameStep.previewSize) else arg.collect
 
     val widths = calculateWidths(schema, data)
     val delimiter = widths map ("-" * _) mkString ("+", "+", "+")
@@ -61,19 +61,25 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
 
     println(delimiter)
 
+    def formatValue(tuple: (Any, DataType, Int)) = tuple match {
+      case (obj, BinaryType, width) =>
+        s"%${width}s".format(obj.asInstanceOf[Array[Byte]].map("%02X" format _).mkString)
+      case (obj, ByteType, width) => s"%${width}d".format(obj)
+      case (obj, ShortType, width) => s"%${width}d".format(obj)
+      case (obj, IntegerType, width) => s"%${width}d".format(obj)
+      case (obj, LongType, width) => s"%${width}d".format(obj)
+      case (obj, FloatType, width) => s"%${width}f".format(obj)
+      case (obj, DoubleType, width) => s"%${width}f".format(obj)
+      case (obj, _: DecimalType, width) =>
+        s"%${width}s".format(obj.asInstanceOf[java.math.BigDecimal].toPlainString)
+      case (obj, _, width) => s"%${width}s".format(obj.toString.take(width))
+    }
+
     data foreach { row =>
-      val str = (dataTypes zip row.toSeq zip widths) map {
-        case ((BinaryType, obj), width) =>
-          s"%${width}s".format(obj.asInstanceOf[Array[Byte]].map("%02X" format _).mkString)
-        case ((ByteType, obj), width) => s"%${width}d".format(obj)
-        case ((ShortType, obj), width) => s"%${width}d".format(obj)
-        case ((IntegerType, obj), width) => s"%${width}d".format(obj)
-        case ((LongType, obj), width) => s"%${width}d".format(obj)
-        case ((FloatType, obj), width) => s"%${width}f".format(obj)
-        case ((DoubleType, obj), width) => s"%${width}f".format(obj)
-        case ((_: DecimalType, obj), width) =>
-          s"%${width}s".format(obj.asInstanceOf[java.math.BigDecimal].toPlainString)
-        case ((_, obj), width) => s"%${width}s".format(obj.toString.take(width))
+      val str = (row.toSeq zip dataTypes zip widths) map {
+        case ((obj, dt), width) => (obj, dt, width)
+      } map { tuple =>
+        formatValue(tuple).take(tuple._3)
       } mkString ("|", "|", "|")
       println(str)
     }
@@ -82,7 +88,8 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
     arg
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
+    input(true).schema
 
   def toXml: Elem =
     <node names={ names } types={ types } max-width={ maxWidth }>
@@ -130,13 +137,13 @@ object DebugOutput {
 
     apply(names, types, title, maxWidth)
   }
-  
+
   def fromJson(json: JValue) = {
     val names = json \ "names" asBoolean
     val types = json \ "types" asBoolean
     val title = json \ "title" getAsString
     val maxWidth = json \ "maxWidth" getAsInt
- 
+
     apply(names, types, title, maxWidth)
   }
 }

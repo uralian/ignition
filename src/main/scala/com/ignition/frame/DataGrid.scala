@@ -30,13 +30,13 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer {
 
   def rows(tuples: Product*): DataGrid = copy(rows = tuples map Row.fromTuple)
 
-  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
-    val data = limit map rows.take getOrElse rows
+  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+    val data = if (preview) rows.take(FrameStep.previewSize) else rows
     val rdd = ctx.sparkContext.parallelize(data)
     ctx.createDataFrame(rdd, schema)
   }
 
-  protected def computeSchema(implicit runtime: SparkRuntime): StructType = schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = schema
 
   def toXml: Elem =
     <node>
@@ -66,10 +66,10 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer {
       assert(row.size == schema.size, s"Schema column count ${} and row size do not match")
       (0 until schema.size) foreach { index =>
         if (row.isNullAt(index))
-          assert(schema(index).nullable, s"Null value in a non-nullable column: ${schema(index).name}")
+          assert(schema.fields(index).nullable, s"Null value in a non-nullable column: ${schema.fields(index).name}")
         else {
           val valueType = typeForValue(row(index))
-          val schemaType = schema(index).dataType
+          val schemaType = schema.fields(index).dataType
           assert(valueType == schemaType, s"Wrong data type: $valueType, must be $schemaType")
         }
       }

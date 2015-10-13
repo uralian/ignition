@@ -25,9 +25,6 @@ class FilterSpec extends StreamFlowSpecification {
       runAndAssertOutput(f, 0, 3, Set(("john", 1, 65.0)), Set(("jane", 1, 46.0)), Set())
       runAndAssertOutput(f, 1, 3, Set(("john", 3, 78.0)), Set(("jane", 2, 85.0)),
         Set(("jake", 4, 62.0), ("john", 3, 95.0)))
-
-      assertSchema(schema, f, 0)
-      assertSchema(schema, f, 1)
     }
     "evaluate `<`" in {
       val f = Filter($"score" < 50)
@@ -103,7 +100,7 @@ class FilterSpec extends StreamFlowSpecification {
 
   "Filter for complex expressions" should {
     "evaluate `and`" in {
-      val f = Filter($"item" === 1 and $"score" > 50)
+      val f = Filter("item = 1 and score > 50")
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(("john", 1, 65.0)), Set(), Set())
@@ -112,7 +109,7 @@ class FilterSpec extends StreamFlowSpecification {
         Set(("jake", 4, 62.0), ("john", 3, 95.0)))
     }
     "evaluate `or`" in {
-      val f = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
+      val f = Filter("score < 70 or name rlike 'jo.*'")
       queue --> f
 
       runAndAssertOutput(f, 0, 3, Set(("john", 1, 65.0), ("john", 3, 78.0)),
@@ -157,13 +154,13 @@ class FilterSpec extends StreamFlowSpecification {
       import com.ignition.util.XmlUtils._
 
       val f1 = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
-      (f1.toXml \ "condition" asString) === "((score < 70) or (name RLIKE 'jo.*'))"
+      (f1.toXml \ "condition" asString) === "((score < 70) || (name RLIKE 'jo.*'))"
     }
     "save to/load from json" in {
       import org.json4s.JsonDSL._
 
       val f1 = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
-      f1.toJson === ("tag" -> "stream-filter") ~ ("condition" -> "((score < 70) or (name RLIKE 'jo.*'))")
+      f1.toJson === ("tag" -> "stream-filter") ~ ("condition" -> "((score < 70) || (name RLIKE 'jo.*'))")
     }
   }
 }

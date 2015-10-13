@@ -13,7 +13,7 @@ import com.datastax.spark.connector.SomeColumns
 import com.datastax.spark.connector.cql.TableDef
 import com.datastax.spark.connector.toRDDFunctions
 import com.datastax.spark.connector.writer.{ RowWriter, RowWriterFactory }
-import com.ignition.{ SparkRuntime, XmlExport }
+import com.ignition.SparkRuntime
 import com.ignition.util.JsonUtils.RichJValue
 
 /**
@@ -45,26 +45,27 @@ case class DataRowWriter(schema: StructType, tableDef: TableDef) extends RowWrit
  *
  * @author Vlad Orzhekhovskiy
  */
-case class CassandraOutput(keyspace: String, table: String) extends FrameTransformer with XmlExport {
+case class CassandraOutput(keyspace: String, table: String) extends FrameTransformer {
 
   import CassandraOutput._
 
   implicit protected def rowWriterFactory(implicit runtime: SparkRuntime) =
     new RowWriterFactory[Row] {
       def rowWriter(table: TableDef, columnNames: Seq[String]) =
-        new DataRowWriter(outSchema(0), table)
+        new DataRowWriter(buildSchema(0), table)
     }
 
-  protected def compute(arg: DataFrame, limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val keyspace = this.keyspace
     val table = this.table
     val columns = SomeColumns(arg.columns: _*)
-    val df = optLimit(arg, limit)
+    val df = optLimit(arg, preview)
     df.rdd.saveToCassandra(keyspace, table, columns)
     df
   }
 
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType = inSchema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
+    input(true).schema
 
   def toXml: Elem = <node keyspace={ keyspace } table={ table }/>.copy(label = tag)
 

@@ -3,7 +3,6 @@ package com.ignition.stream
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.RichProduct
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])

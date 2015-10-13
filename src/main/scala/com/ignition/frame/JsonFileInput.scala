@@ -23,7 +23,7 @@ case class JsonFileInput(path: String, columns: Iterable[(String, String)]) exte
   def add(tuples: (String, String)*): JsonFileInput = copy(columns = this.columns ++ tuples)
   def %(tuples: (String, String)*): JsonFileInput = add(tuples: _*)
 
-  protected def compute(limit: Option[Int])(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val path = injectGlobals(this.path)
 
     val df = ctx.jsonFile(path)
@@ -32,10 +32,8 @@ case class JsonFileInput(path: String, columns: Iterable[(String, String)]) exte
     }
 
     val result = df.select(cols.toSeq: _*)
-    optLimit(result, limit)
+    optLimit(result, preview)
   }
-
-  protected def computeSchema(implicit runtime: SparkRuntime): StructType = computedSchema(0)
 
   def toXml: Elem =
     <node>

@@ -43,7 +43,6 @@ class DataGridSpec extends FrameFlowSpecification {
         .addRow("john", 25).addRow("jane", 33).addRow("jack", 51)
       assertSchema(string("name") ~ int("age"), grid, 0)
       assertOutput(grid, 0, Seq("john", 25), Seq("jane", 33), Seq("jack", 51))
-      grid.output(Some(1)).collect.toSet === Set(Row("john", 25))
     }
     "save to/load from xml" in {
       val grid = DataGrid.fromXml(xml)

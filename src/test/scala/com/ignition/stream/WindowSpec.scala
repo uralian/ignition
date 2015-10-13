@@ -32,5 +32,17 @@ class WindowSpec extends StreamFlowSpecification {
         Set(("jake", 4, 62.0), ("john", 3, 95.0)),
         Set())
     }
+    "save to/load from xml" in {
+      val w = Window(step * 2, step)
+      w.toXml must ==/(<stream-window duration="200" slide="100" />)
+      Window.fromXml(w.toXml) === w
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+      
+      val w = Window(step * 2, step)
+      w.toJson === ("tag" -> "stream-window") ~ ("duration" -> 200) ~ ("slide" -> 100)
+      Window.fromJson(w.toJson) === w
+    }
   }
 }

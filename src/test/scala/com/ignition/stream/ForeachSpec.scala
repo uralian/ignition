@@ -1,10 +1,11 @@
 package com.ignition.stream
 
+import org.json4s.JsonDSL
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.frame.{ BasicStats, DebugOutput, Formula, Reduce }
-import com.ignition.frame.{ SelectValues, StringToLiteral, SubFlow }
+import com.ignition.frame.{ BasicStats, DebugOutput, Formula, FrameSubSplitter, Reduce, ReduceOp, SelectValues, StringToLiteral }
+import com.ignition.frame.BasicAggregator
 import com.ignition.script.RichString
 import com.ignition.types.{ fieldToRichStruct, int }
 
@@ -40,6 +41,7 @@ class ForeachSpec extends StreamFlowSpecification {
     }
     "work with Reduce" in {
       import com.ignition.frame.ReduceOp._
+      
       val tx = Foreach { Reduce("a" -> SUM, "b" -> MAX) }
       queue --> tx
       runAndAssertOutput(tx, 0, 3, Set((6, 3)), Set((5, 2)), Set((3, 3)))
@@ -64,13 +66,14 @@ class ForeachSpec extends StreamFlowSpecification {
   "Transform for SubFlow" should {
     "work with arbitrary sub-flows" in {
 
-      val flow = SubFlow(1, 2) { (input, output) =>
+      val flow = FrameSubSplitter {
         import com.ignition.frame.ReduceOp._
         val formula = Formula("ab" -> "a * b".mvel)
         val select = SelectValues() rename ("ab" -> "total") retain ("a", "total")
         val reduce = Reduce("a" -> SUM, "total" -> MAX)
         val filter = com.ignition.frame.Filter($"a_SUM" > 4)
-        input --> formula --> select --> reduce --> filter --> (output.in(0), output.in(1))
+        formula --> select --> reduce --> filter
+        (formula, filter.out)
       }
 
       val tx = Foreach(flow)
@@ -78,6 +81,24 @@ class ForeachSpec extends StreamFlowSpecification {
 
       runAndAssertOutput(tx, 0, 3, Set((6, 8)), Set((5, 4)), Set())
       runAndAssertOutput(tx, 1, 3, Set(), Set(), Set((3, 6)))
+    }
+  }
+
+  "Foreach" should {
+    "save to/load from xml" in {
+      val tx = Foreach { com.ignition.frame.Filter("a < 10") }
+      tx.toXml must ==/(
+        <stream-foreach>
+          { com.ignition.frame.Filter("a < 10") toXml }
+        </stream-foreach>)
+      Foreach.fromXml(tx.toXml) === tx
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val tx = Foreach { com.ignition.frame.Filter("a < 10") }
+      tx.toJson === ("tag" -> "stream-foreach") ~ ("flow" -> com.ignition.frame.Filter("a < 10").toJson)
+      Foreach.fromJson(tx.toJson) === tx
     }
   }
 }
