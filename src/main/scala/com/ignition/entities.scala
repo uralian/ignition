@@ -103,11 +103,6 @@ trait Step[T] extends AbstractStep with XmlExport with JsonExport {
    */
   @throws(classOf[ExecutionException])
   final def output(implicit runtime: SparkRuntime): T = output(false)
-
-  /**
-   * Returns the step diagnostic information.
-   */
-  override def toString = s"${getClass.getSimpleName}#${hashCode.toString.takeRight(4)}"
 }
 
 /**
