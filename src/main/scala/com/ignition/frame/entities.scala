@@ -52,7 +52,7 @@ trait FrameStep extends Step[DataFrame] with XmlExport with JsonExport {
   /**
    * Takes one row from the data frame is preview is true.
    */
-  private[frame] def optLimit(df: DataFrame, preview: Boolean): DataFrame =
+  private[ignition] def optLimit(df: DataFrame, preview: Boolean): DataFrame =
     if (preview) df.limit(FrameStep.previewSize) else df
 }
 
