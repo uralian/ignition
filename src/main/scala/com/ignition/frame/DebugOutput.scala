@@ -72,7 +72,7 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
       case (obj, DoubleType, width) => s"%${width}f".format(obj)
       case (obj, _: DecimalType, width) =>
         s"%${width}s".format(obj.asInstanceOf[java.math.BigDecimal].toPlainString)
-      case (_, obj, width) => s"%${width}s".format(obj.toString.take(width))
+      case (obj, _, width) => s"%${width}s".format(obj.toString.take(width))
     }
 
     data foreach { row =>
