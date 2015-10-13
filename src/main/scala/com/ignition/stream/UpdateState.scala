@@ -28,7 +28,4 @@ abstract class UpdateState(func: (Seq[Row], Option[Row]) => Option[Row],
         new GenericRowWithSchema(values.toArray, schema).asInstanceOf[Row]
     }
   }
-
-  protected def computeSchema(inSchema: StructType)(implicit runtime: SparkRuntime): StructType =
-    computedSchema(0)
 }
