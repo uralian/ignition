@@ -1,26 +1,20 @@
 package com.ignition.stream
 
-import com.ignition.{ ExecutionException, SparkRuntime }
+import com.ignition.{ ConnectionSource, SparkRuntime, Step, SubModule, outs }
 
 /**
  * Stream Flow represents a DStream workflow.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class StreamFlow(targets: Iterable[StreamStep]) {
+case class StreamFlow(targets: Iterable[ConnectionSource[DataStream]])
+  extends SubModule[DataStream]((Nil, targets.toSeq)) {
 
   /**
    * Starts a stream flow.
    */
   def start(implicit runtime: SparkRuntime): Unit = {
-    val ports = for {
-      tgt <- targets
-      index <- 0 until tgt.outputCount
-    } yield (tgt, index)
-
-//    ports foreach {
-//      case (tgt, index) => tgt.output(index).foreachRDD(_ => {})
-//    }
+    outPoints foreach (_.value(false).foreachRDD(_ => {}))
 
     runtime.ssc.start
     runtime.ssc.awaitTermination
@@ -31,8 +25,26 @@ case class StreamFlow(targets: Iterable[StreamStep]) {
  * StreamFlow companion object.
  */
 object StreamFlow {
-  def apply(steps: Product): StreamFlow = steps match {
-    case step: StreamStep => new StreamFlow(Seq(step))
-    case _ => new StreamFlow(steps.productIterator.asInstanceOf[Iterator[StreamStep]].toSeq)
+  val tag = "streamflow"
+
+  private type DSS = Step[DataStream]
+
+  def apply(step: DSS): StreamFlow = (allOuts _ andThen apply)(Tuple1(step))
+
+  def apply(tuple: Product2[DSS, DSS]): StreamFlow = (allOuts _ andThen apply)(tuple)
+
+  def apply(tuple: Product3[DSS, DSS, DSS]): StreamFlow = (allOuts _ andThen apply)(tuple)
+
+  def apply(tuple: Product4[DSS, DSS, DSS, DSS]): StreamFlow = (allOuts _ andThen apply)(tuple)
+
+  def apply(tuple: Product5[DSS, DSS, DSS, DSS, DSS]): StreamFlow = (allOuts _ andThen apply)(tuple)
+
+  /**
+   * Collects the outgoing ports, assuming the argument contains only Step[DataStream] instances.
+   * It is safe since it is only called from the internal methods of this class.
+   */
+  private def allOuts(tuple: Product) = tuple.productIterator.toList flatMap { x =>
+    val step = x.asInstanceOf[DSS]
+    (0 until step.outputCount) map outs(step)
   }
 }
