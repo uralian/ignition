@@ -2,6 +2,7 @@ package com.ignition
 
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 
 /**
  * Data types, implicits, aliases for DataFrame-based workflows.
@@ -59,7 +60,12 @@ package object types {
     def getDate(implicit rsh: RowSchemaHelper) = rsh.getDate(row)
     def getTimestamp(implicit rsh: RowSchemaHelper) = rsh.getTimestamp(row)
 
-    def subrow(indices: Int*): Row = Row.fromSeq(indices map row.get)
+    def subrow(indices: Int*): Row = {
+      val data = indices map row.get toArray
+      val schema = StructType(indices map row.schema)
+      new GenericRowWithSchema(data, schema)
+    }
+    
     def subrow(names: String*)(implicit rsh: RowSchemaHelper): Row = {
       val indices = names map rsh.indexMap.apply
       subrow(indices: _*)

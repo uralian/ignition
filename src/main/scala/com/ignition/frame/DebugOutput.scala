@@ -62,6 +62,7 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
     println(delimiter)
 
     def formatValue(tuple: (Any, DataType, Int)) = tuple match {
+      case (null, _, width) => s"%${width}s".format("")
       case (obj, BinaryType, width) =>
         s"%${width}s".format(obj.asInstanceOf[Array[Byte]].map("%02X" format _).mkString)
       case (obj, ByteType, width) => s"%${width}d".format(obj)

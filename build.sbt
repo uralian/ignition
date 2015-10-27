@@ -6,6 +6,23 @@ val SCALA_VERSION = "2.10.4"
 
 val SPARK_VERSION = "1.3.1"
 
+// tasks
+
+val gitHeadCommitSha = taskKey[String]("Determines the current git commit SHA")
+
+gitHeadCommitSha := Process("git rev-parse HEAD").lines.headOption.getOrElse("Unknown")
+
+val makeVersionProperties = taskKey[Seq[File]]("Makes a version.properties file")
+
+makeVersionProperties := {
+	val propFile = new File((resourceManaged in Compile).value, "version.properties")
+	val content = "version=%s" format (gitHeadCommitSha.value)
+	IO.write(propFile, content)
+	Seq(propFile)
+}
+
+resourceGenerators in Compile += makeVersionProperties.taskValue
+
 // settings
 
 name := "ignition"
