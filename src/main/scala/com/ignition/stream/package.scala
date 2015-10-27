@@ -13,12 +13,12 @@ package object stream {
   type DataStream = DStream[Row]
 
   def foreach(tx: Transformer[DataFrame]): Foreach = Foreach(tx)
-  
+
   /**
    * Converts this RDD into a DataFrame using the schema of the first row, then applies the
    * DataFrame transformation function and returns the resulting RDD.
    */
-   def asDF(func: DataFrame => DataFrame)(rdd: RDD[Row])(implicit ctx: SQLContext) = {
+  def asDF(func: DataFrame => DataFrame)(rdd: RDD[Row])(implicit ctx: SQLContext) = {
     if (rdd.isEmpty) rdd
     else {
       val schema = rdd.first.schema
@@ -30,7 +30,11 @@ package object stream {
   /**
    * Transforms this data stream using asDF function for each RDD.
    */
-   def transformAsDF(func: DataFrame => DataFrame)(stream: DataStream)(implicit ctx: SQLContext) = {
+  def transformAsDF(func: DataFrame => DataFrame)(stream: DataStream)(implicit ctx: SQLContext) = {
     stream transform (rdd => asDF(func)(rdd))
-  }    
+  }
+
+  /* state functions types */
+  type MapState = java.util.Map[String, Any]
+  type MapListState = java.lang.Iterable[java.util.Map[String, Any]]
 }
