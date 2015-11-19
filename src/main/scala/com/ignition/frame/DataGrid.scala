@@ -100,7 +100,7 @@ object DataGrid {
     <schema>
       {
         schema.fields map { field =>
-          <field name={ field.name } type={ field.dataType.typeName } nullable={ field.nullable }/>
+          <field name={ field.name } type={ nameForType(field.dataType) } nullable={ field.nullable }/>
         }
       }
     </schema>
@@ -128,7 +128,7 @@ object DataGrid {
   }
 
   def schemaToJson(schema: StructType): JValue = schema.fields.toList map { field =>
-    ("name" -> field.name) ~ ("type" -> field.dataType.typeName) ~ ("nullable" -> field.nullable)
+    ("name" -> field.name) ~ ("type" -> nameForType(field.dataType)) ~ ("nullable" -> field.nullable)
   }
 
   def jsonToSchema(json: JValue) = {

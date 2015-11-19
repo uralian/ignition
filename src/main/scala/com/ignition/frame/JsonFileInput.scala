@@ -26,7 +26,7 @@ case class JsonFileInput(path: String, columns: Iterable[(String, String)]) exte
   protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val path = injectGlobals(this.path)
 
-    val df = ctx.jsonFile(path)
+    val df = ctx.read.json(path)
     val cols = columns map {
       case (name, path) => df.col(path).as(name)
     }

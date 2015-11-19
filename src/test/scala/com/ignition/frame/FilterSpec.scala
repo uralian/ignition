@@ -9,6 +9,7 @@ import com.ignition.util.XmlUtils
 
 @RunWith(classOf[JUnitRunner])
 class FilterSpec extends FrameFlowSpecification {
+  sequential
 
   val schema = string("name") ~ int("item") ~ double("score")
   val grid = DataGrid(schema) rows (
@@ -62,7 +63,7 @@ class FilterSpec extends FrameFlowSpecification {
   }
 
   "Filter for string expressions" should {
-    "evaluate `==`" in {
+    "evaluate `===`" in {
       val f = Filter($"name" === "'john'")
       grid --> f
       assertOutput(f, 0, ("john", 1, 65.0), ("john", 3, 78.0), ("john", 3, 95.0))
@@ -103,7 +104,7 @@ class FilterSpec extends FrameFlowSpecification {
 
   "Filter for date expressions" should {
     "evaluate `===`" in {
-      val f = Filter($"date" === javaDate(1951, 2, 12))
+      val f = Filter($"date" === "cast('1951-2-12' as date)")
       grid2 --> f
       assertOutput(f, 0, (javaDate(1951, 2, 12), javaTime(1951, 2, 12, 9, 15)))
       assertOutput(f, 1, (javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30)),
@@ -111,7 +112,7 @@ class FilterSpec extends FrameFlowSpecification {
         (javaDate(1974, 4, 21), javaTime(1974, 4, 21, 23, 25)))
     }
     "evaluate `!==`" in {
-      val f = Filter($"date" !== javaDate(1951, 2, 12))
+      val f = Filter($"date" !== "cast('1951-2-12' as date)")
       grid2 --> f
       assertOutput(f, 0, (javaDate(1950, 12, 5), javaTime(1950, 12, 5, 12, 30)),
         (javaDate(1944, 7, 2), javaTime(1944, 7, 2, 17, 10)),
@@ -179,8 +180,8 @@ class FilterSpec extends FrameFlowSpecification {
     "save to/load from xml" in {
       import com.ignition.util.XmlUtils._
 
-      val f1 = Filter(($"score" < 70) or ($"name" rlike "jo.*") and ($"date" > javaDate(2013, 4, 2)))
-      (f1.toXml \ "condition" asString) === "(((score < 70) || (name RLIKE jo.*)) && (date > 15797))"
+      val f1 = Filter(($"score" < 70) or ($"name" rlike "jo.*") and ($"date" > "cast('2015-01-02' as date)"))
+      (f1.toXml \ "condition" asString) === "(((score < 70) || name RLIKE jo.*) && (date > cast('2015-01-02' as date)))"
       Filter.fromXml(f1.toXml).condition.toString === f1.condition.toString
 
       val f2 = Filter($"name" IN ("jack", "jane", "jake"))
@@ -190,9 +191,9 @@ class FilterSpec extends FrameFlowSpecification {
     "save to/load from json" in {
       import org.json4s.JsonDSL._
 
-      val f1 = Filter(($"score" < 70) or ($"name" rlike "jo.*") and ($"date" > javaDate(2013, 4, 2)))
+      val f1 = Filter(($"score" < 70) or ($"name" rlike "jo.*") and ($"date" > "cast('2015-01-02' as date)"))
       f1.toJson === ("tag" -> "filter") ~
-        ("condition" -> "(((score < 70) || (name RLIKE jo.*)) && (date > 15797))")
+        ("condition" -> "(((score < 70) || name RLIKE jo.*) && (date > cast('2015-01-02' as date)))")
       Filter.fromJson(f1.toJson).condition.toString === f1.condition.toString
 
       val f2 = Filter($"name" IN ("jack", "jane", "jake"))

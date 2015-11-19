@@ -130,9 +130,9 @@ object SelectAction {
       }
       StructType(fields)
     }
-    def toXml: Elem = <retype>{ dictionary map (n => <field name={ n._1 } type={ n._2.typeName }/>) }</retype>
+    def toXml: Elem = <retype>{ dictionary map (n => <field name={ n._1 } type={ TypeUtils.nameForType(n._2) }/>) }</retype>
     def toJson: JValue = ("action" -> "retype") ~
-      ("fields" -> dictionary.map(t => ("name" -> t._1) ~ ("type" -> t._2.typeName)))
+      ("fields" -> dictionary.map(t => ("name" -> t._1) ~ ("type" -> TypeUtils.nameForType(t._2))))
   }
   object Retype {
     def apply(pairs: (String, String)*): Retype = apply(pairs.map {

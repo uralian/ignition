@@ -154,13 +154,13 @@ class FilterSpec extends StreamFlowSpecification {
       import com.ignition.util.XmlUtils._
 
       val f1 = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
-      (f1.toXml \ "condition" asString) === "((score < 70) || (name RLIKE 'jo.*'))"
+      (f1.toXml \ "condition" asString) === "((score < 70) || name RLIKE 'jo.*')"
     }
     "save to/load from json" in {
       import org.json4s.JsonDSL._
 
       val f1 = Filter(($"score" < 70) or ($"name" rlike "'jo.*'"))
-      f1.toJson === ("tag" -> "stream-filter") ~ ("condition" -> "((score < 70) || (name RLIKE 'jo.*'))")
+      f1.toJson === ("tag" -> "stream-filter") ~ ("condition" -> "((score < 70) || name RLIKE 'jo.*')")
     }
   }
 }

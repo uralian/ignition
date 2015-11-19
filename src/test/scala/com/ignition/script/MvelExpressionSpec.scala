@@ -5,7 +5,6 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import com.ignition.types._
-import com.eaio.uuid.UUID
 import org.apache.spark.sql.types.Decimal
 import com.ignition.TestDataHelper
 
@@ -14,7 +13,7 @@ class MvelExpressionSpec extends Specification with TestDataHelper {
 
   val schema = string("customer_id") ~ string("description") ~ date("date") ~
     decimal("total") ~ int("items") ~ double("weight") ~ boolean("shipped")
-  val row = Row(new UUID().toString, "goods", javaDate(2015, 2, 24),
+  val row = Row(java.util.UUID.randomUUID.toString, "goods", javaDate(2015, 2, 24),
     javaBD("125.99"), 3, 62.15, true)
 
   "mvel numeric expressions" should {

@@ -15,7 +15,7 @@ class JoinSpec extends StreamFlowSpecification {
     addRows(("jake", 4, 25.0), ("john", 3, 30.0))
 
   val schema2 = string("name") ~ int("age") ~ boolean("flag")
-  val queue2 = QueueInput(schema1).
+  val queue2 = QueueInput(schema2).
     addRows(("jake", 20, true), ("john", 15, false)).
     addRows(("jane", 10, true), ("john", 30, true))
 

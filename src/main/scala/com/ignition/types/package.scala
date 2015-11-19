@@ -12,7 +12,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 package object types {
 
   type Binary = Array[Byte]
-  val DecType = DecimalType.Unlimited
+  val DecType = DecimalType.SYSTEM_DEFAULT
 
   /* schema field builders */
 
