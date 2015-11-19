@@ -4,13 +4,13 @@ import scala.xml.{ Elem, Node }
 import org.json4s.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
-
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 import com.ignition.SparkRuntime
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optToOptText }
 import com.ignition.util.JsonUtils._
 import scala.annotation.tailrec
+import com.ignition.types.TypeUtils
 
 /**
  * Prints out data on the standard output.
@@ -42,7 +42,7 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
     val dataTypes = schema map (_.dataType)
 
     val typeLine = (dataTypes zip widths) map {
-      case (dt, width) => s"%${width}s".format(dt.typeName)
+      case (dt, width) => s"%${width}s".format(TypeUtils.nameForType(dt))
     } mkString ("|", "|", "|")
 
     title foreach println

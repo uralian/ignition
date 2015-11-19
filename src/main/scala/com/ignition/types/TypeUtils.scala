@@ -66,6 +66,14 @@ object TypeUtils {
   }
 
   /**
+   * Returns a string name for the type.
+   */
+  def nameForType(dt: DataType): String = dt match {
+    case _ : DecimalType => "decimal"
+    case _ => dt.typeName
+  }
+  
+  /**
    * Resolves a data type from a type name.
    */
   def typeForName(name: String): DataType = Symbol(name) match {

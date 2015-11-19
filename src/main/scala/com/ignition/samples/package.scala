@@ -1,7 +1,6 @@
 package com.ignition
 
 import org.apache.spark.sql.types.Decimal
-import com.eaio.uuid.UUID
 import com.ignition.frame.DataFlow
 
 /**
@@ -14,7 +13,7 @@ package object samples {
   /**
    * Creates a new UUID.
    */
-  protected[samples] def newid = new UUID().toString
+  protected[samples] def newid = java.util.UUID.randomUUID.toString 
 
   /**
    * Constructs a java.sql.Date instance.

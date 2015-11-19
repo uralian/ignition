@@ -1,14 +1,14 @@
 package com.ignition
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.blocking
-import org.cassandraunit.CQLDataLoader
-import org.cassandraunit.dataset.CQLDataSet
-import org.cassandraunit.dataset.cql.ClassPathCQLDataSet
-import org.cassandraunit.utils.EmbeddedCassandraServerHelper
-import com.datastax.driver.core._
-import com.ignition.util.ConfigUtils
-import org.slf4j.LoggerFactory
+//import scala.concurrent.ExecutionContext.Implicits.global
+//import scala.concurrent.blocking
+//import org.cassandraunit.CQLDataLoader
+//import org.cassandraunit.dataset.CQLDataSet
+//import org.cassandraunit.dataset.cql.ClassPathCQLDataSet
+//import org.cassandraunit.utils.EmbeddedCassandraServerHelper
+//import com.datastax.driver.core._
+//import com.ignition.util.ConfigUtils
+//import org.slf4j.LoggerFactory
 
 /**
  * Companion object used to initialize the cassandra cluster and expose on port
@@ -16,25 +16,25 @@ import org.slf4j.LoggerFactory
  */
 object CassandraBaseTestHelper {
   
-  private val log = LoggerFactory.getLogger(getClass)
-
-  private val config = ConfigUtils.getConfig("cassandra.test")
-
-  val embeddedMode = config.getBoolean("embedded")
-
-  val (host, port, thriftPort) = if (embeddedMode) ("localhost", 9142, 9175) else
-    (config.getString("external.host"), config.getInt("external.port"), config.getInt("external.thrift-port"))
-
-  log.info(s"Using ${if (embeddedMode) "Embedded" else "External"} Cassandra at $host:$port")
-
-  val cluster = Cluster.builder()
-    .addContactPoints(host)
-    .withPort(port)
-    .withoutJMXReporting()
-    .withoutMetrics()
-    .build()
-
-  lazy val session = blocking { cluster.connect() }
+//  private val log = LoggerFactory.getLogger(getClass)
+//
+//  private val config = ConfigUtils.getConfig("cassandra.test")
+//
+//  val embeddedMode = config.getBoolean("embedded")
+//
+//  val (host, port, thriftPort) = if (embeddedMode) ("localhost", 9142, 9175) else
+//    (config.getString("external.host"), config.getInt("external.port"), config.getInt("external.thrift-port"))
+//
+//  log.info(s"Using ${if (embeddedMode) "Embedded" else "External"} Cassandra at $host:$port")
+//
+//  val cluster = Cluster.builder()
+//    .addContactPoints(host)
+//    .withPort(port)
+//    .withoutJMXReporting()
+//    .withoutMetrics()
+//    .build()
+//
+//  lazy val session = blocking { cluster.connect() }
 }
 
 /**
@@ -62,30 +62,31 @@ object CassandraBaseTestHelper {
  * @see BeforeAndAfterAll
  */
 trait CassandraSpec extends BeforeAllAfterAll {
-
-  val keySpace: String
-
-  val dataSet: String
-
-  val cluster = CassandraBaseTestHelper.cluster
-  implicit lazy val session: Session = CassandraBaseTestHelper.session
-
-  private[this] def createKeySpace(spaceName: String) = blocking {
-    session.execute(s"CREATE KEYSPACE IF NOT EXISTS $spaceName WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};")
-    session.execute(s"USE $spaceName;")
-  }
-
-  private[this] def loadCQL(dataSet: CQLDataSet) = new CQLDataLoader(session).load(dataSet)
+//
+//  val keySpace: String
+//
+//  val dataSet: String
+//
+//  val cluster = CassandraBaseTestHelper.cluster
+//  implicit lazy val session: Session = CassandraBaseTestHelper.session
+//
+//  private[this] def createKeySpace(spaceName: String) = blocking {
+//    session.execute(s"CREATE KEYSPACE IF NOT EXISTS $spaceName WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};")
+//    session.execute(s"USE $spaceName;")
+//  }
+//
+//  private[this] def loadCQL(dataSet: CQLDataSet) = new CQLDataLoader(session).load(dataSet)
 
   override def beforeAll() {
-    if (CassandraBaseTestHelper.embeddedMode) {
-      EmbeddedCassandraServerHelper.mkdirs()
-      EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra.yaml")
-    }
-    loadCQL(new ClassPathCQLDataSet(dataSet, true, true, keySpace))
+//    if (CassandraBaseTestHelper.embeddedMode) {
+//      EmbeddedCassandraServerHelper.mkdirs()
+//      EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra.yaml")
+//    }
+//    loadCQL(new ClassPathCQLDataSet(dataSet, true, true, keySpace))
   }
 
-  override def afterAll() = blocking {
-    session.execute(s"DROP KEYSPACE $keySpace;")
-  }
+  override def afterAll() = {}
+//  override def afterAll() = blocking {
+//    session.execute(s"DROP KEYSPACE $keySpace;")
+//  }
 }

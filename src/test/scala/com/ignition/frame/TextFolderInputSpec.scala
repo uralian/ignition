@@ -5,7 +5,6 @@ import java.io.{ File, PrintWriter }
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
-import com.eaio.uuid.UUID
 import com.ignition.BeforeAllAfterAll
 import com.ignition.types.{ fieldToRichStruct, string }
 
@@ -17,7 +16,7 @@ class TextFolderInputSpec extends FrameFlowSpecification with BeforeAllAfterAll 
     val tempDir = tmp.getParentFile
     tmp.delete
 
-    new File(tempDir, new UUID().toString)
+    new File(tempDir, java.util.UUID.randomUUID.toString)
   }
 
   override def beforeAll = {
@@ -57,7 +56,7 @@ class TextFolderInputSpec extends FrameFlowSpecification with BeforeAllAfterAll 
   private def createTestFiles(dir: File)(count: Int) = 1 to count map (_ => createTestFile(dir))
 
   private def createTestFile(dir: File) = {
-    val file = new File(dir, new UUID().toString)
+    val file = new File(dir, java.util.UUID.randomUUID.toString)
     val pw = new PrintWriter(file)
     pw.print(file.getName)
     pw.close

@@ -17,13 +17,13 @@ class SQLQuerySpec extends FrameFlowSpecification {
   val customerGrid = DataGrid(customerSchema)
     .addRow("john", true, 25.36)
     .addRow("jack", false, 74.15)
-    .addRow("jane", true, 19.99)
+    .addRow("jane", true, 19.25)
 
   val orderGrid = DataGrid(orderSchema)
     .addRow(javaDate(2010, 1, 3), Decimal(120.55), "john")
     .addRow(javaDate(2010, 3, 10), Decimal(42.85), "jack")
     .addRow(javaDate(2010, 2, 9), Decimal(44.17), "john")
-    .addRow(javaDate(2010, 5, 10), Decimal(66.99), "jane")
+    .addRow(javaDate(2010, 5, 10), Decimal(66.0), "jane")
     .addRow(javaDate(2010, 1, 3), Decimal(55.08), "john")
 
   "SQLQuery" should {
@@ -34,7 +34,7 @@ class SQLQuerySpec extends FrameFlowSpecification {
         Seq(javaDate(2010, 1, 3), javaBD(175.63)),
         Seq(javaDate(2010, 2, 9), javaBD(44.17)),
         Seq(javaDate(2010, 3, 10), javaBD(42.85)),
-        Seq(javaDate(2010, 5, 10), javaBD(66.99)))
+        Seq(javaDate(2010, 5, 10), javaBD(66.0)))
     }
     "yield result from two joined sources" in {
       val query = SQLQuery("""
@@ -44,13 +44,13 @@ class SQLQuerySpec extends FrameFlowSpecification {
           ON o.name = c.name
           ORDER BY c.name, total""")
       (customerGrid, orderGrid) --> query
-      assertOutput(query, 0,
-        Seq(javaDate(2010, 3, 10), javaBD(42.85), "jack", 74.15, javaBD("117.00")),
-        Seq(javaDate(2010, 1, 3), javaBD(120.55), "john", 25.36, javaBD(145.91)),
-        Seq(javaDate(2010, 2, 9), javaBD(44.17), "john", 25.36, javaBD(69.53)),
-        Seq(javaDate(2010, 1, 3), javaBD(55.08), "john", 25.36, javaBD(80.44)),
-        Seq(javaDate(2010, 5, 10), javaBD(66.99), "jane", 19.99, javaBD(86.98)))
-      assertSchema(orderSchema ~ double("cost") ~ decimal("total"), query)
+      val df = query.output(0, false)
+      df.count === 5
+      df.collect.toSet.filter(_.getDate(0) == javaDate(2010, 1, 3)) ===
+        Set(
+          anySeqToRow(Seq(javaDate(2010, 1, 3), javaBD(120.55), "john", 25.36, 145.91)),
+          anySeqToRow(Seq(javaDate(2010, 1, 3), javaBD(55.08), "john", 25.36, 80.44)))
+      assertSchema(orderSchema ~ double("cost") ~ double("total"), query)
     }
     "fail on disconnected inputs" in {
       val query = SQLQuery("SELECT * FROM input0")

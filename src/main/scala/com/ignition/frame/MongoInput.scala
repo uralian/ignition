@@ -95,7 +95,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
             {
               filter map {
                 case (name, value) =>
-                  <field name={ name } type={ typeForValue(value).typeName }>{ valueToXml(value) }</field>
+                  <field name={ name } type={ nameForType(typeForValue(value)) }>{ valueToXml(value) }</field>
               }
             }
           </filter>
@@ -116,7 +116,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
 
   def toJson: JValue = {
     val filterJson = if (filter.isEmpty) None else Some(filter.map {
-      case (name, value) => ("name" -> name) ~ ("type" -> typeForValue(value).typeName) ~ ("value" -> valueToJson(value))
+      case (name, value) => ("name" -> name) ~ ("type" -> nameForType(typeForValue(value))) ~ ("value" -> valueToJson(value))
     })
     val sortJson = if (sort.isEmpty) None else Some(sort.map {
       case SortOrder(name, asc) => JObject("name" -> name, "direction" -> asc ? ("asc", "desc"))

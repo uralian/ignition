@@ -1,13 +1,11 @@
 package com.ignition.frame
 
 import scala.xml.{ Elem, Node }
-
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ jobject2assoc, pair2Assoc, pair2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
-
 import com.datastax.driver.core.{ BoundStatement, PreparedStatement, ProtocolVersion }
 import com.datastax.spark.connector.SomeColumns
 import com.datastax.spark.connector.cql.TableDef
@@ -15,6 +13,7 @@ import com.datastax.spark.connector.toRDDFunctions
 import com.datastax.spark.connector.writer.{ RowWriter, RowWriterFactory }
 import com.ignition.SparkRuntime
 import com.ignition.util.JsonUtils.RichJValue
+import com.datastax.spark.connector.ColumnRef
 
 /**
  * Cassandra row writer for DataFrame objects.
@@ -26,18 +25,16 @@ case class DataRowWriter(schema: StructType, tableDef: TableDef) extends RowWrit
     column.columnType.converterToCassandra
   }
 
-  private val estimatedSize = schema map { _.dataType.defaultSize } sum
+  def columnNames: Seq[String] = schema.fieldNames
 
-  def bind(row: Row, stmt: PreparedStatement, protocolVersion: ProtocolVersion): BoundStatement = {
-    val args = row.toSeq zip converters map {
+  def readColumnValues(data: Row, buffer: Array[Any]) = {
+    val args = data.toSeq zip converters map {
       case (value, cnv) => cnv.convert(value)
     }
-    stmt.bind(args: _*)
+    args.zipWithIndex foreach {
+      case (arg, index) => buffer(index) = arg
+    }
   }
-
-  def estimateSizeInBytes(row: Row): Int = estimatedSize
-
-  def columnNames: Seq[String] = schema.fieldNames
 }
 
 /**
@@ -51,14 +48,14 @@ case class CassandraOutput(keyspace: String, table: String) extends FrameTransfo
 
   implicit protected def rowWriterFactory(implicit runtime: SparkRuntime) =
     new RowWriterFactory[Row] {
-      def rowWriter(table: TableDef, columnNames: Seq[String]) =
+      def rowWriter(table: TableDef, selectedColumns: IndexedSeq[ColumnRef]) =
         new DataRowWriter(buildSchema(0), table)
     }
 
   protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val keyspace = this.keyspace
     val table = this.table
-    val columns = SomeColumns(arg.columns: _*)
+    val columns = SomeColumns(arg.columns map (s => s: ColumnRef): _*)
     val df = optLimit(arg, preview)
     df.rdd.saveToCassandra(keyspace, table, columns)
     df

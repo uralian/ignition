@@ -1,14 +1,12 @@
 package com.ignition.frame
 
 import scala.xml.{ Elem, Node, NodeSeq }
-
 import org.apache.spark.sql.{ Column, DataFrame}
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ jobject2assoc, pair2Assoc, seq2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
-
 import com.ignition.SparkRuntime
 import com.ignition.types.TypeUtils._
 import com.ignition.util.JsonUtils.RichJValue
@@ -54,7 +52,7 @@ case class AddFields(fields: Iterable[(String, Any)]) extends FrameTransformer {
         fields map {
           case (name, VarLiteral(varName)) => xmlField(name, "var", varName)
           case (name, EnvLiteral(envName)) => xmlField(name, "env", envName)
-          case (name, x @ _) => xmlField(name, typeForValue(x).typeName, valueToXml(x))
+          case (name, x @ _) => xmlField(name, nameForType(typeForValue(x)), valueToXml(x))
         }
       }
     </node>.copy(label = tag)
@@ -67,7 +65,7 @@ case class AddFields(fields: Iterable[(String, Any)]) extends FrameTransformer {
     ("tag" -> tag) ~ ("fields" -> fields.map {
       case (name, VarLiteral(varName)) => jsonValue(name, "var", varName)
       case (name, EnvLiteral(envName)) => jsonValue(name, "env", envName)
-      case (name, x @ _) => jsonValue(name, typeForValue(x).typeName, valueToJson(x))
+      case (name, x @ _) => jsonValue(name, nameForType(typeForValue(x)), valueToJson(x))
     })
   }
 }

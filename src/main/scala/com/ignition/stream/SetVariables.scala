@@ -34,7 +34,7 @@ case class SetVariables(vars: Map[String, Any]) extends StreamTransformer {
       {
         vars map {
           case (name, value) =>
-            val dataType = Option(value) map (typeForValue(_).typeName)
+            val dataType = Option(value) map (x => nameForType(typeForValue(x)))
             <var name={ name } type={ dataType }>{ valueToXml(value) }</var>
         }
       }
@@ -42,7 +42,7 @@ case class SetVariables(vars: Map[String, Any]) extends StreamTransformer {
 
   def toJson: JValue = ("tag" -> tag) ~ ("vars" -> vars.map {
     case (name, value) =>
-      val dataType = Option(value) map (typeForValue(_).typeName)
+      val dataType = Option(value) map (x => nameForType(typeForValue(x)))
       ("name" -> name) ~ ("type" -> dataType) ~ ("value" -> valueToJson(value))
   })
 }

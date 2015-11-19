@@ -2,13 +2,11 @@ package com.ignition.frame
 
 import scala.xml.{ Elem, Node }
 import scala.xml.NodeSeq.seqToNodeSeq
-
 import org.apache.spark.sql.{ DataFrame, Row, types => sql }
 import org.apache.spark.sql.types.{ StructField, StructType }
 import org.json4s.{ JArray, JField, JObject, JString, JValue }
 import org.json4s.JsonDSL.{ jobject2assoc, option2jvalue, pair2Assoc, pair2jvalue, seq2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
-
 import com.datastax.spark.connector.CassandraRow
 import com.datastax.spark.connector.rdd.CassandraRDD
 import com.datastax.spark.connector.toSparkContextFunctions
@@ -17,6 +15,8 @@ import com.ignition.SparkRuntime
 import com.ignition.types.TypeUtils._
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
+import com.datastax.spark.connector.ColumnRef
+import com.datastax.spark.connector.rdd.CassandraTableScanRDD
 
 /**
  * CQL WHERE clause.
@@ -75,29 +75,29 @@ case class CassandraInput(keyspace: String, table: String, columns: Iterable[Str
 
   protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val tableRDD = ctx.sparkContext.cassandraTable[CassandraRow](keyspace, table)
-    val selectRDD = if (columns.isEmpty) tableRDD else tableRDD.select(columns.toSeq: _*)
+    val selectRDD = if (columns.isEmpty) tableRDD else tableRDD.select(columns.toSeq.map(s => s: ColumnRef): _*)
+    val limitRDD = if (preview) selectRDD.limit(FrameStep.previewSize) else selectRDD
     val schema = createSchema(selectRDD)
-    val rows = where map (w => selectRDD.where(w.cql, w.values: _*)) getOrElse selectRDD
-    val limitedRows = if (preview) ctx.sparkContext.parallelize(rows.take(FrameStep.previewSize)) else rows
+    val rows = where map (w => limitRDD.where(w.cql, w.values: _*)) getOrElse limitRDD
 
     val dataTypes = schema.fields map (_.dataType)
-    val rdd = limitedRows map { cr =>
+    val rdd = rows map { cr =>
       @inline def convert[T](x: Any)(implicit tc: TypeConverter[T]) = tc.convert(x)
       val data = dataTypes zip cr.iterator.toSeq map {
-        case (_, null) => null
-        case (sql.BinaryType, x) => convert[Array[Byte]](x)
-        case (sql.BooleanType, x) => convert[Boolean](x)
-        case (sql.StringType, x) => convert[String](x)
-        case (sql.ByteType, x) => convert[Byte](x)
-        case (sql.ShortType, x) => convert[Short](x)
-        case (sql.IntegerType, x) => convert[Int](x)
-        case (sql.LongType, x) => convert[Long](x)
-        case (sql.FloatType, x) => convert[Float](x)
-        case (sql.DoubleType, x) => convert[Double](x)
+        case (_, null)               => null
+        case (sql.BinaryType, x)     => convert[Array[Byte]](x)
+        case (sql.BooleanType, x)    => convert[Boolean](x)
+        case (sql.StringType, x)     => convert[String](x)
+        case (sql.ByteType, x)       => convert[Byte](x)
+        case (sql.ShortType, x)      => convert[Short](x)
+        case (sql.IntegerType, x)    => convert[Int](x)
+        case (sql.LongType, x)       => convert[Long](x)
+        case (sql.FloatType, x)      => convert[Float](x)
+        case (sql.DoubleType, x)     => convert[Double](x)
         case (_: sql.DecimalType, x) => convert[java.math.BigDecimal](x)
-        case (sql.DateType, x) => new java.sql.Date(convert[java.util.Date](x).getTime)
-        case (sql.TimestampType, x) => new java.sql.Timestamp(convert[java.util.Date](x).getTime)
-        case (t @ _, _) => throw new IllegalArgumentException(s"Invalid data type: $t")
+        case (sql.DateType, x)       => new java.sql.Date(convert[java.util.Date](x).getTime)
+        case (sql.TimestampType, x)  => new java.sql.Timestamp(convert[java.util.Date](x).getTime)
+        case (t @ _, _)              => throw new IllegalArgumentException(s"Invalid data type: $t")
       }
       Row.fromSeq(data)
     }
@@ -122,7 +122,7 @@ case class CassandraInput(keyspace: String, table: String, columns: Iterable[Str
       ("columns" -> cols) ~ ("where" -> where.map(_.toJson))
   }
 
-  private def createSchema(rdd: CassandraRDD[CassandraRow]) = {
+  private def createSchema(rdd: CassandraTableScanRDD[CassandraRow]) = {
     val tableDef = rdd.tableDef
     val fields = rdd.selectedColumnNames map (tableDef.columnByName) map { cd =>
       val dataType = columnTypeToSqlType(cd.columnType)
@@ -167,7 +167,7 @@ object CassandraInput {
     case FloatType => sql.FloatType
     case DoubleType => sql.DoubleType
     case BooleanType => sql.BooleanType
-    case VarIntType | DecimalType => sql.DecimalType.Unlimited
+    case VarIntType | DecimalType => sql.DecimalType.SYSTEM_DEFAULT
     case TimestampType => sql.TimestampType
     case BlobType => sql.BinaryType
   }

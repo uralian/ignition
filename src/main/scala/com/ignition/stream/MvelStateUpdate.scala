@@ -4,10 +4,11 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 import scala.xml.{ Elem, Node, PCData }
 
-import org.apache.spark.sql.catalyst.expressions.{ GenericRowWithSchema, Row }
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
-import org.json4s.JsonDSL.{ jobject2assoc, pair2Assoc, pair2jvalue, seq2jvalue, string2jvalue }
+import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 import org.mvel2.{ MVEL, ParserContext }
 import org.mvel2.integration.impl.MapVariableResolverFactory
