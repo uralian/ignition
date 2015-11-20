@@ -1,14 +1,13 @@
-package com.ignition
+package com.ignition.frame
 
 import scala.reflect.ClassTag
-
 import org.apache.spark.{ Accumulator, AccumulatorParam, SparkContext }
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.streaming.StreamingContext
 
 /**
- * Encapsulates the spark context, streaming context and SQL context and provides helper
+ * Encapsulates the spark context and SQL context and provides helper
  * functions to manage Spark runtime environment.
  *
  * @author Vlad Orzhekhovskiy
@@ -16,7 +15,6 @@ import org.apache.spark.streaming.StreamingContext
 trait SparkRuntime extends Serializable {
   def sc: SparkContext
   def ctx: SQLContext
-  def ssc: StreamingContext
 
   /**
    * Set once, read-only variables.
@@ -78,7 +76,7 @@ trait SparkRuntime extends Serializable {
  *
  * @author Vlad Orzhekhovskiy
  */
-class DefaultSparkRuntime(@transient val ctx: SQLContext, @transient val ssc: StreamingContext)
+class DefaultSparkRuntime(@transient val ctx: SQLContext)
   extends SparkRuntime {
 
   @transient val sc = ctx.sparkContext

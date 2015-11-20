@@ -10,7 +10,6 @@ import org.json4s.JValue
 import org.json4s.JsonDSL.{ jobject2assoc, option2jvalue, pair2Assoc, pair2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.types.{ fieldToRichStruct, string }
 import com.ignition.types.TypeUtils.valueOf
 import com.ignition.util.JsonUtils.RichJValue

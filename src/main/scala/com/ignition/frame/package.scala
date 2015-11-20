@@ -1,10 +1,7 @@
 package com.ignition
 
 import scala.collection.JavaConverters.propertiesAsScalaMapConverter
-
 import org.apache.spark.sql.{ ColumnName, Row }
-
-import com.ignition.frame.{ EnvLiteral, VarLiteral }
 
 /**
  * Data types, implicits, aliases for DataFrame-based workflows.

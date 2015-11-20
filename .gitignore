@@ -23,3 +23,8 @@ project/plugins/project/
 .cache
 .settings/
 /bin
+
+# 3rd parties
+.key
+nodes.json
+nodes.json.bak

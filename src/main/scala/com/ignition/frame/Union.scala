@@ -7,8 +7,6 @@ import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2jvalue, string2jvalue }
 
-import com.ignition.SparkRuntime
-
 /**
  * Merges multiple DataFrames. All of them must have identical schema.
  *

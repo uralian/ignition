@@ -113,7 +113,7 @@ val flow = DataFlow {
 
   // Ignition uses a lazy evaluation model, i.e. only those steps that contribute
   // to the final result will be evaluated. The last line of the DataFlow definition
-  // needs to contain a list of terminal nodes that need to be evaluated.
+  // must contain a list of terminal nodes that need to be evaluated.
   (debugA, debugB)
 }
 

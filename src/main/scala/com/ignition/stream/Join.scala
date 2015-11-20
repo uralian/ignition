@@ -2,9 +2,7 @@ package com.ignition.stream
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Column, Row }
-import org.apache.spark.sql.types.StructType
 
-import com.ignition.SparkRuntime
 import com.ignition.frame.JoinType.{ INNER, JoinType }
 
 /**
@@ -18,7 +16,7 @@ case class Join(condition: Option[String], joinType: JoinType) extends StreamMer
 
   def joinType(jt: JoinType) = copy(joinType = jt)
 
-  protected def compute(args: IndexedSeq[DataStream], preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(args: IndexedSeq[DataStream], preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
     val stream1 = args(0)
     val stream2 = args(1)
 

@@ -11,7 +11,6 @@ import com.datastax.spark.connector.SomeColumns
 import com.datastax.spark.connector.cql.TableDef
 import com.datastax.spark.connector.toRDDFunctions
 import com.datastax.spark.connector.writer.{ RowWriter, RowWriterFactory }
-import com.ignition.SparkRuntime
 import com.ignition.util.JsonUtils.RichJValue
 import com.datastax.spark.connector.ColumnRef
 

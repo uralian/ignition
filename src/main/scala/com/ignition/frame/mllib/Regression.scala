@@ -9,8 +9,7 @@ import org.apache.spark.rdd.RDD.{ doubleRDDToDoubleRDDFunctions, rddToPairRDDFun
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 
-import com.ignition.SparkRuntime
-import com.ignition.frame.FrameTransformer
+import com.ignition.frame.{ SparkRuntime, FrameTransformer }
 import com.ignition.types.double
 import com.ignition.util.ConfigUtils.getConfig
 
@@ -48,8 +47,8 @@ import RegressionMethod._
  * Regression configuration.
  */
 case class RegressionConfig(
-  regressionMethod: RegressionMethod[_ <: GeneralizedLinearModel] = LINEAR,
-  iterationCount: Int = 100, stepSize: Double = 1.0, allowIntercept: Boolean = false) {
+    regressionMethod: RegressionMethod[_ <: GeneralizedLinearModel] = LINEAR,
+    iterationCount: Int = 100, stepSize: Double = 1.0, allowIntercept: Boolean = false) {
 
   def method(method: RegressionMethod[_ <: GeneralizedLinearModel]) =
     copy(regressionMethod = method)
@@ -109,7 +108,7 @@ object RegressionConfig {
  */
 case class Regression(labelField: String, dataFields: Iterable[String],
                       groupFields: Iterable[String] = Nil, config: RegressionConfig = RegressionConfig())
-  extends FrameTransformer with MLFunctions {
+    extends FrameTransformer with MLFunctions {
 
   import Regression._
 

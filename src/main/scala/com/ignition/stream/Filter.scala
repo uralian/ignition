@@ -7,7 +7,6 @@ import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2Assoc, string2jvalue }
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
 
@@ -19,7 +18,7 @@ import com.ignition.util.XmlUtils.RichNodeSeq
 case class Filter(condition: String) extends StreamSplitter(2) {
   import Filter._
 
-  protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
 
     val expr = if (index == 0) condition else s"not($condition)"
     val filterFunc = (df: DataFrame) => df.filter(expr)

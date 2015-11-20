@@ -7,7 +7,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.sql.{ DataFrame, Row }
 
-import com.ignition.SparkRuntime
 import com.ignition.types.{ RichRow, RichStructType }
 
 /**

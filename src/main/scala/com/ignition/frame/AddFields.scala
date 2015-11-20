@@ -7,7 +7,6 @@ import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ jobject2assoc, pair2Assoc, seq2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
-import com.ignition.SparkRuntime
 import com.ignition.types.TypeUtils._
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.{ RichNodeSeq, stringToText }

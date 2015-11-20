@@ -4,10 +4,9 @@ import scala.util.Random
 
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{ Row, SQLContext }
-import org.apache.spark.streaming.StreamingContext
 
-import com.ignition.{ DefaultSparkRuntime, TestDataHelper }
-import com.ignition.frame.DataGrid
+import com.ignition.{ ExecutionException, TestDataHelper }
+import com.ignition.frame.{ DataGrid, DefaultSparkRuntime }
 import com.ignition.types.{ RichStructType, double, fieldToRichStruct, int, long, string }
 
 object MLLibLoadTest extends App with TestDataHelper {
@@ -15,7 +14,7 @@ object MLLibLoadTest extends App with TestDataHelper {
   val sc = new SparkContext("local[4]", "test")
   implicit val ctx = new SQLContext(sc)
   import ctx.implicits._
-  implicit val runtime = new DefaultSparkRuntime(ctx, null.asInstanceOf[StreamingContext])
+  implicit val runtime = new DefaultSparkRuntime(ctx)
 
   testColumnStats(100, 100000)
   testCorrelation(100, 100000)

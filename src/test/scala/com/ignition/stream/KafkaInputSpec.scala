@@ -1,10 +1,8 @@
 package com.ignition.stream
 
+import org.json4s.JsonDSL
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import com.ignition.types.{ fieldToRichStruct, int, string }
-import com.ignition.DefaultSparkRuntime
-import org.apache.spark.streaming.ClockWrapper
 
 @RunWith(classOf[JUnitRunner])
 class KafkaInputSpec extends StreamFlowSpecification {

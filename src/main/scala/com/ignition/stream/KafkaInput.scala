@@ -9,7 +9,6 @@ import org.json4s.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.types.{ fieldToStructType, string }
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
@@ -38,7 +37,7 @@ case class KafkaInput(brokers: Iterable[String], topics: Iterable[String],
 
   private val kafkaParams = Map("metadata.broker.list" -> brokers.mkString(",")) ++ kafkaProperties
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
     val raw = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics.toSet)
 
     raw map {
@@ -60,7 +59,7 @@ case class KafkaInput(brokers: Iterable[String], topics: Iterable[String],
           <kafkaProperties>
             {
               kafkaProperties map {
-                case (name, value) => <property name={ name }>{ value }</property>
+                case (name, value)=> <property name={ name }>{ value }</property>
               }
             }
           </kafkaProperties>
@@ -97,19 +96,19 @@ object KafkaInput {
 
     apply(brokers, topics, properties, field)
   }
-  
+
   def fromJson(json: JValue) = {
     val field = json \ "field" asString
     val brokers = (json \ "brokers" asArray) map (_.asString)
     val topics = (json \ "topics" asArray) map (_.asString)
-    
+
     val properties = (json \ "kafkaProperties" asArray) map { item =>
       val name = item \ "name" asString
       val value = item \ "value" asString
 
       name -> value
     } toMap
-    
+
     apply(brokers, topics, properties, field)
   }
 }

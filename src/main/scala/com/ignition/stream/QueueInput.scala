@@ -9,10 +9,9 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
-import org.json4s.JsonDSL.{ jobject2assoc, pair2Assoc, pair2jvalue, seq2jvalue, string2jvalue }
+import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.frame.DataGrid
 import com.ignition.types.TypeUtils.{ jsonToValue, valueToJson, valueToXml, xmlToValue }
 import com.ignition.util.JsonUtils.RichJValue
@@ -41,7 +40,7 @@ case class QueueInput(schema: StructType, data: Seq[Seq[Row]] = Nil) extends Str
     copy(data = this.data :+ rs)
   }
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
     val rdds = dataWithSchema map (sc.parallelize(_))
 
     val queue = Queue(rdds: _*)

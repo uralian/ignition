@@ -1,7 +1,5 @@
 package com.ignition.samples
 
-import org.apache.spark.annotation.DeveloperApi
-
 import com.ignition.SparkPlug
 import com.ignition.frame.DebugOutput
 import com.ignition.stream.{ MvelMapListStateUpdate, MvelMapStateUpdate, QueueInput, StreamFlow, foreach }
