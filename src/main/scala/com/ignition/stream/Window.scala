@@ -7,7 +7,6 @@ import org.json4s.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.{ RichNodeSeq, longToText, optToOptText }
 
@@ -22,7 +21,7 @@ case class Window(windowDuration: Duration, slideDuration: Option[Duration] = No
 
   import Window._
 
-  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkRuntime): DataStream =
+  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream =
     arg.window(windowDuration, slideDuration getOrElse arg.slideDuration)
 
   def toXml: Elem =

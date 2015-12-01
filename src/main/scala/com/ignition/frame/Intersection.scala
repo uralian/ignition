@@ -7,8 +7,6 @@ import org.apache.spark.sql.types.StructType
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2jvalue, string2jvalue }
 
-import com.ignition.SparkRuntime
-
 /**
  * Finds the intersection of the two DataRow RDDs. They must have idential
  * metadata.

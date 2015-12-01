@@ -5,9 +5,10 @@ import scala.xml.{ Elem, Node }
 import org.apache.spark.sql.DataFrame
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2Assoc, string2jvalue }
+import org.json4s.jvalue2monadic
 
-import com.ignition.{ ExecutionException, SparkRuntime, Splitter, Transformer }
-import com.ignition.frame.{ FrameProducer, FrameSubSplitter, StepFactory }
+import com.ignition.{ ExecutionException, Merger, Splitter, Transformer }
+import com.ignition.frame.{ FrameProducer, FrameSubSplitter, SparkRuntime, StepFactory }
 
 /**
  * Invokes a DataFrame SubFlow on each stream batch.
@@ -16,10 +17,10 @@ import com.ignition.frame.{ FrameProducer, FrameSubSplitter, StepFactory }
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Foreach(flow: Splitter[DataFrame]) extends StreamSplitter(flow.outputCount) {
+case class Foreach(flow: Splitter[DataFrame, SparkRuntime]) extends StreamSplitter(flow.outputCount) {
   import Foreach._
 
-  protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
     val flow = this.flow
 
     arg transform { rdd =>
@@ -48,9 +49,16 @@ case class Foreach(flow: Splitter[DataFrame]) extends StreamSplitter(flow.output
 object Foreach {
   val tag = "stream-foreach"
 
-  def apply(tx: Transformer[DataFrame]): Foreach = {
+  def apply(tx: Transformer[DataFrame, SparkRuntime]): Foreach = {
     val flow = FrameSubSplitter {
       (tx, Seq(tx))
+    }
+    Foreach(flow)
+  }
+
+  def apply(mg: Merger[DataFrame, SparkRuntime]): Foreach = {
+    val flow = FrameSubSplitter {
+      (mg.in(0), Seq(mg))
     }
     Foreach(flow)
   }
@@ -58,16 +66,18 @@ object Foreach {
   def fromXml(xml: Node) = {
     val flow = StepFactory.fromXml(scala.xml.Utility.trim(xml).child.head)
     flow match {
-      case f: Transformer[DataFrame] => apply(f)
-      case f: Splitter[DataFrame] => apply(f)
+      case f: Transformer[DataFrame, SparkRuntime] => apply(f)
+      case f: Splitter[DataFrame, SparkRuntime]    => apply(f)
+      case f: Merger[DataFrame, SparkRuntime]      => apply(f)
     }
   }
 
   def fromJson(json: JValue) = {
     val flow = StepFactory.fromJson(json \ "flow")
     flow match {
-      case f: Transformer[DataFrame] => apply(f)
-      case f: Splitter[DataFrame] => apply(f)
+      case f: Transformer[DataFrame, SparkRuntime] => apply(f)
+      case f: Splitter[DataFrame, SparkRuntime]    => apply(f)
+      case f: Merger[DataFrame, SparkRuntime]      => apply(f)
     }
   }
 }

@@ -8,7 +8,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.streaming.scheduler._
 
-import com.ignition.{ DefaultSparkRuntime, ExecutionException, FlowSpecification }
+import com.ignition.{ ExecutionException, FlowSpecification }
 
 /**
  * Base trait for stream flow spec2 tests, includes some helper functions.
@@ -32,7 +32,7 @@ trait StreamFlowSpecification extends FlowSpecification {
     val sc = createSparkContext
     val ctx = createSQLContxt(sc)
     val ssc = createStreamingContext(sc)
-    implicit val rt = new DefaultSparkRuntime(ctx, ssc)
+    implicit val rt = new DefaultSparkStreamingRuntime(ctx, ssc)
 
     var buffer = ListBuffer.empty[Set[Row]]
     step.output(index, false).foreachRDD(rdd => buffer += rdd.collect.toSet)

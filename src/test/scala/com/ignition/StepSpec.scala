@@ -4,6 +4,8 @@ import org.junit.runner.RunWith
 import org.specs2.ScalaCheck
 import org.specs2.runner.JUnitRunner
 
+import com.ignition.frame.SparkRuntime
+
 @RunWith(classOf[JUnitRunner])
 class StepSpec extends FlowSpecification with ScalaCheck {
   sequential
@@ -13,27 +15,27 @@ class StepSpec extends FlowSpecification with ScalaCheck {
     def toJson: org.json4s.JValue = ???
   }
 
-  case class StringProducer(x: String) extends Producer[String] with StringStep {
+  case class StringProducer(x: String) extends Producer[String, SparkRuntime] with StringStep {
     protected def compute(preview: Boolean)(implicit runtime: SparkRuntime) = x
   }
 
-  case class StringTransformer() extends Transformer[String] with StringStep {
+  case class StringTransformer() extends Transformer[String, SparkRuntime] with StringStep {
     protected def compute(arg: String, preview: Boolean)(implicit runtime: SparkRuntime) = arg.toUpperCase
   }
 
-  case class StringSplitter() extends Splitter[String] with StringStep {
+  case class StringSplitter() extends Splitter[String, SparkRuntime] with StringStep {
     def outputCount = 2
     protected def compute(arg: String, index: Int, preview: Boolean)(implicit runtime: SparkRuntime) =
       if (index == 0) arg.take(arg.length / 2) else arg.takeRight(arg.length / 2)
   }
 
   case class StringMerger(inputCount: Int, override val allInputsRequired: Boolean)
-    extends Merger[String] with StringStep {
+      extends Merger[String, SparkRuntime] with StringStep {
     protected def compute(args: IndexedSeq[String], preview: Boolean)(implicit runtime: SparkRuntime) =
       args.filter(_ != null).mkString
   }
 
-  case class StringModule(size: Int) extends Module[String] with StringStep {
+  case class StringModule(size: Int) extends Module[String, SparkRuntime] with StringStep {
     def inputCount = size
     def outputCount = size
     protected def compute(args: IndexedSeq[String], index: Int, preview: Boolean)(implicit runtime: SparkRuntime) =

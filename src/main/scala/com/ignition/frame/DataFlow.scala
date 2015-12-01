@@ -1,12 +1,10 @@
 package com.ignition.frame
 
 import scala.xml.{ Attribute, Elem, Node, Null, Text }
-
 import org.apache.spark.sql.DataFrame
 import org.json4s.{ JObject, JValue }
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
-
 import com.ignition._
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.{ RichNodeSeq, intToText }
@@ -16,8 +14,8 @@ import com.ignition.util.XmlUtils.{ RichNodeSeq, intToText }
  *
  * @author Vlad Orzhekhovskiy
  */
-case class DataFlow(targets: Iterable[ConnectionSource[DataFrame]])
-  extends SubModule[DataFrame]((Nil, targets.toSeq)) {
+case class DataFlow(targets: Iterable[ConnectionSource[DataFrame, SparkRuntime]])
+  extends SubModule[DataFrame, SparkRuntime]((Nil, targets.toSeq)) {
 
   import DataFlow._
 
@@ -44,7 +42,7 @@ case class DataFlow(targets: Iterable[ConnectionSource[DataFrame]])
 object DataFlow {
   val tag = "dataflow"
 
-  private type DFS = Step[DataFrame]
+  private type DFS = Step[DataFrame, SparkRuntime]
 
   def apply(step: DFS): DataFlow = (allOuts _ andThen apply)(Tuple1(step))
 

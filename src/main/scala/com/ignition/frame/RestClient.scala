@@ -13,7 +13,6 @@ import org.apache.spark.sql.types.StructType
 
 import com.ignition.types._
 import com.ignition.util.ConfigUtils.{ RichConfig, getConfig }
-import com.ignition.SparkRuntime
 
 import com.stackmob.newman._
 import com.stackmob.newman.dsl.HeaderBuilder

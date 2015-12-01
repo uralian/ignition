@@ -7,7 +7,6 @@ import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.{ Decimal, StructType }
 
-import com.ignition.SparkRuntime
 import com.ignition.types.RichBoolean
 
 import org.json4s._

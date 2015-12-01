@@ -3,11 +3,9 @@ package com.ignition.frame
 import scala.annotation.elidable
 import scala.annotation.elidable.ASSERTION
 import scala.xml.Node
-
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 import org.json4s.{ JValue, jvalue2monadic }
-
 import com.ignition._
 import com.ignition.util.ConfigUtils
 import com.ignition.util.JsonUtils.RichJValue
@@ -16,7 +14,7 @@ import com.ignition.util.XmlUtils.RichNodeSeq
 /**
  * Workflow step that emits DataFrame as the output.
  */
-trait FrameStep extends Step[DataFrame] with XmlExport with JsonExport {
+trait FrameStep extends Step[DataFrame, SparkRuntime] with XmlExport with JsonExport {
 
   /**
    * Returns the implicit SQLContext.
@@ -67,32 +65,32 @@ object FrameStep {
 
 /* step templates */
 
-abstract class FrameProducer extends Producer[DataFrame] with FrameStep
+abstract class FrameProducer extends Producer[DataFrame, SparkRuntime] with FrameStep
 
-abstract class FrameTransformer extends Transformer[DataFrame] with FrameStep
+abstract class FrameTransformer extends Transformer[DataFrame, SparkRuntime] with FrameStep
 
-abstract class FrameSplitter(val outputCount: Int) extends Splitter[DataFrame] with FrameStep
+abstract class FrameSplitter(val outputCount: Int) extends Splitter[DataFrame, SparkRuntime] with FrameStep
 
-abstract class FrameMerger(val inputCount: Int) extends Merger[DataFrame] with FrameStep
+abstract class FrameMerger(val inputCount: Int) extends Merger[DataFrame, SparkRuntime] with FrameStep
 
-abstract class FrameModule(val inputCount: Int, val outputCount: Int) extends Module[DataFrame] with FrameStep
+abstract class FrameModule(val inputCount: Int, val outputCount: Int) extends Module[DataFrame, SparkRuntime] with FrameStep
 
 /* subflow templates */
 
-case class FrameSubProducer(body: ConnectionSource[DataFrame])
-  extends SubProducer[DataFrame](body) with FrameStep
+case class FrameSubProducer(body: ConnectionSource[DataFrame, SparkRuntime])
+  extends SubProducer[DataFrame, SparkRuntime](body) with FrameStep
 
-case class FrameSubTransformer(body: (ConnectionTarget[DataFrame], ConnectionSource[DataFrame]))
-  extends SubTransformer[DataFrame](body) with FrameStep
+case class FrameSubTransformer(body: (ConnectionTarget[DataFrame, SparkRuntime], ConnectionSource[DataFrame, SparkRuntime]))
+  extends SubTransformer[DataFrame, SparkRuntime](body) with FrameStep
 
-case class FrameSubSplitter(body: (ConnectionTarget[DataFrame], Seq[ConnectionSource[DataFrame]]))
-  extends SubSplitter[DataFrame](body) with FrameStep
+case class FrameSubSplitter(body: (ConnectionTarget[DataFrame, SparkRuntime], Seq[ConnectionSource[DataFrame, SparkRuntime]]))
+  extends SubSplitter[DataFrame, SparkRuntime](body) with FrameStep
 
-case class FrameSubMerger(body: (Seq[ConnectionTarget[DataFrame]], ConnectionSource[DataFrame]))
-  extends SubMerger[DataFrame](body) with FrameStep
+case class FrameSubMerger(body: (Seq[ConnectionTarget[DataFrame, SparkRuntime]], ConnectionSource[DataFrame, SparkRuntime]))
+  extends SubMerger[DataFrame, SparkRuntime](body) with FrameStep
 
-case class FrameSubModule(body: (Seq[ConnectionTarget[DataFrame]], Seq[ConnectionSource[DataFrame]]))
-  extends SubModule[DataFrame](body) with FrameStep
+case class FrameSubModule(body: (Seq[ConnectionTarget[DataFrame, SparkRuntime]], Seq[ConnectionSource[DataFrame, SparkRuntime]]))
+  extends SubModule[DataFrame, SparkRuntime](body) with FrameStep
 
 /**
  * Provides SubFlow common methods.
@@ -175,14 +173,14 @@ object FrameSubFlow {
     createSubflow(inPoints, outPoints)
   }
 
-  private def createSubflow(inPoints: Seq[ConnectionTarget[DataFrame]],
-                            outPoints: Seq[ConnectionSource[DataFrame]]): FrameStep with SubFlow[DataFrame] =
+  private def createSubflow(inPoints: Seq[ConnectionTarget[DataFrame, SparkRuntime]],
+                            outPoints: Seq[ConnectionSource[DataFrame, SparkRuntime]]): FrameStep with SubFlow[DataFrame, SparkRuntime] =
     (inPoints.size, outPoints.size) match {
-      case (0, 1) => FrameSubProducer(outPoints(0))
-      case (1, 1) => FrameSubTransformer((inPoints(0), outPoints(0)))
+      case (0, 1)          => FrameSubProducer(outPoints(0))
+      case (1, 1)          => FrameSubTransformer((inPoints(0), outPoints(0)))
       case (1, o) if o > 1 => FrameSubSplitter((inPoints(0), outPoints))
       case (i, 1) if i > 1 => FrameSubMerger((inPoints, outPoints(0)))
-      case _ => FrameSubModule((inPoints, outPoints))
+      case _               => FrameSubModule((inPoints, outPoints))
     }
 }
 

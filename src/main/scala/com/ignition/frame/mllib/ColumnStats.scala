@@ -10,8 +10,7 @@ import org.json4s.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
-import com.ignition.frame.FrameTransformer
+import com.ignition.frame.{ FrameTransformer, SparkRuntime }
 import com.ignition.types.{ RichStructType, double, fieldToRichStruct, long }
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
@@ -22,7 +21,7 @@ import com.ignition.util.XmlUtils.RichNodeSeq
  * @author Vlad Orzhekhovskiy
  */
 case class ColumnStats(dataFields: Iterable[String], groupFields: Iterable[String] = Nil)
-  extends FrameTransformer with MLFunctions {
+    extends FrameTransformer with MLFunctions {
 
   import ColumnStats._
 
@@ -88,7 +87,7 @@ case class ColumnStats(dataFields: Iterable[String], groupFields: Iterable[Strin
  */
 object ColumnStats {
   val tag = "column-stats"
-  
+
   def apply(dataFields: String*): ColumnStats = apply(dataFields, Nil)
 
   def fromXml(xml: Node) = {

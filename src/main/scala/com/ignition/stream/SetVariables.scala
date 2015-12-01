@@ -6,7 +6,6 @@ import org.json4s.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.types.TypeUtils._
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.{ RichNodeSeq, optToOptText, stringToText }
@@ -21,9 +20,9 @@ case class SetVariables(vars: Map[String, Any]) extends StreamTransformer {
 
   override val allInputsRequired: Boolean = false
 
-  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkRuntime): DataStream = {
+  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
     vars foreach {
-      case (name, null) => runtime.vars.drop(name)
+      case (name, null)  => runtime.vars.drop(name)
       case (name, value) => runtime.vars(name) = value
     }
     arg

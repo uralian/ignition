@@ -13,7 +13,7 @@ import org.json4s.jackson.JsonMethods.parse
 import org.json4s.string2JsonInput
 
 import com.ignition.frame.DataFlow
-import com.ignition.stream.StreamFlow
+import com.ignition.stream.{ DefaultSparkStreamingRuntime, StreamFlow }
 import com.ignition.util.ConfigUtils
 
 /**
@@ -39,6 +39,7 @@ object SparkPlug {
     val sparkCfg = ConfigUtils.getConfig("spark")
     conf.setMaster(sparkCfg.getString("master-url"))
     conf.setAppName(sparkCfg.getString("app-name"))
+    conf.set("spark.app.id", sparkCfg.getString("app-name"))
 
     conf
   }
@@ -53,7 +54,7 @@ object SparkPlug {
     ssc.checkpoint(checkpointDir)
     ssc
   }
-  implicit protected lazy val runtime = new DefaultSparkRuntime(ctx, ssc)
+  implicit protected lazy val runtime = new DefaultSparkStreamingRuntime(ctx, ssc)
 
   def runDataFlow(flow: DataFlow,
                   vars: Map[String, Any] = Map.empty,
@@ -65,9 +66,9 @@ object SparkPlug {
     }
 
     accs foreach {
-      case (name, value: Int) => runtime.accs(name) = value
-      case (name, value: Long) => runtime.accs(name) = value
-      case (name, value: Float) => runtime.accs(name) = value
+      case (name, value: Int)    => runtime.accs(name) = value
+      case (name, value: Long)   => runtime.accs(name) = value
+      case (name, value: Float)  => runtime.accs(name) = value
       case (name, value: Double) => runtime.accs(name) = value
     }
 
@@ -88,9 +89,9 @@ object SparkPlug {
     }
 
     accs foreach {
-      case (name, value: Int) => runtime.accs(name) = value
-      case (name, value: Long) => runtime.accs(name) = value
-      case (name, value: Float) => runtime.accs(name) = value
+      case (name, value: Int)    => runtime.accs(name) = value
+      case (name, value: Long)   => runtime.accs(name) = value
+      case (name, value: Float)  => runtime.accs(name) = value
       case (name, value: Double) => runtime.accs(name) = value
     }
 

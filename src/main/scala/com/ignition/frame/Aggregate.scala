@@ -6,8 +6,6 @@ import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 
-import com.ignition.SparkRuntime
-
 /**
  * Aggregates a data row into some arbitrary class U using Spark aggregateByKey method.
  * Once the aggregation is done, the resulting value of type U is converted back to a

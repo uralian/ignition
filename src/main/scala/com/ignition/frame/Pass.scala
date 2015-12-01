@@ -6,8 +6,6 @@ import org.apache.spark.sql.DataFrame
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2jvalue, string2jvalue }
 
-import com.ignition.SparkRuntime
-
 /**
  * A simple passthrough.
  *

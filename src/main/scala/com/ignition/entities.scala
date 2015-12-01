@@ -49,9 +49,10 @@ abstract class AbstractStep extends Serializable {
 /**
  * A workflow step. It can have an arbitrary number of inputs and outputs, each of which
  * could be connected to inputs and outputs of other steps.
- * @param T the type parameter encapsulating the data that is passed between steps.
+ * @param T the type encapsulating the data that is passed between steps.
+ * @param R the type of the runtime context passed to the node for evaluation.
  */
-trait Step[T] extends AbstractStep with XmlExport with JsonExport {
+trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
 
   /**
    * The maximum number of input ports.
@@ -75,7 +76,7 @@ trait Step[T] extends AbstractStep with XmlExport with JsonExport {
    * @param preview if true, it indicates the preview mode. The implementation should make use of
    * this parameter to return a limited or simplified version of the output.
    */
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T
+  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T
 
   /**
    * Computes a step output value at the specified index.
@@ -85,7 +86,7 @@ trait Step[T] extends AbstractStep with XmlExport with JsonExport {
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
-  final def output(index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T = wrap {
+  final def output(index: Int, preview: Boolean)(implicit runtime: R): T = wrap {
     assert(0 until outputCount contains index, s"Output index out of range: $index of $outputCount")
     compute(index, preview)
   }
@@ -95,65 +96,65 @@ trait Step[T] extends AbstractStep with XmlExport with JsonExport {
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
-  final def output(preview: Boolean)(implicit runtime: SparkRuntime): T = output(0, preview)
+  final def output(preview: Boolean)(implicit runtime: R): T = output(0, preview)
 
   /**
    * Shortcut for [[output(false)]]. Computes a step output at index 0 with preview mode OFF.
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
-  final def output(implicit runtime: SparkRuntime): T = output(false)
+  final def output(implicit runtime: R): T = output(false)
 }
 
 /**
  * Something TO which a connection can be made, a connection target.
  */
-trait ConnectionTarget[T] {
-  def step: Step[T]
+trait ConnectionTarget[T, R] {
+  def step: Step[T, R]
   def index: Int
 
-  var inbound: ConnectionSource[T] = null
-  def from(src: ConnectionSource[T]): this.type = { this.inbound = src; this }
+  var inbound: ConnectionSource[T, R] = null
+  def from(src: ConnectionSource[T, R]): this.type = { this.inbound = src; this }
 }
 
 /**
  * Something FROM which a connection can be made
  */
-trait ConnectionSource[T] {
-  def step: Step[T]
+trait ConnectionSource[T, R] {
+  def step: Step[T, R]
   def index: Int
 
-  def to(tgt: ConnectionTarget[T]): tgt.type = tgt.from(this)
-  def -->(tgt: ConnectionTarget[T]): tgt.type = to(tgt)
+  def to(tgt: ConnectionTarget[T, R]): tgt.type = tgt.from(this)
+  def -->(tgt: ConnectionTarget[T, R]): tgt.type = to(tgt)
 
-  def to(tgt: MultiInputStep[T]): tgt.type = { to(tgt.in(0)); tgt }
-  def -->(tgt: MultiInputStep[T]): tgt.type = to(tgt)
+  def to(tgt: MultiInputStep[T, R]): tgt.type = { to(tgt.in(0)); tgt }
+  def -->(tgt: MultiInputStep[T, R]): tgt.type = to(tgt)
 
-  def to(targets: ConnectionTarget[T]*): Unit = targets foreach (to(_))
-  def -->(targets: ConnectionTarget[T]*): Unit = to(targets: _*)
+  def to(targets: ConnectionTarget[T, R]*): Unit = targets foreach (to(_))
+  def -->(targets: ConnectionTarget[T, R]*): Unit = to(targets: _*)
 
-  def value(preview: Boolean)(implicit runtime: SparkRuntime): T
+  def value(preview: Boolean)(implicit runtime: R): T
 }
 
 /* inputs */
-trait NoInputStep[T] extends Step[T] {
+trait NoInputStep[T, R] extends Step[T, R] {
   val inputCount = 0
 }
 
-trait SingleInputStep[T] extends Step[T] with ConnectionTarget[T] {
+trait SingleInputStep[T, R] extends Step[T, R] with ConnectionTarget[T, R] {
   val step = this
   val index = 0
   val inputCount = 1
-  def input(preview: Boolean)(implicit runtime: SparkRuntime) = {
+  def input(preview: Boolean)(implicit runtime: R) = {
     if (inbound == null && allInputsRequired) throw ExecutionException("Input is not connected")
     Option(inbound) map (_.value(preview)) getOrElse null.asInstanceOf[T]
   }
 }
 
-trait MultiInputStep[T] extends Step[T] { self =>
+trait MultiInputStep[T, R] extends Step[T, R] { self =>
   val in = new LazyArray[InPort](idx => InPort(idx))(inputCount)
 
-  def inputs(preview: Boolean)(implicit runtime: SparkRuntime) = in.map { p =>
+  def inputs(preview: Boolean)(implicit runtime: R) = in.map { p =>
     for {
       port <- Option(p)
       ib <- Option(port.inbound)
@@ -163,75 +164,75 @@ trait MultiInputStep[T] extends Step[T] { self =>
     case (x, _) => x getOrElse null.asInstanceOf[T]
   }
 
-  case class InPort(index: Int) extends ConnectionTarget[T] {
+  case class InPort(index: Int) extends ConnectionTarget[T, R] {
     val step = self
     override def toString = s"$step.in($index)"
   }
 }
 
 /* outputs */
-trait SingleOutputStep[T] extends Step[T] with ConnectionSource[T] {
+trait SingleOutputStep[T, R] extends Step[T, R] with ConnectionSource[T, R] {
   val step = this
   val index = 0
   val outputCount = 1
   def outbounds(index: Int) = { assert(index == 0); this }
-  def value(preview: Boolean)(implicit runtime: SparkRuntime): T = output(0, preview)
+  def value(preview: Boolean)(implicit runtime: R): T = output(0, preview)
 }
 
-trait MultiOutputStep[T] extends Step[T] { self =>
+trait MultiOutputStep[T, R] extends Step[T, R] { self =>
   val out = new LazyArray[OutPort](idx => OutPort(idx))(outputCount)
 
-  def to(tgt: ConnectionTarget[T]): tgt.type = out(0).to(tgt)
-  def -->(tgt: ConnectionTarget[T]): tgt.type = to(tgt)
+  def to(tgt: ConnectionTarget[T, R]): tgt.type = out(0).to(tgt)
+  def -->(tgt: ConnectionTarget[T, R]): tgt.type = to(tgt)
 
-  def to(tgt: MultiInputStep[T]): tgt.type = { to(tgt.in(0)); tgt }
-  def -->(tgt: MultiInputStep[T]): tgt.type = to(tgt)
+  def to(tgt: MultiInputStep[T, R]): tgt.type = { to(tgt.in(0)); tgt }
+  def -->(tgt: MultiInputStep[T, R]): tgt.type = to(tgt)
 
-  def to(targets: ConnectionTarget[T]*): Unit = targets.zipWithIndex foreach {
+  def to(targets: ConnectionTarget[T, R]*): Unit = targets.zipWithIndex foreach {
     case (tgt, outIndex) => out(outIndex) to tgt
   }
-  def -->(targets: ConnectionTarget[T]*): Unit = to(targets: _*)
+  def -->(targets: ConnectionTarget[T, R]*): Unit = to(targets: _*)
 
   def outbounds(index: Int) = out(index)
 
-  case class OutPort(index: Int) extends ConnectionSource[T] {
+  case class OutPort(index: Int) extends ConnectionSource[T, R] {
     val step = self
-    def value(preview: Boolean)(implicit runtime: SparkRuntime) = self.output(index, preview)
+    def value(preview: Boolean)(implicit runtime: R) = self.output(index, preview)
     override def toString = s"$step.out($index)"
   }
 }
 
 /* templates */
-abstract class Producer[T] extends SingleOutputStep[T] with NoInputStep[T] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T =
+abstract class Producer[T, R] extends SingleOutputStep[T, R] with NoInputStep[T, R] {
+  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(preview)
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): T
+  protected def compute(preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Transformer[T] extends SingleOutputStep[T] with SingleInputStep[T] {
+abstract class Transformer[T, R] extends SingleOutputStep[T, R] with SingleInputStep[T, R] {
   override val step = this
   override val index = 0
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T =
+  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(input(preview), preview)
-  protected def compute(arg: T, preview: Boolean)(implicit runtime: SparkRuntime): T
+  protected def compute(arg: T, preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Splitter[T] extends SingleInputStep[T] with MultiOutputStep[T] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T =
+abstract class Splitter[T, R] extends SingleInputStep[T, R] with MultiOutputStep[T, R] {
+  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(input(preview), index, preview)
-  protected def compute(arg: T, index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T
+  protected def compute(arg: T, index: Int, preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Merger[T] extends MultiInputStep[T] with SingleOutputStep[T] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T =
+abstract class Merger[T, R] extends MultiInputStep[T, R] with SingleOutputStep[T, R] {
+  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(inputs(preview), preview)
-  protected def compute(args: IndexedSeq[T], preview: Boolean)(implicit runtime: SparkRuntime): T
+  protected def compute(args: IndexedSeq[T], preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Module[T] extends MultiInputStep[T] with MultiOutputStep[T] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T =
+abstract class Module[T, R] extends MultiInputStep[T, R] with MultiOutputStep[T, R] {
+  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(inputs(preview), index, preview)
-  protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: SparkRuntime): T
+  protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: R): T
 }
 
 /**

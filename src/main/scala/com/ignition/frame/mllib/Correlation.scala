@@ -10,8 +10,7 @@ import org.json4s.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
-import com.ignition.frame.FrameTransformer
+import com.ignition.frame.{ FrameTransformer, SparkRuntime }
 import com.ignition.types.double
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq

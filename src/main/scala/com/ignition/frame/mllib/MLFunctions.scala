@@ -4,9 +4,9 @@ import org.apache.spark.mllib.linalg.{ Vector, Vectors }
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ DataFrame, Row }
-import com.ignition.SparkRuntime
-import com.ignition.frame.{ FrameStep, PairFunctions }
-import com.ignition.types._
+
+import com.ignition.frame.{ FrameStep, PairFunctions, SparkRuntime }
+import com.ignition.types.{ RichRow, RichStructType }
 
 /**
  * Helper functions for MLLib steps.
@@ -20,7 +20,7 @@ trait MLFunctions extends PairFunctions { self: FrameStep =>
    * by the set of grouping fields, and data is a data Vector, as defined by fields.
    */
   protected def toVectors(df: DataFrame, dataFields: Iterable[String],
-    groupFields: Iterable[String])(implicit runtime: SparkRuntime): RDD[(Row, Vector)] = {
+                          groupFields: Iterable[String])(implicit runtime: SparkRuntime): RDD[(Row, Vector)] = {
 
     val indexMap = df.schema.indexMap
     val fieldIndices = dataFields map indexMap toSeq
@@ -39,7 +39,7 @@ trait MLFunctions extends PairFunctions { self: FrameStep =>
    * by the set of grouping fields, and data is a LabeledPoint, as defined by label and fields.
    */
   protected def toLabeledPoints(df: DataFrame, labelField: String, dataFields: Iterable[String],
-    groupFields: Iterable[String])(implicit runtime: SparkRuntime): RDD[(Row, LabeledPoint)] = {
+                                groupFields: Iterable[String])(implicit runtime: SparkRuntime): RDD[(Row, LabeledPoint)] = {
 
     val indexMap = df.schema.indexMap
 

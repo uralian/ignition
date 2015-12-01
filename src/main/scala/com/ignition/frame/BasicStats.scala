@@ -9,7 +9,6 @@ import org.json4s.JsonDSL._
 import scala.xml.{ Elem, Node }
 import scala.xml.NodeSeq.seqToNodeSeq
 
-import com.ignition.SparkRuntime
 import com.ignition.util.XmlUtils.RichNodeSeq
 import com.ignition.util.JsonUtils.RichJValue
 

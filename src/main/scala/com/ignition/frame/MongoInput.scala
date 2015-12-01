@@ -9,7 +9,6 @@ import org.json4s.{ JObject, JValue }
 import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.types.RichBoolean
 import com.ignition.types.TypeUtils._
 import com.ignition.util.JsonUtils.RichJValue

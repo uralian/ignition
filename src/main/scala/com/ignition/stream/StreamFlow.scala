@@ -1,19 +1,19 @@
 package com.ignition.stream
 
-import com.ignition.{ ConnectionSource, SparkRuntime, Step, SubModule, outs }
+import com.ignition.{ ConnectionSource, Step, SubModule, outs }
 
 /**
  * Stream Flow represents a DStream workflow.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class StreamFlow(targets: Iterable[ConnectionSource[DataStream]])
-  extends SubModule[DataStream]((Nil, targets.toSeq)) {
+case class StreamFlow(targets: Iterable[ConnectionSource[DataStream, SparkStreamingRuntime]])
+    extends SubModule[DataStream, SparkStreamingRuntime]((Nil, targets.toSeq)) {
 
   /**
    * Starts a stream flow.
    */
-  def start(implicit runtime: SparkRuntime): Unit = {
+  def start(implicit runtime: SparkStreamingRuntime): Unit = {
     outPoints foreach (_.value(false).foreachRDD(_ => {}))
 
     runtime.ssc.start
@@ -27,7 +27,7 @@ case class StreamFlow(targets: Iterable[ConnectionSource[DataStream]])
 object StreamFlow {
   val tag = "streamflow"
 
-  private type DSS = Step[DataStream]
+  private type DSS = Step[DataStream, SparkStreamingRuntime]
 
   def apply(step: DSS): StreamFlow = (allOuts _ andThen apply)(Tuple1(step))
 

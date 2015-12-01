@@ -6,7 +6,6 @@ import org.json4s.JsonDSL._
 import org.json4s.jvalue2monadic
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
-import com.ignition.SparkRuntime
 import com.ignition.util.XmlUtils.{ RichNodeSeq, booleanToText, intToText, optToOptText }
 import com.ignition.util.JsonUtils._
 import scala.annotation.tailrec

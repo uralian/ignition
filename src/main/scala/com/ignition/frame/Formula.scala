@@ -9,7 +9,6 @@ import org.json4s.JsonDSL.{ pair2Assoc, pair2jvalue, seq2jvalue, string2jvalue }
 import org.json4s.jackson.JsonMethods.render
 import org.json4s.jvalue2monadic
 
-import com.ignition.SparkRuntime
 import com.ignition.script.RowExpression
 import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.util.XmlUtils.RichNodeSeq
