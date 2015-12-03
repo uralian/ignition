@@ -29,7 +29,7 @@ package object frame {
     (injectGlobals _ andThen injectFields(row, indexMap))(expr)
 
   /**
-   * Injects the fields from the specified row, by replacing substrings of form ${field}
+   * Injects the fields from the specified row, by replacing substrings of form `\${field}`
    * with the value of the specified field.
    */
   def injectFields(row: Row, indexMap: Map[String, Int])(expr: String) = indexMap.foldLeft(expr) {

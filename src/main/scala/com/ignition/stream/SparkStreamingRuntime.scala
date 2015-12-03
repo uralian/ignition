@@ -6,7 +6,7 @@ import org.apache.spark.sql.SQLContext
 import com.ignition.frame.DefaultSparkRuntime
 
 /**
- * An extension of [[SparkRuntime]] which adds a streaming context to the mix.
+ * An extension of [[com.ignition.frame.SparkRuntime]] which adds a streaming context to the mix.
  */
 trait SparkStreamingRuntime extends SparkRuntime {
   def ssc: StreamingContext
