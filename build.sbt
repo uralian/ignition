@@ -120,4 +120,5 @@ libraryDependencies ++= Seq(
   "org.apache.commons"        % "commons-math3"              % "3.5",
   "org.mongodb"              %% "casbah"                     % "2.8.0",
   "com.uralian"              %% "sdk-dslink-scala-spark"     % "0.1.0-SNAPSHOT"
+  		exclude("org.iot-dsa", "logging")
 ) ++ sparkLibs ++ cassandraLibs ++ testLibs
