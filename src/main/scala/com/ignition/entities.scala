@@ -92,14 +92,14 @@ trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
   }
 
   /**
-   * Shortcut for [[output(0, false)]]. Computes a step output at index 0.
+   * Shortcut for `output(0, preview)`. Computes a step output at index 0.
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
   final def output(preview: Boolean)(implicit runtime: R): T = output(0, preview)
 
   /**
-   * Shortcut for [[output(false)]]. Computes a step output at index 0 with preview mode OFF.
+   * Shortcut for `output(0, false)`. Computes a step output at index 0 with preview mode OFF.
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
