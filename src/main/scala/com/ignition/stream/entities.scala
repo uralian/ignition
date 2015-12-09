@@ -7,7 +7,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.streaming.dstream.DStream.toPairDStreamFunctions
 
-import com.ignition.{ Merger, Module, Producer, Splitter, Step, Transformer }
+import com.ignition._
 
 /**
  * Workflow step that emits DataStream as the output.
@@ -44,6 +44,55 @@ abstract class StreamMerger(val inputCount: Int)
 
 abstract class StreamModule(val inputCount: Int, val outputCount: Int)
   extends Module[DataStream, SparkStreamingRuntime] with StreamStep
+
+/* subflow templates */
+
+trait StreamSubFlow extends StreamStep {
+  val tag = StreamSubFlow.tag
+}
+
+case class StreamSubProducer(body: ConnectionSource[DataStream, SparkStreamingRuntime])
+  extends SubProducer[DataStream, SparkStreamingRuntime](body) with StreamSubFlow
+
+case class StreamSubTransformer(body: (ConnectionTarget[DataStream, SparkStreamingRuntime], ConnectionSource[DataStream, SparkStreamingRuntime]))
+  extends SubTransformer[DataStream, SparkStreamingRuntime](body) with StreamSubFlow
+
+case class StreamSubSplitter(body: (ConnectionTarget[DataStream, SparkStreamingRuntime], Seq[ConnectionSource[DataStream, SparkStreamingRuntime]]))
+  extends SubSplitter[DataStream, SparkStreamingRuntime](body) with StreamSubFlow
+
+case class StreamSubMerger(body: (Seq[ConnectionTarget[DataStream, SparkStreamingRuntime]], ConnectionSource[DataStream, SparkStreamingRuntime]))
+  extends SubMerger[DataStream, SparkStreamingRuntime](body) with StreamSubFlow
+
+case class StreamSubModule(body: (Seq[ConnectionTarget[DataStream, SparkStreamingRuntime]], Seq[ConnectionSource[DataStream, SparkStreamingRuntime]]))
+  extends SubModule[DataStream, SparkStreamingRuntime](body) with StreamSubFlow
+
+/**
+ * Provides SubFlow common methods.
+ */
+object StreamSubFlow extends SubFlowFactory[StreamStep, DataStream, SparkStreamingRuntime] {
+
+  val tag = "stream-subflow"
+
+  val xmlFactory = StreamStepFactory
+
+  val jsonFactory = StreamStepFactory
+
+  /**
+   * Depending on the number of inputs and outputs, the returned instance can be a
+   * StreamSubProducer, StreamSubTransformer, FrameSubSplitter,
+   * StreamSubMerger, or StreamSubModule.
+   */
+  def instantiate(
+    inPoints: Seq[ConnectionTarget[DataStream, SparkStreamingRuntime]],
+    outPoints: Seq[ConnectionSource[DataStream, SparkStreamingRuntime]]): StreamStep with SubFlow[DataStream, SparkStreamingRuntime] =
+    (inPoints.size, outPoints.size) match {
+      case (0, 1)          => StreamSubProducer(outPoints(0))
+      case (1, 1)          => StreamSubTransformer((inPoints(0), outPoints(0)))
+      case (1, o) if o > 1 => StreamSubSplitter((inPoints(0), outPoints))
+      case (i, 1) if i > 1 => StreamSubMerger((inPoints, outPoints(0)))
+      case _               => StreamSubModule((inPoints, outPoints))
+    }
+}
 
 /* update state */
 

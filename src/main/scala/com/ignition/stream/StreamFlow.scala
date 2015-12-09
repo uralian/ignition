@@ -1,5 +1,9 @@
 package com.ignition.stream
 
+import scala.xml.Node
+
+import org.json4s.JValue
+
 import com.ignition.{ ConnectionSource, Step, SubModule, outs }
 
 /**
@@ -8,7 +12,9 @@ import com.ignition.{ ConnectionSource, Step, SubModule, outs }
  * @author Vlad Orzhekhovskiy
  */
 case class StreamFlow(targets: Iterable[ConnectionSource[DataStream, SparkStreamingRuntime]])
-    extends SubModule[DataStream, SparkStreamingRuntime]((Nil, targets.toSeq)) {
+    extends SubModule[DataStream, SparkStreamingRuntime]((Nil, targets.toSeq)) with StreamStep {
+
+  val tag = StreamFlow.tag
 
   /**
    * Starts a stream flow.
@@ -46,5 +52,15 @@ object StreamFlow {
   private def allOuts(tuple: Product) = tuple.productIterator.toList flatMap { x =>
     val step = x.asInstanceOf[DSS]
     (0 until step.outputCount) map outs(step)
+  }
+
+  def fromXml(xml: Node) = {
+    val subflow = StreamSubFlow.fromXml(xml)
+    StreamFlow(subflow.outPoints)
+  }
+
+  def fromJson(json: JValue) = {
+    val subflow = StreamSubFlow.fromJson(json)
+    StreamFlow(subflow.outPoints)
   }
 }

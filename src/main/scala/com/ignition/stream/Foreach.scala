@@ -8,7 +8,7 @@ import org.json4s.JsonDSL.{ pair2Assoc, string2jvalue }
 import org.json4s.jvalue2monadic
 
 import com.ignition.{ ExecutionException, Merger, Splitter, Transformer }
-import com.ignition.frame.{ FrameProducer, FrameSubSplitter, SparkRuntime, StepFactory }
+import com.ignition.frame.{ FrameProducer, FrameStepFactory, FrameSubSplitter, SparkRuntime }
 
 /**
  * Invokes a DataFrame SubFlow on each stream batch.
@@ -64,7 +64,7 @@ object Foreach {
   }
 
   def fromXml(xml: Node) = {
-    val flow = StepFactory.fromXml(scala.xml.Utility.trim(xml).child.head)
+    val flow = FrameStepFactory.fromXml(scala.xml.Utility.trim(xml).child.head)
     flow match {
       case f: Transformer[DataFrame, SparkRuntime] => apply(f)
       case f: Splitter[DataFrame, SparkRuntime]    => apply(f)
@@ -73,7 +73,7 @@ object Foreach {
   }
 
   def fromJson(json: JValue) = {
-    val flow = StepFactory.fromJson(json \ "flow")
+    val flow = FrameStepFactory.fromJson(json \ "flow")
     flow match {
       case f: Transformer[DataFrame, SparkRuntime] => apply(f)
       case f: Splitter[DataFrame, SparkRuntime]    => apply(f)

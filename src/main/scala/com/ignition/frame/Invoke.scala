@@ -26,9 +26,9 @@ case class Invoke(path: String, fileType: String = "json")
   protected def compute(args: IndexedSeq[DataFrame], index: Int, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val data = Source.fromFile(path).getLines mkString "\n"
     val step = if (fileType == "json")
-      StepFactory.fromJson(parse(data))
+      FrameStepFactory.fromJson(parse(data))
     else
-      StepFactory.fromXml(XML.loadString(data))
+      FrameStepFactory.fromXml(XML.loadString(data))
 
     args zip ins(step) foreach { case (arg, port) => port from ConnectionSourceStub(arg) }
     outs(step)(index).value(preview)
