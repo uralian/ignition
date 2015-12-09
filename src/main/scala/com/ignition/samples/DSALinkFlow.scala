@@ -3,9 +3,9 @@ package com.ignition.samples
 import org.apache.spark.sql.types.DoubleType
 import org.dsa.iot.spark.RichInt
 
-import com.ignition.SparkPlug
 import com.ignition.frame.SQLQuery
 import com.ignition.frame.mllib.Correlation
+import com.ignition.stream
 import com.ignition.stream.{ DSAStreamInput, DSAStreamOutput, StreamFlow, Window, foreach }
 
 object DSALinkFlow extends App {
@@ -29,5 +29,5 @@ object DSALinkFlow extends App {
     (dsaOut)
   }
 
-  SparkPlug.startStreamFlow(flow)
+  stream.Main.startStreamFlow(flow)
 }

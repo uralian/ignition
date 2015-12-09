@@ -1,7 +1,6 @@
 package com.ignition.samples
 
-import com.ignition._
-import com.ignition.script._
+import com.ignition.frame
 
 /**
  * @author Vlad Orzhekhovskiy
@@ -31,5 +30,5 @@ object KafkaInputOutput extends App {
     kafkaIn --> select --> kafkaOut --> debug
   }
 
-  SparkPlug.runDataFlow(flow)
+  frame.Main.runDataFlow(flow)
 }

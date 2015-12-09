@@ -1,7 +1,8 @@
 package com.ignition.samples
 
-import com.ignition.{ CSource2, SparkPlug }
+import com.ignition.CSource2
 import com.ignition.frame.{ DataGrid, DebugOutput, FrameSubTransformer, JoinType, SQLQuery }
+import com.ignition.stream
 import com.ignition.stream.{ Join, KafkaInput, QueueInput, StreamFlow, foreach }
 import com.ignition.types.{ fieldToRichStruct, int, string }
 
@@ -44,5 +45,5 @@ object KafkaStreamingFlow extends App {
     (kafka, sql.out(0)) --> join --> debug
   }
 
-  SparkPlug.startStreamFlow(flow)
+  stream.Main.startStreamFlow(flow)
 }

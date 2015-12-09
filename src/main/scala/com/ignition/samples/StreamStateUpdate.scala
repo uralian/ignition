@@ -1,7 +1,7 @@
 package com.ignition.samples
 
-import com.ignition.SparkPlug
 import com.ignition.frame.DebugOutput
+import com.ignition.stream
 import com.ignition.stream.{ MvelMapListStateUpdate, MvelMapStateUpdate, QueueInput, StreamFlow, foreach }
 import com.ignition.types.{ RichStructType, fieldToRichStruct, int, string }
 
@@ -55,5 +55,5 @@ object StreamStateUpdate extends App {
     (debug1, debug2)
   }
 
-  SparkPlug.startStreamFlow(flow)
+  stream.Main.startStreamFlow(flow)
 }
