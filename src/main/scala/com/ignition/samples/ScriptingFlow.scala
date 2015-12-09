@@ -1,12 +1,12 @@
 package com.ignition.samples
 
-import org.apache.spark.sql._
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.Decimal
 
-import com.ignition.SparkPlug
-import com.ignition.types._
-import com.ignition.frame._
-import com.ignition.script._
+import com.ignition.frame
+import com.ignition.frame.{ DataFlow, DataGrid, DebugOutput, Formula, SelectValues }
+import com.ignition.script.RichString
+import com.ignition.types.{ RichStructType, decimal, double, fieldToRichStruct, int, string }
 
 object ScriptingFlow extends App {
 
@@ -35,5 +35,5 @@ object ScriptingFlow extends App {
     grid --> formula1 --> formula2 --> select --> debug
   }
 
-  SparkPlug.runDataFlow(flow)
+  frame.Main.runDataFlow(flow)
 }

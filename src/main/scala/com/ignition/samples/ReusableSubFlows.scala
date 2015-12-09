@@ -1,11 +1,11 @@
 package com.ignition.samples
 
-import com.ignition.SparkPlug
-import com.ignition._
-import com.ignition.types._
-import com.ignition.frame._
-import com.ignition.script._
 import org.apache.spark.sql.types.Decimal
+
+import com.ignition.{ CSource2, frame }
+import com.ignition.frame._
+import com.ignition.script.RichString
+import com.ignition.types._
 
 object ReusableSubFlows extends App {
 
@@ -60,5 +60,5 @@ object ReusableSubFlows extends App {
     (abDebug, jDebug0, jDebug1, jDebug2)
   }
 
-  SparkPlug.runDataFlow(flow)
+  frame.Main.runDataFlow(flow)
 }

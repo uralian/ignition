@@ -1,12 +1,12 @@
 package com.ignition.samples
 
-import com.ignition.SparkPlug
-import com.ignition.frame._
+import com.ignition.{ CSource2, frame }
+import com.ignition.frame.{ BasicStats, DataFlow, DataGrid, DebugOutput, SQLQuery, SelectValues }
 import com.ignition.types.{ RichStructType, date, fieldToRichStruct, fieldToStructType, int, string }
 import com.ignition.value2tuple
 
 object SimpleFlow extends App {
-  import BasicAggregator._
+  import frame.BasicAggregator._
 
   val flow = DataFlow {
     val grid1 = DataGrid(string("id") ~ string("name") ~ int("weight") ~ date("dob")) rows (
@@ -43,5 +43,5 @@ object SimpleFlow extends App {
     (debugA, debugB)
   }
 
-  SparkPlug.runDataFlow(flow)
+  frame.Main.runDataFlow(flow)
 }

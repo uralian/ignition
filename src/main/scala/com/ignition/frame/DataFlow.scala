@@ -1,13 +1,11 @@
 package com.ignition.frame
 
-import scala.xml.{ Attribute, Elem, Node, Null, Text }
+import scala.xml.Node
+
 import org.apache.spark.sql.DataFrame
-import org.json4s.{ JObject, JValue }
-import org.json4s.JsonDSL._
-import org.json4s.jvalue2monadic
-import com.ignition._
-import com.ignition.util.JsonUtils.RichJValue
-import com.ignition.util.XmlUtils.{ RichNodeSeq, intToText }
+import org.json4s.JValue
+
+import com.ignition.{ ConnectionSource, Step, SubModule, outs }
 
 /**
  * Data Flow represents an executable job.
@@ -15,9 +13,9 @@ import com.ignition.util.XmlUtils.{ RichNodeSeq, intToText }
  * @author Vlad Orzhekhovskiy
  */
 case class DataFlow(targets: Iterable[ConnectionSource[DataFrame, SparkRuntime]])
-  extends SubModule[DataFrame, SparkRuntime]((Nil, targets.toSeq)) {
+    extends SubModule[DataFrame, SparkRuntime]((Nil, targets.toSeq)) with FrameStep {
 
-  import DataFlow._
+  val tag = DataFlow.tag
 
   /**
    * Executes a data flow.
@@ -28,12 +26,6 @@ case class DataFlow(targets: Iterable[ConnectionSource[DataFrame, SparkRuntime]]
    * Executes a data flow.
    */
   def execute(implicit runtime: SparkRuntime): Iterable[DataFrame] = execute(false)
-
-  override protected def outputToXml(tag: String = DataFlow.tag)(implicit idGen: (DFS => String)): Elem =
-    super.outputToXml(tag)(idGen)
-
-  override def outputToJson(tag: String = DataFlow.tag)(implicit idGen: (DFS => String)): JValue =
-    super.outputToJson(tag)(idGen)
 }
 
 /**

@@ -2,7 +2,7 @@ package com.ignition
 
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
-import scala.xml.Elem
+import scala.xml.{ Elem, Node }
 
 import org.json4s.JValue
 
@@ -14,7 +14,7 @@ import org.json4s.JValue
  * @param length the size of the array.
  */
 private[ignition] class LazyArray[A: ClassTag](builder: Int => A)(val length: Int)
-  extends IndexedSeq[A] with Serializable {
+    extends IndexedSeq[A] with Serializable {
 
   private val buffer = Array.ofDim[A](length)
 
@@ -33,7 +33,7 @@ abstract class AbstractStep extends Serializable {
    */
   final protected def wrap[U](body: => U): U = try { body } catch {
     case e: ExecutionException => throw e
-    case NonFatal(e) => throw ExecutionException("Step computation failed", e)
+    case NonFatal(e)           => throw ExecutionException("Step computation failed", e)
   }
 
   /**
@@ -161,7 +161,7 @@ trait MultiInputStep[T, R] extends Step[T, R] { self =>
     } yield ib.value(preview)
   }.zipWithIndex map {
     case (None, idx) if allInputsRequired => throw ExecutionException(s"Input$idx is not connected")
-    case (x, _) => x getOrElse null.asInstanceOf[T]
+    case (x, _)                           => x getOrElse null.asInstanceOf[T]
   }
 
   case class InPort(index: Int) extends ConnectionTarget[T, R] {
@@ -235,16 +235,40 @@ abstract class Module[T, R] extends MultiInputStep[T, R] with MultiOutputStep[T,
   protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: R): T
 }
 
+/* XML serialization */
+
 /**
- * XML serialization.
+ * Converts an entity into XML.
  */
 trait XmlExport {
   def toXml: Elem
 }
 
 /**
- * JSON serialization.
+ * Restores a flow step from XML.
+ * @param S step class.
+ * @param T type encapsulating the data that is passed between steps.
+ * @param R type of the runtime context passed to the node for evaluation.
+ */
+trait XmlStepFactory[S <: Step[T, R], T, R] {
+  def fromXml(xml: Node): S
+}
+
+/* JSON serialization */
+
+/**
+ * Converts an entity into JSON.
  */
 trait JsonExport {
   def toJson: JValue
+}
+
+/**
+ * Restores a flow step from JSON.
+ * @param S step class.
+ * @param T type encapsulating the data that is passed between steps.
+ * @param R type of the runtime context passed to the node for evaluation.
+ */
+trait JsonStepFactory[S <: Step[T, R], T, R] {
+  def fromJson(json: JValue): S
 }

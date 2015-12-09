@@ -1,15 +1,10 @@
 package com.ignition.frame
 
-import scala.annotation.elidable
-import scala.annotation.elidable.ASSERTION
-import scala.xml.Node
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
-import org.json4s.{ JValue, jvalue2monadic }
+
 import com.ignition._
 import com.ignition.util.ConfigUtils
-import com.ignition.util.JsonUtils.RichJValue
-import com.ignition.util.XmlUtils.RichNodeSeq
 
 /**
  * Workflow step that emits DataFrame as the output.
@@ -77,104 +72,45 @@ abstract class FrameModule(val inputCount: Int, val outputCount: Int) extends Mo
 
 /* subflow templates */
 
+trait FrameSubFlow extends FrameStep {
+  val tag = FrameSubFlow.tag
+}
+
 case class FrameSubProducer(body: ConnectionSource[DataFrame, SparkRuntime])
-  extends SubProducer[DataFrame, SparkRuntime](body) with FrameStep
+  extends SubProducer[DataFrame, SparkRuntime](body) with FrameSubFlow
 
 case class FrameSubTransformer(body: (ConnectionTarget[DataFrame, SparkRuntime], ConnectionSource[DataFrame, SparkRuntime]))
-  extends SubTransformer[DataFrame, SparkRuntime](body) with FrameStep
+  extends SubTransformer[DataFrame, SparkRuntime](body) with FrameSubFlow
 
 case class FrameSubSplitter(body: (ConnectionTarget[DataFrame, SparkRuntime], Seq[ConnectionSource[DataFrame, SparkRuntime]]))
-  extends SubSplitter[DataFrame, SparkRuntime](body) with FrameStep
+  extends SubSplitter[DataFrame, SparkRuntime](body) with FrameSubFlow
 
 case class FrameSubMerger(body: (Seq[ConnectionTarget[DataFrame, SparkRuntime]], ConnectionSource[DataFrame, SparkRuntime]))
-  extends SubMerger[DataFrame, SparkRuntime](body) with FrameStep
+  extends SubMerger[DataFrame, SparkRuntime](body) with FrameSubFlow
 
 case class FrameSubModule(body: (Seq[ConnectionTarget[DataFrame, SparkRuntime]], Seq[ConnectionSource[DataFrame, SparkRuntime]]))
-  extends SubModule[DataFrame, SparkRuntime](body) with FrameStep
+    extends SubModule[DataFrame, SparkRuntime](body) with FrameStep {
+  val tag = FrameSubFlow.tag
+}
 
 /**
  * Provides SubFlow common methods.
  */
-object FrameSubFlow {
+object FrameSubFlow extends SubFlowFactory[FrameStep, DataFrame, SparkRuntime] {
+
+  val tag = "subflow"
+
+  val xmlFactory = FrameStepFactory
+
+  val jsonFactory = FrameStepFactory
 
   /**
-   * Restores a subflow from the XML node. Depending on the number of inputs and outputs,
-   * the returned instance can be a FrameSubProducer, FrameSubTransformer, FrameSubSplitter,
+   * Depending on the number of inputs and outputs, the returned instance can be a
+   * FrameSubProducer, FrameSubTransformer, FrameSubSplitter,
    * FrameSubMerger, or FrameSubModule.
    */
-  def fromXml(xml: Node) = {
-    val stepById = (xml \ "steps" \ "_") map { node =>
-      val id = node \ "@id" asString
-      val step = StepFactory.fromXml(node)
-      id -> step
-    } toMap
-
-    xml \ "connections" \ "connect" foreach { n =>
-      val srcStep = stepById(n \ "@src" asString)
-      val srcPort = n \ "@srcPort" asInt
-      val tgtStep = stepById(n \ "@tgt" asString)
-      val tgtPort = n \ "@tgtPort" asInt
-
-      outs(srcStep)(srcPort) --> ins(tgtStep)(tgtPort)
-    }
-
-    val inPoints = xml \ "in-points" \ "step" map { n =>
-      val srcStep = stepById(n \ "@id" asString)
-      val srcPort = n \ "@port" asInt
-
-      ins(srcStep)(srcPort)
-    }
-
-    val outPoints = xml \ "out-points" \ "step" map { n =>
-      val tgtStep = stepById(n \ "@id" asString)
-      val tgtPort = n \ "@port" asInt
-
-      outs(tgtStep)(tgtPort)
-    }
-
-    createSubflow(inPoints, outPoints)
-  }
-
-  /**
-   * Restores a subflow from the JSON node. Depending on the number of inputs and outputs,
-   * the returned instance can be a FrameSubProducer, FrameSubTransformer, FrameSubSplitter,
-   * FrameSubMerger, or FrameSubModule.
-   */
-  def fromJson(json: JValue) = {
-    val stepById = (json \ "steps" asArray) map { node =>
-      val id = node \ "id" asString
-      val step = StepFactory.fromJson(node)
-      id -> step
-    } toMap
-
-    (json \ "connections" asArray) foreach { n =>
-      val srcStep = stepById(n \ "src" asString)
-      val srcPort = n \ "srcPort" asInt
-      val tgtStep = stepById(n \ "tgt" asString)
-      val tgtPort = n \ "tgtPort" asInt
-
-      outs(srcStep)(srcPort) --> ins(tgtStep)(tgtPort)
-    }
-
-    val inPoints = (json \ "in-points" asArray) map { n =>
-      val srcStep = stepById(n \ "id" asString)
-      val srcPort = n \ "port" asInt
-
-      ins(srcStep)(srcPort)
-    }
-
-    val outPoints = (json \ "out-points" asArray) map { n =>
-      val tgtStep = stepById(n \ "id" asString)
-      val tgtPort = n \ "port" asInt
-
-      outs(tgtStep)(tgtPort)
-    }
-
-    createSubflow(inPoints, outPoints)
-  }
-
-  private def createSubflow(inPoints: Seq[ConnectionTarget[DataFrame, SparkRuntime]],
-                            outPoints: Seq[ConnectionSource[DataFrame, SparkRuntime]]): FrameStep with SubFlow[DataFrame, SparkRuntime] =
+  def instantiate(inPoints: Seq[ConnectionTarget[DataFrame, SparkRuntime]],
+                  outPoints: Seq[ConnectionSource[DataFrame, SparkRuntime]]): FrameStep with SubFlow[DataFrame, SparkRuntime] =
     (inPoints.size, outPoints.size) match {
       case (0, 1)          => FrameSubProducer(outPoints(0))
       case (1, 1)          => FrameSubTransformer((inPoints(0), outPoints(0)))

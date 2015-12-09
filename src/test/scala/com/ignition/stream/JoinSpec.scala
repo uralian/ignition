@@ -3,6 +3,9 @@ package com.ignition.stream
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
+import com.ignition.frame.StringToLiteral
+import com.ignition.frame.JoinType._
+
 import com.ignition.types._
 
 @RunWith(classOf[JUnitRunner])
@@ -31,4 +34,39 @@ class JoinSpec extends StreamFlowSpecification {
           ("jake", 4, 25.0, "john", 30, true), ("john", 3, 30.0, "john", 30, true)))
     }
   }
+  
+  "Join" should {
+    "save to/load from xml" in {
+      import com.ignition.util.XmlUtils._
+
+      val j1 = Join()
+      j1.toXml must ==/(<stream-join type="inner"></stream-join>)
+      Join.fromXml(j1.toXml) === j1
+
+      val j2 = Join($"input0.name" === $"input1.name")
+      j2.toXml must ==/(<stream-join type="inner"><condition>(input0.name = input1.name)</condition></stream-join>)
+      Join.fromXml(j2.toXml).condition.toString === j2.condition.toString
+      Join.fromXml(j2.toXml).joinType === j2.joinType
+
+      val j3 = Join($"a" < $"b", OUTER)
+      (j3.toXml \ "condition" asString) === "(a < b)"
+      Join.fromXml(j3.toXml).condition.toString === j3.condition.toString
+      Join.fromXml(j3.toXml).joinType === j3.joinType
+    }
+    "save to/load from json" in {
+      import org.json4s.JsonDSL._
+
+      val j1 = Join()
+      j1.toJson === ("tag" -> "stream-join") ~ ("type" -> "inner") ~ ("condition" -> jNone)
+      Join.fromJson(j1.toJson) === j1
+
+      val j2 = Join($"input0.name" === $"input1.name")
+      j2.toJson === ("tag" -> "stream-join") ~ ("type" -> "inner") ~ ("condition" -> "(input0.name = input1.name)")
+      Join.fromJson(j2.toJson).condition.map(_.toString) === j2.condition.map(_.toString)
+
+      val j3 = Join($"a" < $"b", OUTER)
+      j3.toJson === ("tag" -> "stream-join") ~ ("type" -> "outer") ~ ("condition" -> "(a < b)")
+      Join.fromJson(j3.toJson).condition.map(_.toString) === j3.condition.map(_.toString)
+    }
+  }  
 }

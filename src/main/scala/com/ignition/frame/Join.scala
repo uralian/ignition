@@ -2,8 +2,9 @@ package com.ignition.frame
 
 import scala.xml.{ Elem, Node }
 
+import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.{ Column, DataFrame }
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.catalyst.SqlParser
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ jobject2assoc, option2jvalue, pair2Assoc, pair2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
@@ -33,7 +34,7 @@ object JoinType extends Enumeration {
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Join(condition: Option[Column], joinType: JoinType) extends FrameMerger(2) {
+case class Join(condition: Option[String], joinType: JoinType) extends FrameMerger(2) {
   import Join._
 
   def joinType(jt: JoinType) = copy(joinType = jt)
@@ -43,7 +44,9 @@ case class Join(condition: Option[Column], joinType: JoinType) extends FrameMerg
     val df1 = optLimit(args(0), preview).as('input0)
     val df2 = optLimit(args(1), preview).as('input1)
 
-    condition map (c => df1.join(df2, c, joinType.toString)) getOrElse df1.join(df2)
+    condition map { c =>
+      df1.join(df2, new Column(SqlParser.parseExpression(c)), joinType.toString)
+    } getOrElse df1.join(df2)
   }
 
   def toXml: Elem =
@@ -65,22 +68,22 @@ object Join {
 
   def apply(condition: Column): Join = apply(condition, INNER)
 
-  def apply(condition: Column, joinType: JoinType): Join = apply(Some(condition), joinType)
+  def apply(condition: Column, joinType: JoinType): Join = apply(Some(condition.toString), joinType)
 
   def apply(condition: String): Join = apply(condition, INNER)
 
-  def apply(condition: String, joinType: JoinType): Join = apply(new Column(condition), joinType)
+  def apply(condition: String, joinType: JoinType): Join = apply(Some(condition), joinType)
 
   def fromXml(xml: Node) = {
     val joinType = JoinType.withName(xml \ "@type" asString)
-    val condition = (xml \ "condition" getAsString) map (new Column(_))
+    val condition = (xml \ "condition" getAsString)
 
     apply(condition, joinType)
   }
 
   def fromJson(json: JValue) = {
     val joinType = JoinType.withName(json \ "type" asString)
-    val condition = (json \ "condition" getAsString) map (new Column(_))
+    val condition = (json \ "condition" getAsString)
 
     apply(condition, joinType)
   }

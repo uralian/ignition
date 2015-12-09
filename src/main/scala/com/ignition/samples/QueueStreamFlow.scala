@@ -1,7 +1,7 @@
 package com.ignition.samples
 
-import com.ignition.SparkPlug
 import com.ignition.frame.{ DebugOutput, FrameSubTransformer, Reduce, ReduceOp, SQLQuery, SelectValues }
+import com.ignition.stream
 import com.ignition.stream.{ Filter, QueueInput, StreamFlow, foreach }
 import com.ignition.types.{ RichStructType, fieldToRichStruct, int, string }
 
@@ -41,5 +41,5 @@ object QueueStreamFlow extends App {
     (calcTrue, calcFalse)
   }
 
-  SparkPlug.startStreamFlow(flow)
+  stream.Main.startStreamFlow(flow)
 }
