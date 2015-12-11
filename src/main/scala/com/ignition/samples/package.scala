@@ -39,12 +39,12 @@ package object samples {
   /**
    * Prints out the XML representation of the data flow.
    */
-  protected[samples] def printXml(flow: DataFlow) =
+  protected[samples] def printXml(flow: XmlExport) =
     println(new scala.xml.PrettyPrinter(80, 2).format(flow.toXml))
 
   /**
    * Prints out the JSON representation of the data flow.
    */
-  protected[samples] def printJson(flow: DataFlow) =
+  protected[samples] def printJson(flow: JsonExport) =
     println(org.json4s.jackson.JsonMethods.pretty(flow.toJson))
 }
