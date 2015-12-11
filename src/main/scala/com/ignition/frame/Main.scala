@@ -38,8 +38,8 @@ object Main {
   }
 
   /* constructs spark runtime */
-  protected lazy val sc = new SparkContext(sparkConf)
-  protected lazy val ctx = new SQLContext(sc)
+  lazy val sc = new SparkContext(sparkConf)
+  lazy val ctx = new SQLContext(sc)
   implicit protected lazy val runtime = new DefaultSparkRuntime(ctx)
 
   /* build command line parser */

@@ -1,18 +1,19 @@
 package com.ignition.stream
 
 import java.io.File
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.future
 import scala.io.Source
 import scala.xml.XML
 
-import org.apache.spark.{ SparkConf, SparkContext }
-import org.apache.spark.sql.SQLContext
 import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.string2JsonInput
 
-import com.ignition.BuildInfo
+import com.ignition.{ BuildInfo, frame }
 import com.ignition.util.ConfigUtils
 
 /**
@@ -23,37 +24,7 @@ import com.ignition.util.ConfigUtils
 object Main {
   import ConfigUtils._
 
-  /* build spark configuration */
-  private val sparkConf = {
-    val conf = new SparkConf(true)
-
-    val cassCfg = ConfigUtils.getConfig("cassandra")
-    cassCfg.getStringOption("host") foreach (conf.set("spark.cassandra.connection.host", _))
-    cassCfg.getStringOption("port") foreach (conf.set("spark.cassandra.connection.native.port", _))
-    cassCfg.getStringOption("thrift-port") foreach (conf.set("spark.cassandra.connection.rpc.port", _))
-    cassCfg.getStringOption("username") foreach (conf.set("spark.cassandra.auth.username", _))
-    cassCfg.getStringOption("password") foreach (conf.set("spark.cassandra.auth.password", _))
-
-    val sparkCfg = ConfigUtils.getConfig("spark")
-    conf.setMaster(sparkCfg.getString("master-url"))
-    conf.setAppName(sparkCfg.getString("app-name"))
-    conf.set("spark.app.id", sparkCfg.getString("app-name"))
-
-    conf
-  }
-
-  /* constructs spark streaming runtime */
-  protected lazy val sc = new SparkContext(sparkConf)
-  protected lazy val ctx = new SQLContext(sc)
-  protected lazy val ssc = {
-    val streamCfg = ConfigUtils.getConfig("spark.streaming")
-    val ms = streamCfg.getDuration("batch-duration", TimeUnit.MILLISECONDS)
-    val ssc = new StreamingContext(sc, Milliseconds(ms))
-    val checkpointDir = streamCfg.getString("checkpoint-dir")
-    ssc.checkpoint(checkpointDir)
-    ssc
-  }
-  implicit protected val runtime = new DefaultSparkStreamingRuntime(ctx, ssc)
+  private val flows = collection.mutable.Map.empty[UUID, StreamingContext]
 
   /* build command line parser */
   val parser = new scopt.OptionParser[StreamFlowConfig]("StreamFlowRunner") {
@@ -94,12 +65,15 @@ object Main {
    * @param vars variables to inject before running the flow.
    * @param accs accumulators to inject before running the flow.
    * @param args an array of command line parameters to inject as variables under name 'arg\$index'.
-   * @return a list of evaluated flow outputs.
+   * @return the newly generated flow id.
    */
   def startStreamFlow(flow: StreamFlow,
                       vars: Map[String, Any] = Map.empty,
                       accs: Map[String, Any] = Map.empty,
-                      args: Array[String] = Array.empty) = {
+                      args: Array[String] = Array.empty): UUID = {
+
+    val ssc = createStreamingContext
+    implicit val runtime = new DefaultSparkStreamingRuntime(frame.Main.ctx, ssc)
 
     vars foreach {
       case (name, value) => runtime.vars(name) = value
@@ -116,14 +90,34 @@ object Main {
       case (arg, index) => runtime.vars(s"arg$index") = arg
     }
 
-    flow.start
+    future(flow.start)
+
+    val id = UUID.randomUUID
+    flows += id -> ssc
+
+    id
   }
 
-  def shutdown() = {
-    ssc.stop(false, false)
-    sc.stop
-    System.clearProperty("spark.driver.port")
-    System.clearProperty("spark.master.port")
+  /**
+   * Stops the specified workflow.
+   */
+  def stopStreamFlow(id: UUID) = flows(id).stop(false, true)
+
+  /**
+   * Returns the IDs of the running flows.
+   */
+  def getRunning = flows.keySet
+
+  /**
+   * Creates a new streaming context.
+   */
+  private def createStreamingContext = {
+    val streamCfg = ConfigUtils.getConfig("spark.streaming")
+    val ms = streamCfg.getDuration("batch-duration", TimeUnit.MILLISECONDS)
+    val ssc = new StreamingContext(frame.Main.sc, Milliseconds(ms))
+    val checkpointDir = streamCfg.getString("checkpoint-dir")
+    ssc.checkpoint(checkpointDir)
+    ssc
   }
 
   /**
