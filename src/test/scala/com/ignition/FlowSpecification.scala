@@ -13,9 +13,7 @@ import org.specs2.mutable.Specification
  * @author Vlad Orzhekhovskiy
  */
 trait FlowSpecification extends Specification
-  with XmlMatchers
-  with SparkTestHelper
-  with TestDataHelper with Logging {
+    with XmlMatchers with TestDataHelper with Logging {
 
   /**
    * Tests the argument for being unserializable.

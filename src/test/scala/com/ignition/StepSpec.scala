@@ -4,8 +4,6 @@ import org.junit.runner.RunWith
 import org.specs2.ScalaCheck
 import org.specs2.runner.JUnitRunner
 
-import com.ignition.frame.SparkRuntime
-
 @RunWith(classOf[JUnitRunner])
 class StepSpec extends FlowSpecification with ScalaCheck {
   sequential
@@ -15,30 +13,34 @@ class StepSpec extends FlowSpecification with ScalaCheck {
     def toJson: org.json4s.JValue = ???
   }
 
-  case class StringProducer(x: String) extends Producer[String, SparkRuntime] with StringStep {
-    protected def compute(preview: Boolean)(implicit runtime: SparkRuntime) = x
+  class Mock {}
+
+  implicit val rt = new Mock
+
+  case class StringProducer(x: String) extends Producer[String, Mock] with StringStep {
+    protected def compute(preview: Boolean)(implicit runtime: Mock) = x
   }
 
-  case class StringTransformer() extends Transformer[String, SparkRuntime] with StringStep {
-    protected def compute(arg: String, preview: Boolean)(implicit runtime: SparkRuntime) = arg.toUpperCase
+  case class StringTransformer() extends Transformer[String, Mock] with StringStep {
+    protected def compute(arg: String, preview: Boolean)(implicit runtime: Mock) = arg.toUpperCase
   }
 
-  case class StringSplitter() extends Splitter[String, SparkRuntime] with StringStep {
+  case class StringSplitter() extends Splitter[String, Mock] with StringStep {
     def outputCount = 2
-    protected def compute(arg: String, index: Int, preview: Boolean)(implicit runtime: SparkRuntime) =
+    protected def compute(arg: String, index: Int, preview: Boolean)(implicit runtime: Mock) =
       if (index == 0) arg.take(arg.length / 2) else arg.takeRight(arg.length / 2)
   }
 
   case class StringMerger(inputCount: Int, override val allInputsRequired: Boolean)
-      extends Merger[String, SparkRuntime] with StringStep {
-    protected def compute(args: IndexedSeq[String], preview: Boolean)(implicit runtime: SparkRuntime) =
+      extends Merger[String, Mock] with StringStep {
+    protected def compute(args: IndexedSeq[String], preview: Boolean)(implicit runtime: Mock) =
       args.filter(_ != null).mkString
   }
 
-  case class StringModule(size: Int) extends Module[String, SparkRuntime] with StringStep {
+  case class StringModule(size: Int) extends Module[String, Mock] with StringStep {
     def inputCount = size
     def outputCount = size
-    protected def compute(args: IndexedSeq[String], index: Int, preview: Boolean)(implicit runtime: SparkRuntime) =
+    protected def compute(args: IndexedSeq[String], index: Int, preview: Boolean)(implicit runtime: Mock) =
       args(index)
   }
 
@@ -56,13 +58,13 @@ class StepSpec extends FlowSpecification with ScalaCheck {
     }
     "wrap runtime error into workflow exception" in {
       val step = new StringProducer("abc") {
-        override def compute(preview: Boolean)(implicit runtime: SparkRuntime) = throwRT
+        override def compute(preview: Boolean)(implicit runtime: Mock) = throwRT
       }
       step.output must throwA[ExecutionException](message = "Step computation failed")
     }
     "propagate workflow exception" in {
       val step = new StringProducer("abc") {
-        override def compute(preview: Boolean)(implicit runtime: SparkRuntime) = throwWF
+        override def compute(preview: Boolean)(implicit runtime: Mock) = throwWF
       }
       step.output must throwA[ExecutionException](message = "workflow")
     }
