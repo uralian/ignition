@@ -75,4 +75,26 @@ package object ignition {
     case x if x.isInstanceOf[MultiInputStep[T, R]] => x.asInstanceOf[MultiInputStep[T, R]].in
     case _ => Nil
   }
+  
+  /**
+   * Helper class providing a simple syntax to add side effects to the returned value:
+   *
+   * {{{
+   * def square(x: Int) = {
+   * 		x * x
+   * } having (r => println "returned: " + r)
+   * }}}
+   *
+   * or simplified
+   *
+   * {{{
+   * def square(x: Int) = (x * x) having println
+   * }}}
+   */
+  final implicit class Having[A](val result: A) extends AnyVal {
+    def having(body: A => Unit): A = {
+      body(result)
+      result
+    }
+  }  
 }
