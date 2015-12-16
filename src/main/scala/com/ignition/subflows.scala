@@ -12,7 +12,7 @@ import com.ignition.util.XmlUtils._
 /**
  * A trivial implementation of a ConnectionSource which returns a static value.
  */
-private[ignition] case class ConnectionSourceStub[T, R](value: T) extends ConnectionSource[T, R] {
+private[ignition] case class ConnectionSourceStub[T, R <: FlowRuntime](value: T) extends ConnectionSource[T, R] {
   val step = null
   val index = 0
   def value(preview: Boolean)(implicit runtime: R): T = value
@@ -21,12 +21,12 @@ private[ignition] case class ConnectionSourceStub[T, R](value: T) extends Connec
 /**
  * Represents a connection between two steps.
  */
-private[ignition] case class Connection[T, R](srcStep: Step[T, R], srcPort: Int, tgtStep: Step[T, R], tgtPort: Int)
+private[ignition] case class Connection[T, R <: FlowRuntime](srcStep: Step[T, R], srcPort: Int, tgtStep: Step[T, R], tgtPort: Int)
 
 /**
  * Base subflow trait. Contains helper methods for enumerating steps and connections.
  */
-trait SubFlow[T, R] {
+trait SubFlow[T, R <: FlowRuntime] {
 
   /**
    * Tag used for serialization.
@@ -159,7 +159,7 @@ object SubFlow {
  * @param T type encapsulating the data that is passed between steps.
  * @param R type of the runtime context passed to the node for evaluation.
  */
-trait SubFlowFactory[S <: Step[T, R], T, R] {
+trait SubFlowFactory[S <: Step[T, R], T, R <: FlowRuntime] {
 
   /**
    * Factory that can build steps from XML.
@@ -252,7 +252,7 @@ trait SubFlowFactory[S <: Step[T, R], T, R] {
 /**
  * A subflow which represents a Producer-type step.
  */
-abstract class SubProducer[T, R](body: => ConnectionSource[T, R]) extends Producer[T, R] with SubFlow[T, R] {
+abstract class SubProducer[T, R<:FlowRuntime](body: => ConnectionSource[T, R]) extends Producer[T, R] with SubFlow[T, R] {
   lazy val inPoints = Nil
   lazy val outPoints = List(body)
 
@@ -262,7 +262,7 @@ abstract class SubProducer[T, R](body: => ConnectionSource[T, R]) extends Produc
 /**
  * A subflow which represents a Transformer-type step.
  */
-abstract class SubTransformer[T, R](body: => (ConnectionTarget[T, R], ConnectionSource[T, R]))
+abstract class SubTransformer[T, R <: FlowRuntime](body: => (ConnectionTarget[T, R], ConnectionSource[T, R]))
     extends Transformer[T, R] with SubFlow[T, R] {
 
   lazy val inPoints = List(body._1)
@@ -277,7 +277,7 @@ abstract class SubTransformer[T, R](body: => (ConnectionTarget[T, R], Connection
 /**
  * A subflow which represents a Splitter-type step.
  */
-abstract class SubSplitter[T, R](body: => (ConnectionTarget[T, R], Seq[ConnectionSource[T, R]]))
+abstract class SubSplitter[T, R <: FlowRuntime](body: => (ConnectionTarget[T, R], Seq[ConnectionSource[T, R]]))
     extends Splitter[T, R] with SubFlow[T, R] {
 
   lazy val inPoints = List(body._1)
@@ -294,7 +294,7 @@ abstract class SubSplitter[T, R](body: => (ConnectionTarget[T, R], Seq[Connectio
 /**
  * A subflow which represents a Merger-type step.
  */
-abstract class SubMerger[T, R](body: => (Seq[ConnectionTarget[T, R]], ConnectionSource[T, R]))
+abstract class SubMerger[T, R <: FlowRuntime](body: => (Seq[ConnectionTarget[T, R]], ConnectionSource[T, R]))
     extends Merger[T, R] with SubFlow[T, R] {
 
   override val allInputsRequired = false
@@ -313,7 +313,7 @@ abstract class SubMerger[T, R](body: => (Seq[ConnectionTarget[T, R]], Connection
 /**
  * A subflow which represents a generic multi-input, multi-output step.
  */
-abstract class SubModule[T, R](body: => (Seq[ConnectionTarget[T, R]], Seq[ConnectionSource[T, R]]))
+abstract class SubModule[T, R <: FlowRuntime](body: => (Seq[ConnectionTarget[T, R]], Seq[ConnectionSource[T, R]]))
     extends Module[T, R] with SubFlow[T, R] {
 
   override val allInputsRequired = false

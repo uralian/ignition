@@ -47,12 +47,19 @@ abstract class AbstractStep extends Serializable {
 }
 
 /**
+ * Flow execution runtime.
+ */
+trait FlowRuntime {
+
+}
+
+/**
  * A workflow step. It can have an arbitrary number of inputs and outputs, each of which
  * could be connected to inputs and outputs of other steps.
  * @param T the type encapsulating the data that is passed between steps.
  * @param R the type of the runtime context passed to the node for evaluation.
  */
-trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
+trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExport {
 
   /**
    * The maximum number of input ports.
@@ -109,7 +116,7 @@ trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
 /**
  * Something TO which a connection can be made, a connection target.
  */
-trait ConnectionTarget[T, R] {
+trait ConnectionTarget[T, R <: FlowRuntime] {
   def step: Step[T, R]
   def index: Int
 
@@ -120,7 +127,7 @@ trait ConnectionTarget[T, R] {
 /**
  * Something FROM which a connection can be made
  */
-trait ConnectionSource[T, R] {
+trait ConnectionSource[T, R <: FlowRuntime] {
   def step: Step[T, R]
   def index: Int
 
@@ -137,11 +144,11 @@ trait ConnectionSource[T, R] {
 }
 
 /* inputs */
-trait NoInputStep[T, R] extends Step[T, R] {
+trait NoInputStep[T, R <: FlowRuntime] extends Step[T, R] {
   val inputCount = 0
 }
 
-trait SingleInputStep[T, R] extends Step[T, R] with ConnectionTarget[T, R] {
+trait SingleInputStep[T, R <: FlowRuntime] extends Step[T, R] with ConnectionTarget[T, R] {
   val step = this
   val index = 0
   val inputCount = 1
@@ -151,7 +158,7 @@ trait SingleInputStep[T, R] extends Step[T, R] with ConnectionTarget[T, R] {
   }
 }
 
-trait MultiInputStep[T, R] extends Step[T, R] { self =>
+trait MultiInputStep[T, R <: FlowRuntime] extends Step[T, R] { self =>
   val in = new LazyArray[InPort](idx => InPort(idx))(inputCount)
 
   def inputs(preview: Boolean)(implicit runtime: R) = in.map { p =>
@@ -171,7 +178,7 @@ trait MultiInputStep[T, R] extends Step[T, R] { self =>
 }
 
 /* outputs */
-trait SingleOutputStep[T, R] extends Step[T, R] with ConnectionSource[T, R] {
+trait SingleOutputStep[T, R <: FlowRuntime] extends Step[T, R] with ConnectionSource[T, R] {
   val step = this
   val index = 0
   val outputCount = 1
@@ -179,7 +186,7 @@ trait SingleOutputStep[T, R] extends Step[T, R] with ConnectionSource[T, R] {
   def value(preview: Boolean)(implicit runtime: R): T = output(0, preview)
 }
 
-trait MultiOutputStep[T, R] extends Step[T, R] { self =>
+trait MultiOutputStep[T, R <: FlowRuntime] extends Step[T, R] { self =>
   val out = new LazyArray[OutPort](idx => OutPort(idx))(outputCount)
 
   def to(tgt: ConnectionTarget[T, R]): tgt.type = out(0).to(tgt)
@@ -203,13 +210,13 @@ trait MultiOutputStep[T, R] extends Step[T, R] { self =>
 }
 
 /* templates */
-abstract class Producer[T, R] extends SingleOutputStep[T, R] with NoInputStep[T, R] {
+abstract class Producer[T, R <: FlowRuntime] extends SingleOutputStep[T, R] with NoInputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(preview)
   protected def compute(preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Transformer[T, R] extends SingleOutputStep[T, R] with SingleInputStep[T, R] {
+abstract class Transformer[T, R <: FlowRuntime] extends SingleOutputStep[T, R] with SingleInputStep[T, R] {
   override val step = this
   override val index = 0
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
@@ -217,19 +224,19 @@ abstract class Transformer[T, R] extends SingleOutputStep[T, R] with SingleInput
   protected def compute(arg: T, preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Splitter[T, R] extends SingleInputStep[T, R] with MultiOutputStep[T, R] {
+abstract class Splitter[T, R <: FlowRuntime] extends SingleInputStep[T, R] with MultiOutputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(input(preview), index, preview)
   protected def compute(arg: T, index: Int, preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Merger[T, R] extends MultiInputStep[T, R] with SingleOutputStep[T, R] {
+abstract class Merger[T, R <: FlowRuntime] extends MultiInputStep[T, R] with SingleOutputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(inputs(preview), preview)
   protected def compute(args: IndexedSeq[T], preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Module[T, R] extends MultiInputStep[T, R] with MultiOutputStep[T, R] {
+abstract class Module[T, R <: FlowRuntime] extends MultiInputStep[T, R] with MultiOutputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(inputs(preview), index, preview)
   protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: R): T
@@ -250,7 +257,7 @@ trait XmlExport {
  * @param T type encapsulating the data that is passed between steps.
  * @param R type of the runtime context passed to the node for evaluation.
  */
-trait XmlStepFactory[S <: Step[T, R], T, R] {
+trait XmlStepFactory[S <: Step[T, R], T, R <: FlowRuntime] {
   def fromXml(xml: Node): S
 }
 
@@ -269,6 +276,6 @@ trait JsonExport {
  * @param T type encapsulating the data that is passed between steps.
  * @param R type of the runtime context passed to the node for evaluation.
  */
-trait JsonStepFactory[S <: Step[T, R], T, R] {
+trait JsonStepFactory[S <: Step[T, R], T, R <: FlowRuntime] {
   def fromJson(json: JValue): S
 }

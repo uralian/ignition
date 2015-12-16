@@ -13,7 +13,7 @@ class StepSpec extends FlowSpecification with ScalaCheck {
     def toJson: org.json4s.JValue = ???
   }
 
-  class Mock {}
+  class Mock extends FlowRuntime {}
 
   implicit val rt = new Mock
 
