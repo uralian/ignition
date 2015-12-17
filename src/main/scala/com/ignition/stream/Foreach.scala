@@ -7,22 +7,23 @@ import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2Assoc, string2jvalue }
 import org.json4s.jvalue2monadic
 
-import com.ignition.{ ExecutionException, Merger, Splitter, Transformer }
-import com.ignition.frame.{ FrameProducer, FrameStepFactory, FrameSubSplitter, SparkRuntime }
+import com.ignition.{ ExecutionException, Step }
+import com.ignition.frame.{ FrameProducer, FrameStepFactory, SparkRuntime }
+import com.ignition.ins
 
 /**
- * Invokes a DataFrame SubFlow on each stream batch.
- * The flow passed in the constructor should expect the RDDs from
- * the stream to appear on the first input (index 0).
+ * Invokes the embedded flow on each batch. Passes the input to the 0th input port
+ * of the flow's 0th input, and each output of the flow will be directed to the
+ * corresponding output of the step.
  *
  * @author Vlad Orzhekhovskiy
  */
-case class Foreach(flow: Splitter[DataFrame, SparkRuntime]) extends StreamSplitter(flow.outputCount) {
+case class Foreach(flow: Step[DataFrame, SparkRuntime])
+    extends StreamSplitter(flow.outputCount) {
   import Foreach._
 
   protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
     val flow = this.flow
-
     arg transform { rdd =>
       if (rdd.isEmpty) rdd
       else {
@@ -33,7 +34,7 @@ case class Foreach(flow: Splitter[DataFrame, SparkRuntime]) extends StreamSplitt
           def toXml: scala.xml.Elem = ???
           def toJson: org.json4s.JValue = ???
         }
-        source --> flow
+        source --> ins(flow)(0)
         flow.output(index, preview).rdd
       }
     }
@@ -49,35 +50,13 @@ case class Foreach(flow: Splitter[DataFrame, SparkRuntime]) extends StreamSplitt
 object Foreach {
   val tag = "stream-foreach"
 
-  def apply(tx: Transformer[DataFrame, SparkRuntime]): Foreach = {
-    val flow = FrameSubSplitter {
-      (tx, Seq(tx))
-    }
-    Foreach(flow)
-  }
-
-  def apply(mg: Merger[DataFrame, SparkRuntime]): Foreach = {
-    val flow = FrameSubSplitter {
-      (mg.in(0), Seq(mg))
-    }
-    Foreach(flow)
-  }
-
   def fromXml(xml: Node) = {
     val flow = FrameStepFactory.fromXml(scala.xml.Utility.trim(xml).child.head)
-    flow match {
-      case f: Transformer[DataFrame, SparkRuntime] => apply(f)
-      case f: Splitter[DataFrame, SparkRuntime]    => apply(f)
-      case f: Merger[DataFrame, SparkRuntime]      => apply(f)
-    }
+    apply(flow)
   }
 
   def fromJson(json: JValue) = {
     val flow = FrameStepFactory.fromJson(json \ "flow")
-    flow match {
-      case f: Transformer[DataFrame, SparkRuntime] => apply(f)
-      case f: Splitter[DataFrame, SparkRuntime]    => apply(f)
-      case f: Merger[DataFrame, SparkRuntime]      => apply(f)
-    }
+    apply(flow)
   }
 }

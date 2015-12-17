@@ -4,8 +4,8 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+import scala.concurrent.{ Future, future }
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.future
 import scala.io.Source
 import scala.xml.XML
 
@@ -65,12 +65,12 @@ object Main {
    * @param vars variables to inject before running the flow.
    * @param accs accumulators to inject before running the flow.
    * @param args an array of command line parameters to inject as variables under name 'arg\$index'.
-   * @return the newly generated flow id.
+   * @return the newly generated flow id and the future which will complete when the flow terminates.
    */
   def startStreamFlow(flow: StreamFlow,
                       vars: Map[String, Any] = Map.empty,
                       accs: Map[String, Any] = Map.empty,
-                      args: Array[String] = Array.empty): UUID = {
+                      args: Array[String] = Array.empty): (UUID, Future[Unit]) = {
 
     val ssc = createStreamingContext
     implicit val runtime = new DefaultSparkStreamingRuntime(frame.Main.ctx, ssc)
@@ -90,12 +90,12 @@ object Main {
       case (arg, index) => runtime.vars(s"arg$index") = arg
     }
 
-    future(flow.start)
+    val f = future(flow.start)
 
     val id = UUID.randomUUID
     flows += id -> ssc
 
-    id
+    id -> f
   }
 
   /**

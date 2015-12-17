@@ -1,5 +1,8 @@
 package com.ignition.samples
 
+import scala.concurrent.{ Await, TimeoutException }
+import scala.concurrent.duration.Duration
+
 import com.ignition.frame.{ DebugOutput, FrameSubTransformer, Reduce, ReduceOp, SQLQuery, SelectValues }
 import com.ignition.stream
 import com.ignition.stream.{ Filter, QueueInput, StreamFlow, foreach }
@@ -20,7 +23,7 @@ object QueueStreamFlow extends App {
       FrameSubTransformer {
         val sql = SQLQuery("select MIN(age) AS min_age, AVG(score) AS avg_score FROM input0")
         val select = SelectValues() retype ("avg_score" -> "int")
-        val debug = DebugOutput()
+        val debug = DebugOutput() title "true"
         sql --> select --> debug
         (sql.in(0), debug)
       }
@@ -29,7 +32,7 @@ object QueueStreamFlow extends App {
     val calcFalse = foreach {
       FrameSubTransformer {
         val reduce = Reduce("age" -> MAX, "score" -> SUM)
-        val debug = DebugOutput()
+        val debug = DebugOutput() title "false"
         reduce --> debug
         (reduce, debug)
       }
@@ -37,9 +40,11 @@ object QueueStreamFlow extends App {
 
     val filter = Filter("age < 30")
 
-    queue --> filter --> (calcTrue, calcFalse)
+    queue --> foreach(DebugOutput() title "input") --> filter --> (calcTrue, calcFalse)
     (calcTrue, calcFalse)
   }
 
-  stream.Main.startStreamFlow(flow)
+  val (id, f) = stream.Main.startStreamFlow(flow)
+  println(s"Flow #$id started")
+  Await.ready(f, Duration.Inf)
 }

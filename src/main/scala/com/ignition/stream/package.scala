@@ -15,9 +15,7 @@ import com.ignition.stream.Foreach
 package object stream {
   type DataStream = DStream[Row]
 
-  def foreach(tx: Transformer[DataFrame, SparkRuntime]): Foreach = Foreach(tx)
-
-  def foreach(mg: Merger[DataFrame, SparkRuntime]): Foreach = Foreach(mg)
+  def foreach(flow: Step[DataFrame, SparkRuntime]): Foreach = Foreach(flow)
 
   /**
    * Converts this RDD into a DataFrame using the schema of the first row, then applies the

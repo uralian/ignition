@@ -99,6 +99,13 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
   }
 
   /**
+   * Shortcut for `output(index, false)`. Computes a step output at specified index.
+   * @throws ExecutionException in case of an error, or if the step is not connected.
+   */
+  @throws(classOf[ExecutionException])
+  final def output(index: Int)(implicit runtime: R): T = output(index, false)
+
+  /**
    * Shortcut for `output(0, preview)`. Computes a step output at index 0.
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
