@@ -16,6 +16,18 @@ case class StreamFlow(targets: Iterable[ConnectionSource[DataStream, SparkStream
 
   val tag = StreamFlow.tag
 
+  @transient private var flowListeners = Set.empty[StreamFlowListener]
+
+  /**
+   * Registers a flow listener.
+   */
+  def addStreamFlowListener(listener: StreamFlowListener) = flowListeners += listener
+
+  /**
+   * Unregisters a flow listener.
+   */
+  def removeStreamFlowListener(listener: StreamFlowListener) = flowListeners -= listener
+
   /**
    * Starts a stream flow.
    */
@@ -23,7 +35,18 @@ case class StreamFlow(targets: Iterable[ConnectionSource[DataStream, SparkStream
     outPoints foreach (_.value(false).foreachRDD(_ => {}))
 
     runtime.ssc.start
+    notifyListeners(new StreamFlowStarted(this))
+
     runtime.ssc.awaitTermination
+    notifyListeners(new StreamFlowTerminated(this))
+  }
+
+  /**
+   * Notifies all listeners.
+   */
+  private def notifyListeners(event: StreamFlowEvent) = event match {
+    case e: StreamFlowStarted    => flowListeners foreach (_.onStreamFlowStarted(e))
+    case e: StreamFlowTerminated => flowListeners foreach (_.onStreamFlowTerminated(e))
   }
 }
 
@@ -63,4 +86,30 @@ object StreamFlow {
     val subflow = StreamSubFlow.fromJson(json)
     StreamFlow(subflow.outPoints)
   }
+}
+
+/**
+ * Base trait for all stream flow events.
+ */
+sealed trait StreamFlowEvent {
+  def flow: StreamFlow
+}
+
+case class StreamFlowStarted(flow: StreamFlow) extends StreamFlowEvent
+
+case class StreamFlowTerminated(flow: StreamFlow) extends StreamFlowEvent
+
+/**
+ * Listener which will be notified on stream flow events.
+ */
+trait StreamFlowListener {
+  /**
+   * Called when the stream flow has been started.
+   */
+  def onStreamFlowStarted(event: StreamFlowStarted)
+
+  /**
+   * Called when the stream flow has been terminated.
+   */
+  def onStreamFlowTerminated(event: StreamFlowTerminated)
 }

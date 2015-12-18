@@ -1,10 +1,12 @@
 package com.ignition.frame
 
 import scala.reflect.ClassTag
+
 import org.apache.spark.{ Accumulator, AccumulatorParam, SparkContext }
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.streaming.StreamingContext
+
+import com.ignition.FlowRuntime
 
 /**
  * Encapsulates the spark context and SQL context and provides helper
@@ -12,7 +14,7 @@ import org.apache.spark.streaming.StreamingContext
  *
  * @author Vlad Orzhekhovskiy
  */
-trait SparkRuntime extends Serializable {
+trait SparkRuntime extends FlowRuntime with Serializable {
   def sc: SparkContext
   def ctx: SQLContext
 
@@ -77,7 +79,7 @@ trait SparkRuntime extends Serializable {
  * @author Vlad Orzhekhovskiy
  */
 class DefaultSparkRuntime(@transient val ctx: SQLContext)
-  extends SparkRuntime {
+    extends SparkRuntime {
 
   @transient val sc = ctx.sparkContext
 }

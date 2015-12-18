@@ -6,31 +6,27 @@ import scala.util.control.NonFatal
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
-import org.apache.spark.streaming.scheduler._
+import org.apache.spark.streaming.scheduler.{ StreamingListener, StreamingListenerBatchCompleted, StreamingListenerReceiverError }
 
-import com.ignition.{ ExecutionException, FlowSpecification }
+import com.ignition.ExecutionException
+import com.ignition.frame.FrameFlowSpecification
 
 /**
  * Base trait for stream flow spec2 tests, includes some helper functions.
  *
  * @author Vlad Orzhekhovskiy
  */
-trait StreamFlowSpecification extends FlowSpecification {
+trait StreamFlowSpecification extends FrameFlowSpecification {
 
   System.setProperty(com.ignition.STEPS_SERIALIZABLE, true.toString)
-
-  ssc.stop(true, true)
-  System.clearProperty("spark.driver.port")
-  System.clearProperty("spark.master.port")
 
   /**
    * Starts the streaming, waits for a certain number of batches (using a fake clock)
    * and compares the stream output with the provided result.
    */
   protected def runAndAssertOutput(step: StreamStep, index: Int, batchCount: Int, expected: Set[Row]*) = {
-
-    val sc = createSparkContext
-    val ctx = createSQLContxt(sc)
+    step.resetCache
+    
     val ssc = createStreamingContext(sc)
     implicit val rt = new DefaultSparkStreamingRuntime(ctx, ssc)
 
@@ -57,10 +53,6 @@ trait StreamFlowSpecification extends FlowSpecification {
       case NonFatal(e) =>
         log.error("Error occurred while streaming: " + e.getMessage)
         ssc.stop(false, false)
-    } finally {
-      sc.stop
-      System.clearProperty("spark.driver.port")
-      System.clearProperty("spark.master.port")
     }
 
     (buffer zip expected) forall {

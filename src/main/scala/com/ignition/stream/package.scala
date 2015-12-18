@@ -5,7 +5,7 @@ import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.streaming.dstream.DStream
 
 import com.ignition.frame.SparkRuntime
-import com.ignition.stream.Foreach
+import com.ignition.stream.{ Foreach, SparkStreamingRuntime }
 
 /**
  * Data types, implicits, aliases for DStream-based workflows.
@@ -15,9 +15,11 @@ import com.ignition.stream.Foreach
 package object stream {
   type DataStream = DStream[Row]
 
-  def foreach(tx: Transformer[DataFrame, SparkRuntime]): Foreach = Foreach(tx)
+  type StreamStepListener = StepListener[DataStream, SparkStreamingRuntime]
+  type BeforeStreamStepComputed = BeforeStepComputed[DataStream, SparkStreamingRuntime]
+  type AfterStreamStepComputed = AfterStepComputed[DataStream, SparkStreamingRuntime]
 
-  def foreach(mg: Merger[DataFrame, SparkRuntime]): Foreach = Foreach(mg)
+  def foreach(flow: Step[DataFrame, SparkRuntime]): Foreach = Foreach(flow)
 
   /**
    * Converts this RDD into a DataFrame using the schema of the first row, then applies the

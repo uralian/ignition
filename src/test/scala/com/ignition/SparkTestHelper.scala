@@ -6,7 +6,6 @@ import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.streaming.{ Milliseconds, StreamingContext }
 
-import com.ignition.stream.DefaultSparkStreamingRuntime
 import com.ignition.util.ConfigUtils
 import com.ignition.util.ConfigUtils.RichConfig
 
@@ -30,14 +29,6 @@ trait SparkTestHelper extends BeforeAllAfterAll {
   val appName = config.getString("app-name")
   val batchDuration = config.getTimeInterval("streaming.batch-duration")
 
-  implicit protected val sc: SparkContext = createSparkContext
-
-  implicit protected val ctx: SQLContext = createSQLContxt(sc)
-
-  implicit protected val ssc: StreamingContext = createStreamingContext(sc)
-
-  implicit protected val rt = new DefaultSparkStreamingRuntime(ctx, ssc)
-
   protected def createSparkContext: SparkContext =
     new SparkContext(masterUrl, appName, sparkConf)
 
@@ -51,11 +42,9 @@ trait SparkTestHelper extends BeforeAllAfterAll {
     ssc
   }
 
-  protected def clearContext = blocking {
+  protected def clearContext(sc: SparkContext) = blocking {
     sc.stop
     System.clearProperty("spark.driver.port")
     System.clearProperty("spark.master.port")
   }
-
-  override def afterAll = clearContext
 }

@@ -47,12 +47,17 @@ abstract class AbstractStep extends Serializable {
 }
 
 /**
+ * Flow execution runtime.
+ */
+trait FlowRuntime
+
+/**
  * A workflow step. It can have an arbitrary number of inputs and outputs, each of which
  * could be connected to inputs and outputs of other steps.
  * @param T the type encapsulating the data that is passed between steps.
  * @param R the type of the runtime context passed to the node for evaluation.
  */
-trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
+trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExport {
 
   /**
    * The maximum number of input ports.
@@ -68,6 +73,23 @@ trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
    * Specifies if the step should throw an error if one of the inputs is not connected.
    */
   def allInputsRequired = true
+
+  /**
+   * Caches computed output values.
+   */
+  @transient private var cache = Map.empty[Int, T]
+
+  /**
+   * Clears the cache of this step and its predecessors.
+   */
+  private[ignition] def resetCache(): Unit = synchronized {
+    this.cache = Map.empty[Int, T]
+    for {
+      tgt <- ins(this)
+      src = tgt.inbound if src != null
+      step = src.step if step != null
+    } yield step.resetCache
+  }
 
   /**
    * Computes a step output value at the specified index. This method is invoked from output()
@@ -86,10 +108,23 @@ trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
-  final def output(index: Int, preview: Boolean)(implicit runtime: R): T = wrap {
-    assert(0 until outputCount contains index, s"Output index out of range: $index of $outputCount")
-    compute(index, preview)
+  final def output(index: Int, preview: Boolean)(implicit runtime: R): T = synchronized {
+    cache.get(index) getOrElse wrap {
+      assert(0 until outputCount contains index, s"Output index out of range: $index of $outputCount")
+      notifyListeners(new BeforeStepComputed(this, index, preview))
+      val result = compute(index, preview)
+      notifyListeners(new AfterStepComputed(this, index, preview, result))
+      if (!preview) cache += index -> result
+      result
+    }
   }
+
+  /**
+   * Shortcut for `output(index, false)`. Computes a step output at specified index.
+   * @throws ExecutionException in case of an error, or if the step is not connected.
+   */
+  @throws(classOf[ExecutionException])
+  final def output(index: Int)(implicit runtime: R): T = output(index, false)
 
   /**
    * Shortcut for `output(0, preview)`. Computes a step output at index 0.
@@ -104,12 +139,35 @@ trait Step[T, R] extends AbstractStep with XmlExport with JsonExport {
    */
   @throws(classOf[ExecutionException])
   final def output(implicit runtime: R): T = output(false)
+
+  /**
+   * Listeners which will be notified on step events.
+   */
+  @transient private var listeners = Set.empty[StepListener[T, R]]
+
+  /**
+   * Registers a new listener.
+   */
+  def addStepListener(listener: StepListener[T, R]) = listeners += listener
+
+  /**
+   * Unregisters a listener.
+   */
+  def removeStepListener(listener: StepListener[T, R]) = listeners -= listener
+
+  /**
+   * Notifies all listeners.
+   */
+  private def notifyListeners(event: StepEvent[T, R]) = event match {
+    case e: BeforeStepComputed[T, R] => listeners foreach (_.onBeforeStepComputed(e))
+    case e: AfterStepComputed[T, R]  => listeners foreach (_.onAfterStepComputed(e))
+  }
 }
 
 /**
  * Something TO which a connection can be made, a connection target.
  */
-trait ConnectionTarget[T, R] {
+trait ConnectionTarget[T, R <: FlowRuntime] {
   def step: Step[T, R]
   def index: Int
 
@@ -120,7 +178,7 @@ trait ConnectionTarget[T, R] {
 /**
  * Something FROM which a connection can be made
  */
-trait ConnectionSource[T, R] {
+trait ConnectionSource[T, R <: FlowRuntime] {
   def step: Step[T, R]
   def index: Int
 
@@ -137,11 +195,11 @@ trait ConnectionSource[T, R] {
 }
 
 /* inputs */
-trait NoInputStep[T, R] extends Step[T, R] {
+trait NoInputStep[T, R <: FlowRuntime] extends Step[T, R] {
   val inputCount = 0
 }
 
-trait SingleInputStep[T, R] extends Step[T, R] with ConnectionTarget[T, R] {
+trait SingleInputStep[T, R <: FlowRuntime] extends Step[T, R] with ConnectionTarget[T, R] {
   val step = this
   val index = 0
   val inputCount = 1
@@ -151,7 +209,7 @@ trait SingleInputStep[T, R] extends Step[T, R] with ConnectionTarget[T, R] {
   }
 }
 
-trait MultiInputStep[T, R] extends Step[T, R] { self =>
+trait MultiInputStep[T, R <: FlowRuntime] extends Step[T, R] { self =>
   val in = new LazyArray[InPort](idx => InPort(idx))(inputCount)
 
   def inputs(preview: Boolean)(implicit runtime: R) = in.map { p =>
@@ -171,7 +229,7 @@ trait MultiInputStep[T, R] extends Step[T, R] { self =>
 }
 
 /* outputs */
-trait SingleOutputStep[T, R] extends Step[T, R] with ConnectionSource[T, R] {
+trait SingleOutputStep[T, R <: FlowRuntime] extends Step[T, R] with ConnectionSource[T, R] {
   val step = this
   val index = 0
   val outputCount = 1
@@ -179,7 +237,7 @@ trait SingleOutputStep[T, R] extends Step[T, R] with ConnectionSource[T, R] {
   def value(preview: Boolean)(implicit runtime: R): T = output(0, preview)
 }
 
-trait MultiOutputStep[T, R] extends Step[T, R] { self =>
+trait MultiOutputStep[T, R <: FlowRuntime] extends Step[T, R] { self =>
   val out = new LazyArray[OutPort](idx => OutPort(idx))(outputCount)
 
   def to(tgt: ConnectionTarget[T, R]): tgt.type = out(0).to(tgt)
@@ -203,13 +261,13 @@ trait MultiOutputStep[T, R] extends Step[T, R] { self =>
 }
 
 /* templates */
-abstract class Producer[T, R] extends SingleOutputStep[T, R] with NoInputStep[T, R] {
+abstract class Producer[T, R <: FlowRuntime] extends SingleOutputStep[T, R] with NoInputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(preview)
   protected def compute(preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Transformer[T, R] extends SingleOutputStep[T, R] with SingleInputStep[T, R] {
+abstract class Transformer[T, R <: FlowRuntime] extends SingleOutputStep[T, R] with SingleInputStep[T, R] {
   override val step = this
   override val index = 0
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
@@ -217,22 +275,53 @@ abstract class Transformer[T, R] extends SingleOutputStep[T, R] with SingleInput
   protected def compute(arg: T, preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Splitter[T, R] extends SingleInputStep[T, R] with MultiOutputStep[T, R] {
+abstract class Splitter[T, R <: FlowRuntime] extends SingleInputStep[T, R] with MultiOutputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(input(preview), index, preview)
   protected def compute(arg: T, index: Int, preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Merger[T, R] extends MultiInputStep[T, R] with SingleOutputStep[T, R] {
+abstract class Merger[T, R <: FlowRuntime] extends MultiInputStep[T, R] with SingleOutputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(inputs(preview), preview)
   protected def compute(args: IndexedSeq[T], preview: Boolean)(implicit runtime: R): T
 }
 
-abstract class Module[T, R] extends MultiInputStep[T, R] with MultiOutputStep[T, R] {
+abstract class Module[T, R <: FlowRuntime] extends MultiInputStep[T, R] with MultiOutputStep[T, R] {
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(inputs(preview), index, preview)
   protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: R): T
+}
+
+/* listeners */
+
+/**
+ * Base trait for all step events.
+ */
+sealed trait StepEvent[T, R <: FlowRuntime] {
+  def step: Step[T, R]
+}
+
+case class BeforeStepComputed[T, R <: FlowRuntime](
+  step: Step[T, R], index: Int, preview: Boolean) extends StepEvent[T, R]
+
+case class AfterStepComputed[T, R <: FlowRuntime](
+  step: Step[T, R], index: Int, preview: Boolean, value: T) extends StepEvent[T, R]
+
+/**
+ * Listener which will be notified on step events.
+ */
+trait StepListener[T, R <: FlowRuntime] {
+
+  /**
+   * Called before the step value is computed.
+   */
+  def onBeforeStepComputed(event: BeforeStepComputed[T, R]) = {}
+
+  /**
+   * Called after the step value has been computed.
+   */
+  def onAfterStepComputed(event: AfterStepComputed[T, R]) = {}
 }
 
 /* XML serialization */
@@ -250,7 +339,7 @@ trait XmlExport {
  * @param T type encapsulating the data that is passed between steps.
  * @param R type of the runtime context passed to the node for evaluation.
  */
-trait XmlStepFactory[S <: Step[T, R], T, R] {
+trait XmlStepFactory[S <: Step[T, R], T, R <: FlowRuntime] {
   def fromXml(xml: Node): S
 }
 
@@ -269,6 +358,6 @@ trait JsonExport {
  * @param T type encapsulating the data that is passed between steps.
  * @param R type of the runtime context passed to the node for evaluation.
  */
-trait JsonStepFactory[S <: Step[T, R], T, R] {
+trait JsonStepFactory[S <: Step[T, R], T, R <: FlowRuntime] {
   def fromJson(json: JValue): S
 }

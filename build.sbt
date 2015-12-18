@@ -89,6 +89,7 @@ pomExtra := (
   </developers>)
   
 // BuildInfo options
+
 enablePlugins(BuildInfoPlugin)
 buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion)
 buildInfoPackage := "com.ignition"
