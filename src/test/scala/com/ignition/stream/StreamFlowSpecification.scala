@@ -25,6 +25,8 @@ trait StreamFlowSpecification extends FrameFlowSpecification {
    * and compares the stream output with the provided result.
    */
   protected def runAndAssertOutput(step: StreamStep, index: Int, batchCount: Int, expected: Set[Row]*) = {
+    step.resetCache
+    
     val ssc = createStreamingContext(sc)
     implicit val rt = new DefaultSparkStreamingRuntime(ctx, ssc)
 

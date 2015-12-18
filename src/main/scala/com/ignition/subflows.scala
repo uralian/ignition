@@ -26,7 +26,7 @@ private[ignition] case class Connection[T, R <: FlowRuntime](srcStep: Step[T, R]
 /**
  * Base subflow trait. Contains helper methods for enumerating steps and connections.
  */
-trait SubFlow[T, R <: FlowRuntime] {
+trait SubFlow[T, R <: FlowRuntime] extends Step[T, R] {
 
   /**
    * Tag used for serialization.
@@ -128,6 +128,14 @@ trait SubFlow[T, R <: FlowRuntime] {
       targets
     else
       targets ++ withPredecessors(prevSteps)
+  }
+
+  /**
+   * Reset the cache of the subflow and its constituents.
+   */
+  override private[ignition] def resetCache(): Unit = synchronized {
+    super.resetCache
+    steps foreach (_.resetCache)
   }
 }
 

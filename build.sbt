@@ -33,7 +33,6 @@ run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Comp
 // test options
 
 parallelExecution in Test := false
-fork in Test := true
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
 ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := false
 

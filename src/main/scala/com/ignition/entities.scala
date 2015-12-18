@@ -75,6 +75,23 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
   def allInputsRequired = true
 
   /**
+   * Caches computed output values.
+   */
+  @transient private var cache = Map.empty[Int, T]
+
+  /**
+   * Clears the cache of this step and its predecessors.
+   */
+  private[ignition] def resetCache(): Unit = synchronized {
+    this.cache = Map.empty[Int, T]
+    for {
+      tgt <- ins(this)
+      src = tgt.inbound if src != null
+      step = src.step if step != null
+    } yield step.resetCache
+  }
+
+  /**
    * Computes a step output value at the specified index. This method is invoked from output()
    * and can safely throw any exception, which will be wrapped into ExecutionException.
    * @param index the output value index.
@@ -91,12 +108,15 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
-  final def output(index: Int, preview: Boolean)(implicit runtime: R): T = wrap {
-    assert(0 until outputCount contains index, s"Output index out of range: $index of $outputCount")
-    notifyListeners(new BeforeStepComputed(this, index, preview))
-    val result = compute(index, preview)
-    notifyListeners(new AfterStepComputed(this, index, preview, result))
-    result
+  final def output(index: Int, preview: Boolean)(implicit runtime: R): T = synchronized {
+    cache.get(index) getOrElse wrap {
+      assert(0 until outputCount contains index, s"Output index out of range: $index of $outputCount")
+      notifyListeners(new BeforeStepComputed(this, index, preview))
+      val result = compute(index, preview)
+      notifyListeners(new AfterStepComputed(this, index, preview, result))
+      if (!preview) cache += index -> result
+      result
+    }
   }
 
   /**

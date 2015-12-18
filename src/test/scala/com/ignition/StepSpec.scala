@@ -40,8 +40,11 @@ class StepSpec extends FlowSpecification with ScalaCheck {
   case class StringModule(size: Int) extends Module[String, Mock] with StringStep {
     def inputCount = size
     def outputCount = size
-    protected def compute(args: IndexedSeq[String], index: Int, preview: Boolean)(implicit runtime: Mock) =
+    var computeCount: Int = 0
+    protected def compute(args: IndexedSeq[String], index: Int, preview: Boolean)(implicit runtime: Mock) = {
+      computeCount += 1
       args(index)
+    }
   }
 
   def throwRT() = throw new RuntimeException("runtime")
@@ -160,6 +163,27 @@ class StepSpec extends FlowSpecification with ScalaCheck {
       step1.output(1, false) must throwA[ExecutionException]
     }
   }
+  
+  "Step cache" should {
+    "reuse computed values" in {
+      val step0 = StringProducer("0")
+      val step1 = StringProducer("1")
+      val step2 = StringProducer("2")
+      val step = StringModule(3)
+      (step0, step1, step2) --> step
+      step.computeCount === 0
+      step.output(0)
+      step.computeCount === 1
+      step.output(0)
+      step.computeCount === 1
+      step.output(2)
+      step.computeCount === 2
+      step.output(1)
+      step.computeCount === 3
+      step.output(2)
+      step.computeCount === 3
+    }
+  }  
 
   "Step connection operators" should {
     val p1 = StringProducer("a")
