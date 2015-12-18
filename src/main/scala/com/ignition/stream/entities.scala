@@ -2,10 +2,12 @@ package com.ignition.stream
 
 import scala.reflect.ClassTag
 
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.streaming.dstream.DStream.toPairDStreamFunctions
+import org.joda.time.DateTime
 
 import com.ignition._
 
@@ -28,6 +30,38 @@ trait StreamStep extends Step[DataStream, SparkStreamingRuntime] {
    * Returns the implicit StreamingContext.
    */
   protected def ssc(implicit runtime: SparkStreamingRuntime) = runtime.ssc
+
+  /**
+   * Listeners to be notified on stream data updates.
+   */
+  @transient private var dataListeners = Set.empty[StreamStepDataListener]
+
+  /**
+   * Registers a data listener.
+   */
+  def addStreamDataListener(listener: StreamStepDataListener) = dataListeners += listener
+
+  /**
+   * Unregisters a data listener.
+   */
+  def removeStreamDataListener(listener: StreamStepDataListener) = dataListeners -= listener
+
+  /**
+   * Triggers listener notification on stream events.
+   */
+  abstract override protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+    val stream = super.compute(index, preview)
+    stream foreachRDD { (rdd, time) =>
+      val date = new DateTime(time.milliseconds)
+      notifyDataListeners(StreamStepBatchProcessed(this, date, rdd))
+    }
+    stream
+  }
+
+  /**
+   * Notifies all data listeners.
+   */
+  private def notifyDataListeners(event: StreamStepBatchProcessed) = dataListeners foreach (_.onBatchProcessed(event))
 }
 
 /* step templates */
@@ -138,4 +172,16 @@ abstract class StateUpdate[S: ClassTag](keyFields: Iterable[String]) extends Str
         new GenericRowWithSchema(values.toArray, schema).asInstanceOf[Row]
     }
   }
+}
+
+/**
+ * Encapsulates the details about the processed batch.
+ */
+case class StreamStepBatchProcessed(step: StreamStep, time: DateTime, rows: RDD[Row])
+
+/**
+ * Listener which will be notified on each processed stream batch.
+ */
+trait StreamStepDataListener {
+  def onBatchProcessed(event: StreamStepBatchProcessed) = {}
 }

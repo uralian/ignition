@@ -17,15 +17,40 @@ case class DataFlow(targets: Iterable[ConnectionSource[DataFrame, SparkRuntime]]
 
   val tag = DataFlow.tag
 
+  @transient private var flowListeners = Set.empty[DataFlowListener]
+
+  /**
+   * Registers a flow listener.
+   */
+  def addDataFlowListener(listener: DataFlowListener) = flowListeners += listener
+
+  /**
+   * Unregisters a flow listener.
+   */
+  def removeDataFlowListener(listener: DataFlowListener) = flowListeners -= listener
+
   /**
    * Executes a data flow.
    */
-  def execute(preview: Boolean)(implicit runtime: SparkRuntime): Iterable[DataFrame] = outPoints map (_.value(preview))
+  def execute(preview: Boolean)(implicit runtime: SparkRuntime): Iterable[DataFrame] = {
+    notifyListeners(new DataFlowStarted(this))
+    val results = outPoints map (_.value(preview))
+    notifyListeners(new DataFlowComplete(this, results))
+    results
+  }
 
   /**
    * Executes a data flow.
    */
   def execute(implicit runtime: SparkRuntime): Iterable[DataFrame] = execute(false)
+
+  /**
+   * Notifies all listeners.
+   */
+  private def notifyListeners(event: DataFlowEvent) = event match {
+    case e: DataFlowStarted  => flowListeners foreach (_.onDataFlowStarted(e))
+    case e: DataFlowComplete => flowListeners foreach (_.onDataFlowComplete(e))
+  }
 }
 
 /**
@@ -64,4 +89,30 @@ object DataFlow {
     val subflow = FrameSubFlow.fromJson(json)
     DataFlow(subflow.outPoints)
   }
+}
+
+/**
+ * Base trait for all data flow events.
+ */
+sealed trait DataFlowEvent {
+  def flow: DataFlow
+}
+
+case class DataFlowStarted(flow: DataFlow) extends DataFlowEvent
+
+case class DataFlowComplete(flow: DataFlow, results: Seq[DataFrame]) extends DataFlowEvent
+
+/**
+ * Listener which will be notified on data flow events.
+ */
+trait DataFlowListener {
+  /**
+   * Called when the data flow has been started.
+   */
+  def onDataFlowStarted(event: DataFlowStarted)
+
+  /**
+   * Called when the data flow has been complete.
+   */
+  def onDataFlowComplete(event: DataFlowComplete)
 }

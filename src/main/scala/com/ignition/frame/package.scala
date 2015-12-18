@@ -1,7 +1,8 @@
 package com.ignition
 
 import scala.collection.JavaConverters.propertiesAsScalaMapConverter
-import org.apache.spark.sql.{ ColumnName, Row }
+
+import org.apache.spark.sql.{ ColumnName, DataFrame, Row }
 
 /**
  * Data types, implicits, aliases for DataFrame-based workflows.
@@ -9,7 +10,11 @@ import org.apache.spark.sql.{ ColumnName, Row }
  * @author Vlad Orzhekhovskiy
  */
 package object frame {
-  
+
+  type FrameStepListener = StepListener[DataFrame, SparkRuntime]
+  type BeforeFrameStepComputed = BeforeStepComputed[DataFrame, SparkRuntime]
+  type AfterFrameStepComputed = AfterStepComputed[DataFrame, SparkRuntime]
+
   /**
    * An implicit conversion of:
    * $"..." literals into {{org.apache.spark.sql.ColumnName}} instances.
@@ -21,7 +26,7 @@ package object frame {
     def v(args: Any*): VarLiteral = VarLiteral(sc.parts.head)
     def e(args: Any*): EnvLiteral = EnvLiteral(sc.parts.head)
   }
-  
+
   /**
    * Injects row fields, environment settings and variables into the string.
    */

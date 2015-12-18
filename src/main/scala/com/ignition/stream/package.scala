@@ -5,7 +5,7 @@ import org.apache.spark.sql.{ DataFrame, Row, SQLContext }
 import org.apache.spark.streaming.dstream.DStream
 
 import com.ignition.frame.SparkRuntime
-import com.ignition.stream.Foreach
+import com.ignition.stream.{ Foreach, SparkStreamingRuntime }
 
 /**
  * Data types, implicits, aliases for DStream-based workflows.
@@ -14,6 +14,10 @@ import com.ignition.stream.Foreach
  */
 package object stream {
   type DataStream = DStream[Row]
+
+  type StreamStepListener = StepListener[DataStream, SparkStreamingRuntime]
+  type BeforeStreamStepComputed = BeforeStepComputed[DataStream, SparkStreamingRuntime]
+  type AfterStreamStepComputed = AfterStepComputed[DataStream, SparkStreamingRuntime]
 
   def foreach(flow: Step[DataFrame, SparkRuntime]): Foreach = Foreach(flow)
 

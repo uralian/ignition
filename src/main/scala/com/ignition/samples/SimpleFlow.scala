@@ -1,12 +1,19 @@
 package com.ignition.samples
 
 import com.ignition.{ CSource2, frame }
-import com.ignition.frame.{ BasicStats, DataFlow, DataGrid, DebugOutput, SQLQuery, SelectValues }
-import com.ignition.types.{ RichStructType, date, fieldToRichStruct, fieldToStructType, int, string }
+import com.ignition.frame._
+import com.ignition.types._
 import com.ignition.value2tuple
 
 object SimpleFlow extends App {
   import frame.BasicAggregator._
+
+  val listener = new FrameStepListener with DataFlowListener {
+    override def onBeforeStepComputed(event: BeforeFrameStepComputed) = println(event)
+    override def onAfterStepComputed(event: AfterFrameStepComputed) = println(event)
+    override def onDataFlowStarted(event: DataFlowStarted) = println(event)
+    override def onDataFlowComplete(event: DataFlowComplete) = println(event)
+  }
 
   val flow = DataFlow {
     val grid1 = DataGrid(string("id") ~ string("name") ~ int("weight") ~ date("dob")) rows (
@@ -14,6 +21,7 @@ object SimpleFlow extends App {
       (newid, "jane", 190, javaDate(1982, 4, 25)),
       (newid, "jake", 160, javaDate(1974, 11, 3)),
       (newid, "josh", 120, javaDate(1995, 1, 10)))
+    grid1 addStepListener listener
 
     val grid2 = DataGrid(string("name")) rows ("jane", "josh")
 
@@ -23,6 +31,7 @@ object SimpleFlow extends App {
       SELECT SUM(weight) AS total, AVG(weight) AS mean, MIN(weight) AS low
       FROM input0 JOIN input1 ON input0.name = input1.name
       WHERE input0.name LIKE 'j%'""")
+    queryA addStepListener listener
 
     val selectA = SelectValues() rename ("mean" -> "average") retype ("average" -> "int")
 
@@ -42,6 +51,8 @@ object SimpleFlow extends App {
 
     (debugA, debugB)
   }
+  
+  flow addDataFlowListener listener
 
   frame.Main.runDataFlow(flow)
 }

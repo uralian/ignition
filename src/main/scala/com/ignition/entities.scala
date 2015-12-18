@@ -49,9 +49,7 @@ abstract class AbstractStep extends Serializable {
 /**
  * Flow execution runtime.
  */
-trait FlowRuntime {
-
-}
+trait FlowRuntime
 
 /**
  * A workflow step. It can have an arbitrary number of inputs and outputs, each of which
@@ -95,7 +93,10 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
   @throws(classOf[ExecutionException])
   final def output(index: Int, preview: Boolean)(implicit runtime: R): T = wrap {
     assert(0 until outputCount contains index, s"Output index out of range: $index of $outputCount")
-    compute(index, preview)
+    notifyListeners(new BeforeStepComputed(this, index, preview))
+    val result = compute(index, preview)
+    notifyListeners(new AfterStepComputed(this, index, preview, result))
+    result
   }
 
   /**
@@ -118,6 +119,29 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
    */
   @throws(classOf[ExecutionException])
   final def output(implicit runtime: R): T = output(false)
+
+  /**
+   * Listeners which will be notified on step events.
+   */
+  @transient private var listeners = Set.empty[StepListener[T, R]]
+
+  /**
+   * Registers a new listener.
+   */
+  def addStepListener(listener: StepListener[T, R]) = listeners += listener
+
+  /**
+   * Unregisters a listener.
+   */
+  def removeStepListener(listener: StepListener[T, R]) = listeners -= listener
+
+  /**
+   * Notifies all listeners.
+   */
+  private def notifyListeners(event: StepEvent[T, R]) = event match {
+    case e: BeforeStepComputed[T, R] => listeners foreach (_.onBeforeStepComputed(e))
+    case e: AfterStepComputed[T, R]  => listeners foreach (_.onAfterStepComputed(e))
+  }
 }
 
 /**
@@ -247,6 +271,37 @@ abstract class Module[T, R <: FlowRuntime] extends MultiInputStep[T, R] with Mul
   protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
     compute(inputs(preview), index, preview)
   protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: R): T
+}
+
+/* listeners */
+
+/**
+ * Base trait for all step events.
+ */
+sealed trait StepEvent[T, R <: FlowRuntime] {
+  def step: Step[T, R]
+}
+
+case class BeforeStepComputed[T, R <: FlowRuntime](
+  step: Step[T, R], index: Int, preview: Boolean) extends StepEvent[T, R]
+
+case class AfterStepComputed[T, R <: FlowRuntime](
+  step: Step[T, R], index: Int, preview: Boolean, value: T) extends StepEvent[T, R]
+
+/**
+ * Listener which will be notified on step events.
+ */
+trait StepListener[T, R <: FlowRuntime] {
+
+  /**
+   * Called before the step value is computed.
+   */
+  def onBeforeStepComputed(event: BeforeStepComputed[T, R]) = {}
+
+  /**
+   * Called after the step value has been computed.
+   */
+  def onAfterStepComputed(event: AfterStepComputed[T, R]) = {}
 }
 
 /* XML serialization */
