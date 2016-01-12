@@ -3,7 +3,7 @@ package com.ignition.frame
 import scala.xml.{ Elem, Node }
 
 import org.apache.spark.sql.DataFrame
-import org.dsa.iot.spark.DSAConnector
+import org.dsa.iot.spark.{ DSAConnector, DSAHelper }
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2Assoc, seq2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
@@ -25,9 +25,10 @@ case class DSAOutput(fields: Iterable[(String, String)]) extends FrameTransforme
 
   protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
     val df = optLimit(arg, preview)
-    df foreach { row =>
+    implicit val responder = DSAConnector.responderLink.getResponder
+    df.collect foreach { row =>
       fields foreach {
-        case (name, path) => DSAConnector.updateNode(path, row.getAs[Any](name))
+        case (name, path) => DSAHelper updateNode path -> row.getAs[Any](name)
       }
     }
     df
