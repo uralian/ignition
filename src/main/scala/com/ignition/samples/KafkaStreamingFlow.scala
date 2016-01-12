@@ -45,5 +45,5 @@ object KafkaStreamingFlow extends App {
     (kafka, sql.out(0)) --> join --> debug
   }
 
-  stream.Main.startStreamFlow(flow)
+  stream.Main.startAndWait(flow)
 }
