@@ -2,7 +2,7 @@ package com.ignition.stream
 
 import scala.xml.{ Elem, Node }
 
-import org.dsa.iot.spark.DSAConnector
+import org.dsa.iot.spark.{ DSAConnector, DSAHelper }
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2Assoc, seq2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
@@ -23,9 +23,10 @@ case class DSAStreamOutput(fields: Iterable[(String, String)]) extends StreamTra
   def %(tuple: (String, String)) = add(tuple)
 
   protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
-    arg foreachRDD (_ foreach { row =>
+    arg foreachRDD (_.collect foreach { row =>
+      implicit val responder = DSAConnector.responderLink.getResponder
       fields foreach {
-        case (name, path) => DSAConnector.updateNode(path, row.getAs[Any](name))
+        case (name, path) => DSAHelper updateNode path -> row.getAs[Any](name)
       }
     })
     arg

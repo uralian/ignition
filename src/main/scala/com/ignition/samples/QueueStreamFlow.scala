@@ -58,7 +58,5 @@ object QueueStreamFlow extends App {
 
   flow addStreamFlowListener listener
 
-  val (id, f) = stream.Main.startStreamFlow(flow)
-  println(s"Flow #$id started")
-  Await.ready(f, Duration.Inf)
+  stream.Main.startAndWait(flow)
 }

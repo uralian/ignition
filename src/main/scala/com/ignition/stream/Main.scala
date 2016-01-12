@@ -4,8 +4,11 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import scala.concurrent.{ Future, future }
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.future
 import scala.io.Source
 import scala.xml.XML
 
@@ -96,6 +99,23 @@ object Main {
     flows += id -> ssc
 
     id -> f
+  }
+
+  /**
+   * Starts the specified stream flow and waits for it to complete.
+   * @param flow flow to run.
+   * @param vars variables to inject before running the flow.
+   * @param accs accumulators to inject before running the flow.
+   * @param args an array of command line parameters to inject as variables under name 'arg\$index'.
+   */
+  def startAndWait(flow: StreamFlow,
+                   vars: Map[String, Any] = Map.empty,
+                   accs: Map[String, Any] = Map.empty,
+                   args: Array[String] = Array.empty) = {
+
+    val (id, f) = startStreamFlow(flow, vars, accs, args)
+    println(s"Flow #$id started")
+    Await.ready(f, Duration.Inf)
   }
 
   /**

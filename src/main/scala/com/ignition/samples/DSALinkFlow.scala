@@ -1,7 +1,7 @@
 package com.ignition.samples
 
 import org.apache.spark.sql.types.DoubleType
-import org.dsa.iot.spark.RichInt
+import org.apache.spark.streaming.Seconds
 
 import com.ignition.frame.SQLQuery
 import com.ignition.frame.mllib.Correlation
@@ -18,7 +18,7 @@ object DSALinkFlow extends App {
 
     val sql = foreach { SQLQuery("select AVG(CPU_Usage) as cpu, AVG(Memory_Usage) as mem from input0") }
 
-    val win = Window(30 seconds)
+    val win = Window(Seconds(30))
 
     val corr = foreach { Correlation() % "cpu" % "mem" }
 
@@ -29,5 +29,5 @@ object DSALinkFlow extends App {
     (dsaOut)
   }
 
-  stream.Main.startStreamFlow(flow)
+  stream.Main.startAndWait(flow)
 }

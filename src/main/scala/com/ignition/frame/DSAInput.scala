@@ -9,7 +9,7 @@ import scala.xml.{ Elem, Node }
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.{ DataType, MetadataBuilder, StructField, StructType }
-import org.dsa.iot.spark.DSAConnector
+import org.dsa.iot.spark.{ DSAConnector, DSAHelper }
 import org.json4s.JValue
 import org.json4s.JsonDSL.{ pair2Assoc, seq2jvalue, string2jvalue }
 import org.json4s.jvalue2monadic
@@ -46,7 +46,8 @@ case class DSAInput(paths: Iterable[(String, DataType)]) extends FrameProducer {
   }
 
   protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
-    val futures = DSAConnector.getNodeValues(paths.map(_._1).toSet)
+    implicit val requester = DSAConnector.requesterLink.getRequester
+    val futures = paths.map(_._1).toSet map DSAHelper.getNodeValue
     val valueMap = Await.result(Future.sequence(futures), DSAInput.maxTimeout) map { v =>
       pathToFieldName(v._1) -> v._3
     } toMap
