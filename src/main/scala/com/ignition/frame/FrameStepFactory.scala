@@ -1,26 +1,30 @@
 package com.ignition.frame
 
+import scala.collection.JavaConverters.asScalaSetConverter
 import scala.xml.Node
-import org.apache.spark.sql.DataFrame
+
 import org.json4s.{ JValue, jvalue2monadic }
-import com.ignition.{ JsonStepFactory, XmlStepFactory }
+
+import com.ignition.util.ConfigUtils
 import com.ignition.util.JsonUtils.RichJValue
-import com.ignition.Step
+import com.typesafe.config.Config
 
 /**
  * Creates FrameStep instances from Xml and Json.
  *
  * @author Vlad Orzhekhovskiy
  */
-object FrameStepFactory
-    extends XmlStepFactory[FrameStep, DataFrame, SparkRuntime]
-    with JsonStepFactory[FrameStep, DataFrame, SparkRuntime] {
+object FrameStepFactory extends XmlFrameStepFactory with JsonFrameStepFactory {
 
   private val xmlParsers = collection.mutable.HashMap.empty[String, Node => FrameStep]
   def registerXml(tag: String, builder: Node => FrameStep) = { xmlParsers(tag) = builder }
+  def unregisterXml(tag: String) = { xmlParsers.remove(tag) }
 
   private val jsonParsers = collection.mutable.HashMap.empty[String, JValue => FrameStep]
   def registerJson(tag: String, builder: JValue => FrameStep) = { jsonParsers(tag) = builder }
+  def unregisterJson(tag: String) = { jsonParsers.remove(tag) }
+
+  autoRegisterFromConfig(ConfigUtils.getConfig("custom-steps").getConfig("frame"))
 
   def fromXml(xml: Node): FrameStep = xml.label match {
     case BasicStats.tag        => BasicStats.fromXml(xml)
@@ -92,5 +96,21 @@ object FrameStepFactory
     case mllib.Correlation.tag => mllib.Correlation.fromJson(json)
     case mllib.Regression.tag  => mllib.Regression.fromJson(json)
     case tag                   => jsonParsers(tag).apply(json)
+  }
+
+  /**
+   * Registers XML and JSON factories based on the configuration parameters.
+   */
+  private def autoRegisterFromConfig(config: Config) = {
+    val keys = config.root.keySet.asScala
+    keys foreach { tag =>
+      val cfg = config.getConfig(tag)
+
+      val xmlFactory = com.ignition.getClassInstance[XmlFrameStepFactory](cfg.getString("xmlFactory"))
+      registerXml(tag, xmlFactory.fromXml)
+
+      val jsonFactory = com.ignition.getClassInstance[JsonFrameStepFactory](cfg.getString("jsonFactory"))
+      registerJson(tag, jsonFactory.fromJson)
+    }
   }
 }
