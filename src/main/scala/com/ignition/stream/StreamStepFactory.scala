@@ -27,8 +27,6 @@ object StreamStepFactory extends XmlStreamStepFactory with JsonStreamStepFactory
   autoRegisterFromConfig(ConfigUtils.getConfig("custom-steps").getConfig("stream"))
 
   def fromXml(xml: Node): StreamStep = xml.label match {
-    case DSAStreamInput.tag  => DSAStreamInput.fromXml(xml)
-    case DSAStreamOutput.tag => DSAStreamOutput.fromXml(xml)
     case Filter.tag          => Filter.fromXml(xml)
     case Foreach.tag         => Foreach.fromXml(xml)
     case Join.tag            => Join.fromXml(xml)
@@ -42,8 +40,6 @@ object StreamStepFactory extends XmlStreamStepFactory with JsonStreamStepFactory
   }
 
   def fromJson(json: JValue): StreamStep = (json \ "tag" asString) match {
-    case DSAStreamInput.tag  => DSAStreamInput.fromJson(json)
-    case DSAStreamOutput.tag => DSAStreamOutput.fromJson(json)
     case Filter.tag          => Filter.fromJson(json)
     case Foreach.tag         => Foreach.fromJson(json)
     case Join.tag            => Join.fromJson(json)
