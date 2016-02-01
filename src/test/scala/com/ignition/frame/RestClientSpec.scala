@@ -20,7 +20,7 @@ class RestClientSpec extends FrameFlowSpecification {
     "return valid result and status" in {
       System.setProperty("weather_url", "http://api.openweathermap.org/data/2.5/weather")
       rt.vars("query") = "q"
-      val url = "e{weather_url}?v{query}=${city},${country}&APPID=e{apikey}"
+      val url = "e{weather_url}?v{query}=$" + "{city},$" + "{country}&APPID=e{apikey}"
       val client = RestClient(url) result "result" status "status"
       grid --> client
 
@@ -29,7 +29,7 @@ class RestClientSpec extends FrameFlowSpecification {
       client.output.collect.forall(_.getInt(3) == 200)
     }
     "return valid result and headers" in {
-      val url = "http://api.openweathermap.org/data/2.5/weather?q=${city},${country}&APPID=e{apikey}"
+      val url = "http://api.openweathermap.org/data/2.5/weather?q=$" + "{city},$" + "{country}&APPID=e{apikey}"
       val client = RestClient(url, GET) result "result" noStatus () responseHeaders "headers"
       grid --> client
 
@@ -50,7 +50,7 @@ class RestClientSpec extends FrameFlowSpecification {
       grid --> client
       
       assertSchema(schema ~ int("status"), client, 0)
-      client.output.collect.forall(_.getInt(2) >= 500)
+      client.output.collect.forall(_.getInt(2) != 200)
     }
     "fail for unknown host" in {
       val url = "http://unknown_host_for_ignition_testing.org"
