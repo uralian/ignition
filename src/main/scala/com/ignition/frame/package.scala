@@ -15,6 +15,9 @@ package object frame {
   type BeforeFrameStepComputed = BeforeStepComputed[DataFrame, SparkRuntime]
   type AfterFrameStepComputed = AfterStepComputed[DataFrame, SparkRuntime]
 
+  type XmlFrameStepFactory = XmlStepFactory[FrameStep, DataFrame, SparkRuntime]
+  type JsonFrameStepFactory = JsonStepFactory[FrameStep, DataFrame, SparkRuntime]
+
   /**
    * An implicit conversion of:
    * $"..." literals into {{org.apache.spark.sql.ColumnName}} instances.

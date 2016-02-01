@@ -19,6 +19,9 @@ package object stream {
   type BeforeStreamStepComputed = BeforeStepComputed[DataStream, SparkStreamingRuntime]
   type AfterStreamStepComputed = AfterStepComputed[DataStream, SparkStreamingRuntime]
 
+  type XmlStreamStepFactory = XmlStepFactory[StreamStep, DataStream, SparkStreamingRuntime]
+  type JsonStreamStepFactory = JsonStepFactory[StreamStep, DataStream, SparkStreamingRuntime]
+
   def foreach(flow: Step[DataFrame, SparkRuntime]): Foreach = Foreach(flow)
 
   /**

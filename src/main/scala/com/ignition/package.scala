@@ -1,5 +1,7 @@
 package com
 
+import scala.util.Try
+
 /**
  * Ignition implicits and helper functions.
  *
@@ -96,5 +98,24 @@ package object ignition {
       body(result)
       result
     }
+    def having(body: => Unit): A = {
+      body
+      result
+    }
   }
+
+  /**
+   * Returns an instance of the specified class. Object class names have "$" character
+   * at the end.
+   */
+  def getClassInstance[T](className: String) =
+    Try(Class.forName(className).asInstanceOf[Class[T]]) map instantiate get
+
+  /**
+   * If the argument is a class, create and returns a new instance of it; if it is
+   * an object, returns the object.
+   */
+  def instantiate[T](clazz: Class[T]) = Try {
+    clazz.getField("MODULE$").get(null).asInstanceOf[T]
+  } getOrElse clazz.newInstance
 }
