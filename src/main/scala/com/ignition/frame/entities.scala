@@ -45,7 +45,7 @@ trait FrameStep extends Step[DataFrame, SparkRuntime] with XmlExport with JsonEx
   /**
    * Takes one row from the data frame is preview is true.
    */
-  private[ignition] def optLimit(df: DataFrame, preview: Boolean): DataFrame =
+  protected def optLimit(df: DataFrame, preview: Boolean): DataFrame =
     if (preview) df.limit(FrameStep.previewSize) else df
 }
 
