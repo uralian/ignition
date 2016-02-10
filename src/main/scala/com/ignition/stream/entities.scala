@@ -53,7 +53,7 @@ trait StreamStep extends Step[DataStream, SparkStreamingRuntime] {
     val stream = super.compute(index, preview)
     stream foreachRDD { (rdd, time) =>
       val date = new DateTime(time.milliseconds)
-      notifyDataListeners(StreamStepBatchProcessed(this, date, rdd))
+      notifyDataListeners(StreamStepBatchProcessed(this, index, date, rdd))
     }
     stream
   }
@@ -177,7 +177,7 @@ abstract class StateUpdate[S: ClassTag](keyFields: Iterable[String]) extends Str
 /**
  * Encapsulates the details about the processed batch.
  */
-case class StreamStepBatchProcessed(step: StreamStep, time: DateTime, rows: RDD[Row])
+case class StreamStepBatchProcessed(step: StreamStep, index: Int, time: DateTime, rows: RDD[Row])
 
 /**
  * Listener which will be notified on each processed stream batch.
