@@ -25,7 +25,7 @@ case class Foreach(flow: Step[DataFrame, SparkRuntime])
   protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
     val flow = this.flow
     arg transform { rdd =>
-      flow.resetCache
+      flow.resetCache(true, false)
       if (rdd.isEmpty) rdd
       else {
         val schema = rdd.first.schema

@@ -80,15 +80,20 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
   @transient private var cache = Map.empty[Int, T]
 
   /**
-   * Clears the cache of this step and its predecessors.
+   * Clears the cache of this step and optionally that of its predecessors and descendants.
    */
-  private[ignition] def resetCache(): Unit = synchronized {
+  private[ignition] def resetCache(predecessors: Boolean, descendants: Boolean): Unit = synchronized {
     this.cache = Map.empty[Int, T]
-    for {
+    if (predecessors) for {
       tgt <- ins(this)
       src = tgt.inbound if src != null
       step = src.step if step != null
-    } yield step.resetCache
+    } yield step.resetCache(true, false)
+    if (descendants) for {
+      src <- outs(this)
+      tgt = src.outbound if tgt != null
+      step = tgt.step if step != null
+    } yield step.resetCache(false, true)
   }
 
   /**
@@ -171,8 +176,13 @@ trait ConnectionTarget[T, R <: FlowRuntime] {
   def step: Step[T, R]
   def index: Int
 
-  var inbound: ConnectionSource[T, R] = null
-  def from(src: ConnectionSource[T, R]): this.type = { this.inbound = src; this }
+  private[ignition] var inbound: ConnectionSource[T, R] = null
+
+  def from(src: ConnectionSource[T, R]): this.type = {
+    this.inbound = src
+    src.outbound = this
+    this
+  }
 }
 
 /**
@@ -181,6 +191,8 @@ trait ConnectionTarget[T, R <: FlowRuntime] {
 trait ConnectionSource[T, R <: FlowRuntime] {
   def step: Step[T, R]
   def index: Int
+
+  private[ignition] var outbound: ConnectionTarget[T, R] = null
 
   def to(tgt: ConnectionTarget[T, R]): tgt.type = tgt.from(this)
   def -->(tgt: ConnectionTarget[T, R]): tgt.type = to(tgt)
