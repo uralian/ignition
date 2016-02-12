@@ -1,13 +1,13 @@
 package com.ignition.samples
 
 import com.ignition.frame
-import com.ignition.frame.{ DataFlow, DataGrid, DebugOutput, Reduce }
+import com.ignition.frame.{ FrameFlow, DataGrid, DebugOutput, Reduce }
 import com.ignition.types.{ RichStructType, fieldToRichStruct, int, string }
 
 object ReduceFlow extends App {
   import frame.ReduceOp._
 
-  val flow = DataFlow {
+  val flow = FrameFlow {
     val schema = string("id") ~ int("hour") ~ string("task") ~ int("points")
 
     val john = "john"
@@ -40,5 +40,5 @@ object ReduceFlow extends App {
     (debug1, debug2, debug3, debug4)
   }
 
-  frame.Main.runDataFlow(flow)
+  frame.Main.runFrameFlow(flow)
 }

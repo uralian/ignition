@@ -1,12 +1,12 @@
 package com.ignition.samples
 
 import com.ignition.{ CSource3, frame }
-import com.ignition.frame.{ DataFlow, DataGrid, DebugOutput, TextFileOutput, Union }
+import com.ignition.frame.{ FrameFlow, DataGrid, DebugOutput, TextFileOutput, Union }
 import com.ignition.types.{ RichStructType, date, fieldToRichStruct, int, string }
 
 object UnionFlow extends App {
 
-  val flow = DataFlow {
+  val flow = FrameFlow {
     val schema = string("id") ~ string("name") ~ int("weight") ~ date("dob")
 
     val grid1 = DataGrid(schema).
@@ -35,5 +35,5 @@ object UnionFlow extends App {
     (debug, csv)
   }
 
-  frame.Main.runDataFlow(flow)
+  frame.Main.runFrameFlow(flow)
 }

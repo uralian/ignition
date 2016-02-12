@@ -32,7 +32,7 @@ object Main {
   /* build command line parser */
   val parser = new scopt.OptionParser[StreamFlowConfig]("StreamFlowRunner") {
     head(BuildInfo.name, BuildInfo.version)
-    note("This program runs a single dataflow.\n")
+    note("This program runs a single frameflow.\n")
 
     opt[String]("type") optional () valueName ("json|xml") action { (x, c) =>
       c.copy(fileType = x)
