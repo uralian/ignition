@@ -6,9 +6,9 @@ import scala.util.control.NonFatal
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
-import org.apache.spark.streaming.scheduler.{ StreamingListener, StreamingListenerBatchCompleted, StreamingListenerReceiverError }
+import org.apache.spark.streaming.Milliseconds
+import org.apache.spark.streaming.scheduler._
 
-import com.ignition.ExecutionException
 import com.ignition.frame.FrameFlowSpecification
 
 /**
@@ -20,39 +20,40 @@ trait StreamFlowSpecification extends FrameFlowSpecification {
 
   System.setProperty(com.ignition.STEPS_SERIALIZABLE, true.toString)
 
+  val batchDuration = Milliseconds(100)
+
   /**
    * Starts the streaming, waits for a certain number of batches (using a fake clock)
    * and compares the stream output with the provided result.
    */
   protected def runAndAssertOutput(step: StreamStep, index: Int, batchCount: Int, expected: Set[Row]*) = {
-    step.resetCache
-    
-    val ssc = createStreamingContext(sc)
-    implicit val rt = new DefaultSparkStreamingRuntime(ctx, ssc)
+    step.resetCache(true, true)
+
+    implicit val rt = new DefaultSparkStreamingRuntime(ctx, batchDuration)
 
     var buffer = ListBuffer.empty[Set[Row]]
-    step.output(index, false).foreachRDD(rdd => buffer += rdd.collect.toSet)
+    step.register
 
     val listen = new StreamingListener {
       private var batchIndex = 0
       override def onBatchCompleted(event: StreamingListenerBatchCompleted) = synchronized {
         batchIndex += 1
-        if (batchIndex >= batchCount) future { ssc.stop(false, true) }
+        if (batchIndex >= batchCount) future { rt.stop }
       }
       override def onReceiverError(error: StreamingListenerReceiverError) = synchronized {
         log.error("Receiver error occurred: " + error)
-        future { ssc.stop(false, false) }
+        future { rt.stop }
       }
     }
-    ssc.addStreamingListener(listen)
+    rt.ssc.addStreamingListener(listen)
 
     try {
-      ssc.start
-      ssc.awaitTermination
+      rt.start
+      rt.ssc.awaitTermination
     } catch {
       case NonFatal(e) =>
         log.error("Error occurred while streaming: " + e.getMessage)
-        ssc.stop(false, false)
+        rt.stop
     }
 
     (buffer zip expected) forall {

@@ -55,5 +55,5 @@ object StreamStateUpdate extends App {
     (debug1, debug2)
   }
 
-  stream.Main.startStreamFlow(flow)
+  stream.Main.startAndWait(flow)
 }

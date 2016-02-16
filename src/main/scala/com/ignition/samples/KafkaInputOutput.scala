@@ -21,7 +21,7 @@ object KafkaInputOutput extends App {
 
   val Array(zkUrl, brokers, inTopic, groupId, outTopic) = args
 
-  val flow = frame.DataFlow {
+  val flow = frame.FrameFlow {
     val kafkaIn = frame.KafkaInput(zkUrl, inTopic, groupId, Some(5)) properties ("consumer.timeout.ms" -> "5000")
     val select = frame.SelectValues() rename ("payload" -> "data")
     val kafkaOut = frame.KafkaOutput("data", outTopic) brokers (brokers)
@@ -30,5 +30,5 @@ object KafkaInputOutput extends App {
     kafkaIn --> select --> kafkaOut --> debug
   }
 
-  frame.Main.runDataFlow(flow)
+  frame.Main.runFrameFlow(flow)
 }

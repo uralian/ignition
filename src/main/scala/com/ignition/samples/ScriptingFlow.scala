@@ -4,13 +4,13 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.Decimal
 
 import com.ignition.frame
-import com.ignition.frame.{ DataFlow, DataGrid, DebugOutput, Formula, SelectValues }
+import com.ignition.frame.{ FrameFlow, DataGrid, DebugOutput, Formula, SelectValues }
 import com.ignition.script.RichString
 import com.ignition.types.{ RichStructType, decimal, double, fieldToRichStruct, int, string }
 
 object ScriptingFlow extends App {
 
-  val flow = DataFlow {
+  val flow = FrameFlow {
     val schema = string("info") ~ string("data") ~ decimal("price") ~ int("count") ~ double("discount")
     val rows = (1 to 10) map (n =>
       Row(
@@ -35,5 +35,5 @@ object ScriptingFlow extends App {
     grid --> formula1 --> formula2 --> select --> debug
   }
 
-  frame.Main.runDataFlow(flow)
+  frame.Main.runFrameFlow(flow)
 }

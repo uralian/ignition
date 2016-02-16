@@ -42,6 +42,7 @@ unmanagedSourceDirectories in Compile <<= (scalaSource in Compile)(Seq(_))
 unmanagedSourceDirectories in Test <<= (scalaSource in Test)(Seq(_))
 EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 EclipseKeys.withSource := true
+EclipseKeys.classpathTransformerFactories := Seq(AddSourcesTransformer)
 
 // package options
 

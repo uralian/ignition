@@ -11,6 +11,13 @@ import com.ignition.util.ConfigUtils
  */
 trait FrameStep extends Step[DataFrame, SparkRuntime] with XmlExport with JsonExport {
 
+  // whenever the step's predecessor changes, reset the cache for this node 
+  // and all its descendants
+  this.addStepListener(new FrameStepListener {
+    override def onStepConnectedFrom(event: StepConnectedFrom[DataFrame, SparkRuntime]) = 
+      resetCache(false, true)
+  })
+
   /**
    * Returns the implicit SQLContext.
    */
@@ -45,7 +52,7 @@ trait FrameStep extends Step[DataFrame, SparkRuntime] with XmlExport with JsonEx
   /**
    * Takes one row from the data frame is preview is true.
    */
-  private[ignition] def optLimit(df: DataFrame, preview: Boolean): DataFrame =
+  protected def optLimit(df: DataFrame, preview: Boolean): DataFrame =
     if (preview) df.limit(FrameStep.previewSize) else df
 }
 

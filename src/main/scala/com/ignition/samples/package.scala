@@ -1,7 +1,7 @@
 package com.ignition
 
 import org.apache.spark.sql.types.Decimal
-import com.ignition.frame.DataFlow
+import com.ignition.frame.FrameFlow
 
 /**
  * Helper functions for Ignition samples.

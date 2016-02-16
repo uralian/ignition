@@ -61,7 +61,7 @@ package object ignition {
    * Having this private convenience function rather than making Step more generic and
    * less type safe.
    */
-  private[ignition] def outs[T, R <: FlowRuntime](step: Step[T, R]): Seq[ConnectionSource[T, R]] = step match {
+  def outs[T, R <: FlowRuntime](step: Step[T, R]): Seq[ConnectionSource[T, R]] = step match {
     case x if x.isInstanceOf[SingleOutputStep[T, R]] => List(x.asInstanceOf[SingleOutputStep[T, R]])
     case x if x.isInstanceOf[MultiOutputStep[T, R]] => x.asInstanceOf[MultiOutputStep[T, R]].out
     case _ => Nil
@@ -72,7 +72,7 @@ package object ignition {
    * Having this private convenience function rather than making Step more generic and
    * less type safe.
    */
-  private[ignition] def ins[T, R <: FlowRuntime](step: Step[T, R]): Seq[ConnectionTarget[T, R]] = step match {
+  def ins[T, R <: FlowRuntime](step: Step[T, R]): Seq[ConnectionTarget[T, R]] = step match {
     case x if x.isInstanceOf[SingleInputStep[T, R]] => List(x.asInstanceOf[SingleInputStep[T, R]])
     case x if x.isInstanceOf[MultiInputStep[T, R]] => x.asInstanceOf[MultiInputStep[T, R]].in
     case _ => Nil

@@ -8,14 +8,14 @@ import com.ignition.value2tuple
 object SimpleFlow extends App {
   import frame.BasicAggregator._
 
-  val listener = new FrameStepListener with DataFlowListener {
+  val listener = new FrameStepListener with FrameFlowListener {
     override def onBeforeStepComputed(event: BeforeFrameStepComputed) = println(event)
     override def onAfterStepComputed(event: AfterFrameStepComputed) = println(event)
-    override def onDataFlowStarted(event: DataFlowStarted) = println(event)
-    override def onDataFlowComplete(event: DataFlowComplete) = println(event)
+    override def onFrameFlowStarted(event: FrameFlowStarted) = println(event)
+    override def onFrameFlowComplete(event: FrameFlowComplete) = println(event)
   }
 
-  val flow = DataFlow {
+  val flow = FrameFlow {
     val grid1 = DataGrid(string("id") ~ string("name") ~ int("weight") ~ date("dob")) rows (
       (newid, "john", 155, javaDate(1980, 5, 2)),
       (newid, "jane", 190, javaDate(1982, 4, 25)),
@@ -53,7 +53,7 @@ object SimpleFlow extends App {
     (debugA, debugB)
   }
   
-  flow addDataFlowListener listener
+  flow addFrameFlowListener listener
 
-  frame.Main.runDataFlow(flow)
+  frame.Main.runFrameFlow(flow)
 }

@@ -8,10 +8,10 @@ import com.ignition.util.JsonUtils.RichJValue
 import com.ignition.Connection
 
 @RunWith(classOf[JUnitRunner])
-class DataFlowSpec extends FrameFlowSpecification {
+class FrameFlowSpec extends FrameFlowSpecification {
   sequential
 
-  import DataFlow._
+  import FrameFlow._
 
   val schema = string("name") ~ int("item") ~ double("score")
   val grid = DataGrid(schema) rows (
@@ -22,14 +22,14 @@ class DataFlowSpec extends FrameFlowSpecification {
   val stats = BasicStats() groupBy "name" add ("item", BasicAggregator.COUNT)
   val filter = Filter($"avg_score" > 65)
 
-  val flow = DataFlow {
+  val flow = FrameFlow {
     grid --> sql.in(1)
     sql --> select --> filter
     grid --> stats
     (filter, stats)
   }
 
-  "DataFlow" should {
+  "FrameFlow" should {
     "enumerate its steps and connections" in {
       flow.steps === Set(grid, sql, select, stats, filter)
       flow.connections === Set(
@@ -59,7 +59,7 @@ class DataFlowSpec extends FrameFlowSpecification {
           <connect src="datagrid0" srcPort="0" tgt="basic-stats0" tgtPort="0"/>
           <connect src="select-values0" srcPort="0" tgt="filter0" tgtPort="0"/>
         </connections>)
-      val flow2 = DataFlow.fromXml(xml)
+      val flow2 = FrameFlow.fromXml(xml)
       flow2.steps === Set(grid, sql, select, stats, filter)
       flow2.connections === Set(
         Connection(grid, 0, sql, 1),
@@ -88,7 +88,7 @@ class DataFlowSpec extends FrameFlowSpecification {
         ("src" -> "sql0") ~ ("srcPort" -> 0) ~ ("tgt" -> "select-values0") ~ ("tgtPort" -> 0),
         ("src" -> "datagrid0") ~ ("srcPort" -> 0) ~ ("tgt" -> "basic-stats0") ~ ("tgtPort" -> 0)))
 
-      val flow2 = DataFlow.fromJson(json)
+      val flow2 = FrameFlow.fromJson(json)
       flow2.steps === Set(grid, sql, select, stats, filter)
       flow2.connections === Set(
         Connection(grid, 0, sql, 1),
@@ -100,5 +100,5 @@ class DataFlowSpec extends FrameFlowSpecification {
       assertDataFrame(results(1), ("jake", 62.0))
       assertDataFrame(results(2), ("john", 3), ("jake", 1), ("jane", 2))
     }
-  }
+  }  
 }

@@ -48,7 +48,7 @@ object ReusableSubFlows extends App {
   }
 
   // main data flow | uses all subflows defined above
-  val flow = DataFlow {
+  val flow = FrameFlow {
     val abDebug = DebugOutput()
     val jDebug0 = DebugOutput()
     val jDebug1 = DebugOutput()
@@ -60,5 +60,5 @@ object ReusableSubFlows extends App {
     (abDebug, jDebug0, jDebug1, jDebug2)
   }
 
-  frame.Main.runDataFlow(flow)
+  frame.Main.runFrameFlow(flow)
 }

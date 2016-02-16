@@ -18,7 +18,7 @@ class WindowSpec extends StreamFlowSpecification {
     addRows(("jane", 2, 85.0), ("jane", 1, 46.0)).
     addRows(("jake", 4, 62.0), ("john", 3, 95.0))
 
-  val step = Milliseconds(batchDuration.getMillis)
+  val step = batchDuration 
 
   "Window" should {
     "create sliding windows" in {

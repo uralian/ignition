@@ -1,12 +1,11 @@
 package com.ignition.frame
 
 import scala.reflect.ClassTag
-
 import org.apache.spark.{ Accumulator, AccumulatorParam, SparkContext }
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SQLContext
-
 import com.ignition.FlowRuntime
+import org.slf4j.LoggerFactory
 
 /**
  * Encapsulates the spark context and SQL context and provides helper
@@ -80,6 +79,8 @@ trait SparkRuntime extends FlowRuntime with Serializable {
  */
 class DefaultSparkRuntime(@transient val ctx: SQLContext)
     extends SparkRuntime {
+  
+  @transient protected val log = LoggerFactory.getLogger(getClass)
 
   @transient val sc = ctx.sparkContext
 }
