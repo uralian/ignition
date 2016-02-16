@@ -9,7 +9,7 @@ import com.ignition.types.{ RichStructType, fieldToRichStruct, int, string }
 class RestClientSpec extends FrameFlowSpecification {
   import HttpMethod._
 
-  System.setProperty("apikey", "bbf27a3d20de41026a16104814124364")
+  System.setProperty("apikey", "2a87e6d26f5fd1d507fea7dfbbcf35d8")
 
   val schema = string("city") ~ string("country")
   val grid = DataGrid(schema).addRow("london", "uk").addRow("atlanta", "us")

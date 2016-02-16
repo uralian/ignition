@@ -16,6 +16,25 @@ import com.ignition._
  */
 trait StreamStep extends Step[DataStream, SparkStreamingRuntime] {
 
+  // whenever the step's predecessor changes, reset the cache for this node 
+  // and all its descendants
+  this.addStepListener(new StepListener[DataStream, SparkStreamingRuntime] {
+    override def onStepConnectedFrom(event: StepConnectedFrom[DataStream, SparkStreamingRuntime]) =
+      resetCache(false, true)
+  })
+
+  /**
+   * Registers the step with the runtime. Subsequent restarts will keep binding the
+   * step to newly created contexts.
+   */
+  def register(implicit rt: SparkStreamingRuntime) = rt.register(this)
+
+  /**
+   * Unregisters the step with the runtime. After the restart, the step will no longer
+   * be bound to the active context.
+   */
+  def unregister(implicit rt: SparkStreamingRuntime) = rt.unregister(this)
+
   /**
    * Returns the implicit SQLContext.
    */

@@ -163,7 +163,9 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
   /**
    * Notifies all listeners.
    */
-  private def notifyListeners(event: StepEvent[T, R]) = event match {
+  private[ignition] def notifyListeners(event: StepEvent[T, R]) = event match {
+    case e: StepConnectedFrom[T, R]  => listeners foreach (_.onStepConnectedFrom(e))
+    case e: StepConnectedTo[T, R]    => listeners foreach (_.onStepConnectedTo(e))
     case e: BeforeStepComputed[T, R] => listeners foreach (_.onBeforeStepComputed(e))
     case e: AfterStepComputed[T, R]  => listeners foreach (_.onAfterStepComputed(e))
   }
@@ -179,8 +181,20 @@ trait ConnectionTarget[T, R <: FlowRuntime] {
   private[ignition] var inbound: ConnectionSource[T, R] = null
 
   def from(src: ConnectionSource[T, R]): this.type = {
+    val oldInbound = this.inbound
+
+    val tgtStep = src.step
+    val oldTgtOutbound = src.outbound
+
     this.inbound = src
     src.outbound = this
+
+    if (this.step != null)
+      this.step.notifyListeners(StepConnectedFrom(step, this, Option(oldInbound), this.inbound))
+    
+    if (tgtStep != null)
+      tgtStep.notifyListeners(StepConnectedTo(tgtStep, src, Option(oldTgtOutbound), this))
+
     this
   }
 }
@@ -314,6 +328,16 @@ sealed trait StepEvent[T, R <: FlowRuntime] {
   def step: Step[T, R]
 }
 
+case class StepConnectedFrom[T, R <: FlowRuntime](
+  step: Step[T, R], inPort: ConnectionTarget[T, R],
+  oldInbound: Option[ConnectionSource[T, R]],
+  newInbound: ConnectionSource[T, R]) extends StepEvent[T, R]
+
+case class StepConnectedTo[T, R <: FlowRuntime](
+  step: Step[T, R], outPort: ConnectionSource[T, R],
+  oldOutbound: Option[ConnectionTarget[T, R]],
+  newOutbound: ConnectionTarget[T, R]) extends StepEvent[T, R]
+
 case class BeforeStepComputed[T, R <: FlowRuntime](
   step: Step[T, R], index: Int, preview: Boolean) extends StepEvent[T, R]
 
@@ -324,6 +348,16 @@ case class AfterStepComputed[T, R <: FlowRuntime](
  * Listener which will be notified on step events.
  */
 trait StepListener[T, R <: FlowRuntime] {
+
+  /**
+   * Called when the step's input port is connected to a new inbound.
+   */
+  def onStepConnectedFrom(event: StepConnectedFrom[T, R]) = {}
+
+  /**
+   * Called when the step's output port is connected to a new outbound.
+   */
+  def onStepConnectedTo(event: StepConnectedTo[T, R]) = {}
 
   /**
    * Called before the step value is computed.

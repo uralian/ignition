@@ -29,19 +29,6 @@ case class StreamFlow(targets: Iterable[ConnectionSource[DataStream, SparkStream
   def removeStreamFlowListener(listener: StreamFlowListener) = flowListeners -= listener
 
   /**
-   * Starts a stream flow.
-   */
-  def start(implicit runtime: SparkStreamingRuntime): Unit = {
-    outPoints foreach (_.value(false).foreachRDD(_ => {}))
-
-    runtime.ssc.start
-    notifyListeners(new StreamFlowStarted(this))
-
-    runtime.ssc.awaitTermination
-    notifyListeners(new StreamFlowTerminated(this))
-  }
-
-  /**
    * Notifies all listeners.
    */
   private def notifyListeners(event: StreamFlowEvent) = event match {
