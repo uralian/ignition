@@ -27,6 +27,7 @@ object FrameStepFactory extends XmlFrameStepFactory with JsonFrameStepFactory {
   autoRegisterFromConfig(ConfigUtils.getConfig("custom-steps").getConfig("frame"))
 
   def fromXml(xml: Node): FrameStep = xml.label match {
+    case AddFields.tag         => AddFields.fromXml(xml)
     case BasicStats.tag        => BasicStats.fromXml(xml)
     case CassandraInput.tag    => CassandraInput.fromXml(xml)
     case CassandraOutput.tag   => CassandraOutput.fromXml(xml)
@@ -61,6 +62,7 @@ object FrameStepFactory extends XmlFrameStepFactory with JsonFrameStepFactory {
   }
 
   def fromJson(json: JValue): FrameStep = (json \ "tag" asString) match {
+    case AddFields.tag         => AddFields.fromJson(json)
     case BasicStats.tag        => BasicStats.fromJson(json)
     case CassandraInput.tag    => CassandraInput.fromJson(json)
     case CassandraOutput.tag   => CassandraOutput.fromJson(json)
