@@ -146,6 +146,12 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
   final def output(implicit runtime: R): T = output(false)
 
   /**
+   * Evaluates all step's outputs and returns a list of results.
+   */
+  @throws(classOf[ExecutionException])
+  final def evaluate(implicit runtime: R): IndexedSeq[T] = 0 until outputCount map output
+
+  /**
    * Listeners which will be notified on step events.
    */
   @transient private var listeners = Set.empty[StepListener[T, R]]
@@ -191,7 +197,7 @@ trait ConnectionTarget[T, R <: FlowRuntime] {
 
     if (this.step != null)
       this.step.notifyListeners(StepConnectedFrom(step, this, Option(oldInbound), this.inbound))
-    
+
     if (tgtStep != null)
       tgtStep.notifyListeners(StepConnectedTo(tgtStep, src, Option(oldTgtOutbound), this))
 
