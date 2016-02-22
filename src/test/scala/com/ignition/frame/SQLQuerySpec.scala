@@ -44,7 +44,7 @@ class SQLQuerySpec extends FrameFlowSpecification {
           ON o.name = c.name
           ORDER BY c.name, total""")
       (customerGrid, orderGrid) --> query
-      val df = query.output(0, false)
+      val df = query.output
       df.count === 5
       df.collect.toSet.filter(_.getDate(0) == javaDate(2010, 1, 3)) ===
         Set(

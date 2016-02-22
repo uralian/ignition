@@ -13,10 +13,6 @@ class CassandraOutputSpec extends FrameFlowSpecification with CassandraSpec {
   val keySpace = "ignition"
   val dataSet = "ignition_test.ddl"
 
-  override def afterAll = {
-    super[CassandraSpec].afterAll
-    super[FrameFlowSpecification].afterAll
-  }
 /*
   val schema = string("customer_id") ~ timestamp("date") ~ decimal("total") ~ int("items") ~ double("weight")
   val id = java.util.UUID.randomUUID

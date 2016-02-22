@@ -53,7 +53,7 @@ case class KafkaInput(zkUrl: String, topic: String, groupId: String,
 
   val schema: StructType = string(field)
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(implicit runtime: SparkRuntime): DataFrame = {
     val connector = Consumer.create(config)
     val stream = connector.createMessageStreams(Map(topic -> 1), decoder, decoder)(topic).head
     val it = stream.iterator
@@ -68,7 +68,7 @@ case class KafkaInput(zkUrl: String, topic: String, groupId: String,
     val messages = Iterator.from(0).map((_, System.currentTimeMillis, getNext)).takeWhile {
       case (index, time, msg) =>
         val dataOk = msg != null
-        val indexOk = !maxRows.exists(index >= _) && (!preview || index == 0) 
+        val indexOk = !maxRows.exists(index >= _) && (!runtime.previewMode || index == 0) 
         val timeOk = !maxTimeout.exists(time - start > _)
         dataOk && indexOk && timeOk
     } map (_._3) toSeq
@@ -77,7 +77,7 @@ case class KafkaInput(zkUrl: String, topic: String, groupId: String,
 
     val rdd = sc.parallelize(messages map (Row(_)))
     val df = ctx.createDataFrame(rdd, schema)
-    optLimit(df, preview)
+    optLimit(df, runtime.previewMode)
   }
 
   override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = schema

@@ -11,11 +11,6 @@ class CassandraInputSpec extends FrameFlowSpecification with CassandraSpec {
   val keySpace = "ignition"
   val dataSet = "ignition_test.ddl"
 
-  override def afterAll = {
-    super[CassandraSpec].afterAll
-    super[FrameFlowSpecification].afterAll
-  }
-
   "CassandraInput" should {
     "handle all C* data types" in {
 //      // skipping BLOB because of the bug in Spec2 array comparison

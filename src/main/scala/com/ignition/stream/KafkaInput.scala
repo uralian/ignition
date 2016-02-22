@@ -37,7 +37,7 @@ case class KafkaInput(brokers: Iterable[String], topics: Iterable[String],
 
   private val kafkaParams = Map("metadata.broker.list" -> brokers.mkString(",")) ++ kafkaProperties
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+  protected def compute(implicit runtime: SparkStreamingRuntime): DataStream = {
     val raw = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics.toSet)
 
     raw map {

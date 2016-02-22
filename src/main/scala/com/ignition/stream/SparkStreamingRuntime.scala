@@ -53,8 +53,8 @@ trait SparkStreamingRuntime extends SparkRuntime {
 /**
  * The default implementation of [[SparkStreamingRuntime]].
  */
-class DefaultSparkStreamingRuntime(ctx: SQLContext, batchDuration: Duration)
-    extends DefaultSparkRuntime(ctx) with SparkStreamingRuntime {
+class DefaultSparkStreamingRuntime(ctx: SQLContext, batchDuration: Duration, previewMode: Boolean = false)
+    extends DefaultSparkRuntime(ctx, previewMode) with SparkStreamingRuntime {
 
   @transient private var steps: Set[StreamStep] = Set.empty
 

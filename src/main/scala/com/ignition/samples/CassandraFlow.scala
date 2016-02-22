@@ -75,7 +75,7 @@ object CassandraFlow extends App {
     shutDown
   }
 
-  sys.exit(0)
+  System.exit(0)
 
   private def setUp() = {
     val session = cluster.connect(keyspace)

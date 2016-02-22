@@ -22,7 +22,7 @@ case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) {
 
   override val allInputsRequired = false
 
-  protected def compute(args: IndexedSeq[DataFrame], preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(args: IndexedSeq[DataFrame])(implicit runtime: SparkRuntime): DataFrame = {
     assert(args.exists(_ != null), "No connected inputs")
 
     args.zipWithIndex foreach {
@@ -33,7 +33,7 @@ case class SQLQuery(query: String) extends FrameMerger(SQLQuery.MAX_INPUTS) {
     val query = injectGlobals(this.query)
 
     val df = ctx.sql(query)
-    optLimit(df, preview)
+    optLimit(df, runtime.previewMode)
   }
 
   def toXml: Elem = <node>{ query }</node>.copy(label = tag)

@@ -40,7 +40,7 @@ case class QueueInput(schema: StructType, data: Seq[Seq[Row]] = Nil) extends Str
     copy(data = this.data :+ rs)
   }
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+  protected def compute(implicit runtime: SparkStreamingRuntime): DataStream = {
     val rdds = dataWithSchema map (sc.parallelize(_))
 
     val queue = Queue(rdds: _*)

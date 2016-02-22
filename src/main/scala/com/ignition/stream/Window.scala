@@ -21,7 +21,7 @@ case class Window(windowDuration: Duration, slideDuration: Option[Duration] = No
 
   import Window._
 
-  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream =
+  protected def compute(arg: DataStream)(implicit runtime: SparkStreamingRuntime): DataStream =
     arg.window(windowDuration, slideDuration getOrElse arg.slideDuration)
 
   def toXml: Elem =

@@ -54,8 +54,7 @@ class FrameStepFactorySpec extends FrameFlowSpecification {
  * Abstract test step class.
  */
 abstract class AbstractTestStep extends FrameTransformer {
-  protected def compute(arg: DataFrame,
-                        preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = ???
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = ???
 }
 
 /**

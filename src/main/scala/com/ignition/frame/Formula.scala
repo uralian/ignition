@@ -24,8 +24,8 @@ case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) ext
   def addField(name: String, expr: RowExpression[_ <: DataType]) = copy(fields = fields.toSeq :+ (name -> expr))
   def %(name: String, expr: RowExpression[_ <: DataType]) = addField(name, expr)
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, preview)
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, runtime.previewMode)
 
     val executors = fields map {
       case (_, expr) => expr.evaluate(df.schema) _
@@ -41,7 +41,7 @@ case class Formula(fields: Iterable[(String, RowExpression[_ <: DataType])]) ext
   override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = computeSchema
 
   private def computeSchema(implicit runtime: SparkRuntime): StructType = {
-    val df = input(true)
+    val df = input
     val inSchema = df.schema
     val newFields = fields map {
       case (name, expr) =>

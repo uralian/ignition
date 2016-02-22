@@ -49,7 +49,13 @@ abstract class AbstractStep extends Serializable {
 /**
  * Flow execution runtime.
  */
-trait FlowRuntime
+trait FlowRuntime {
+  /**
+   * If true, it indicates the preview mode. The implementation should make use of
+   * this parameter to return a limited or simplified version of the output.
+   */
+  def previewMode: Boolean
+}
 
 /**
  * A workflow step. It can have an arbitrary number of inputs and outputs, each of which
@@ -100,50 +106,32 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
    * Computes a step output value at the specified index. This method is invoked from output()
    * and can safely throw any exception, which will be wrapped into ExecutionException.
    * @param index the output value index.
-   * @param preview if true, it indicates the preview mode. The implementation should make use of
-   * this parameter to return a limited or simplified version of the output.
    */
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T
+  protected def compute(index: Int)(implicit runtime: R): T
 
   /**
    * Computes a step output value at the specified index.
    * @param index the output value index.
-   * @param preview if true, it indicates the preview mode. The implementation should make use of
-   * this parameter to return a limited or simplified version of the output.
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
-  final def output(index: Int, preview: Boolean)(implicit runtime: R): T = synchronized {
+  final def output(index: Int)(implicit runtime: R): T = synchronized {
     cache.get(index) getOrElse wrap {
       assert(0 until outputCount contains index, s"Output index out of range: $index of $outputCount")
-      notifyListeners(new BeforeStepComputed(this, index, preview))
-      val result = compute(index, preview)
-      notifyListeners(new AfterStepComputed(this, index, preview, result))
-      if (!preview) cache += index -> result
+      notifyListeners(new BeforeStepComputed(this, index, runtime.previewMode))
+      val result = compute(index)
+      notifyListeners(new AfterStepComputed(this, index, runtime.previewMode, result))
+      if (!runtime.previewMode) cache += index -> result
       result
     }
   }
 
   /**
-   * Shortcut for `output(index, false)`. Computes a step output at specified index.
+   * Shortcut for `output(0)`. Computes a step output at index 0.
    * @throws ExecutionException in case of an error, or if the step is not connected.
    */
   @throws(classOf[ExecutionException])
-  final def output(index: Int)(implicit runtime: R): T = output(index, false)
-
-  /**
-   * Shortcut for `output(0, preview)`. Computes a step output at index 0.
-   * @throws ExecutionException in case of an error, or if the step is not connected.
-   */
-  @throws(classOf[ExecutionException])
-  final def output(preview: Boolean)(implicit runtime: R): T = output(0, preview)
-
-  /**
-   * Shortcut for `output(0, false)`. Computes a step output at index 0 with preview mode OFF.
-   * @throws ExecutionException in case of an error, or if the step is not connected.
-   */
-  @throws(classOf[ExecutionException])
-  final def output(implicit runtime: R): T = output(false)
+  final def output(implicit runtime: R): T = output(0)
 
   /**
    * Evaluates all step's outputs and returns a list of results.
@@ -223,7 +211,7 @@ trait ConnectionSource[T, R <: FlowRuntime] {
   def to(targets: ConnectionTarget[T, R]*): Unit = targets foreach (to(_))
   def -->(targets: ConnectionTarget[T, R]*): Unit = to(targets: _*)
 
-  def value(preview: Boolean)(implicit runtime: R): T
+  def value(implicit runtime: R): T
 }
 
 /* inputs */
@@ -235,20 +223,20 @@ trait SingleInputStep[T, R <: FlowRuntime] extends Step[T, R] with ConnectionTar
   val step = this
   val index = 0
   val inputCount = 1
-  def input(preview: Boolean)(implicit runtime: R) = {
+  def input(implicit runtime: R) = {
     if (inbound == null && allInputsRequired) throw ExecutionException("Input is not connected")
-    Option(inbound) map (_.value(preview)) getOrElse null.asInstanceOf[T]
+    Option(inbound) map (_.value) getOrElse null.asInstanceOf[T]
   }
 }
 
 trait MultiInputStep[T, R <: FlowRuntime] extends Step[T, R] { self =>
   val in = new LazyArray[InPort](idx => InPort(idx))(inputCount)
 
-  def inputs(preview: Boolean)(implicit runtime: R) = in.map { p =>
+  def inputs(implicit runtime: R) = in.map { p =>
     for {
       port <- Option(p)
       ib <- Option(port.inbound)
-    } yield ib.value(preview)
+    } yield ib.value
   }.zipWithIndex map {
     case (None, idx) if allInputsRequired => throw ExecutionException(s"Input$idx is not connected")
     case (x, _)                           => x getOrElse null.asInstanceOf[T]
@@ -266,7 +254,7 @@ trait SingleOutputStep[T, R <: FlowRuntime] extends Step[T, R] with ConnectionSo
   val index = 0
   val outputCount = 1
   def outbounds(index: Int) = { assert(index == 0); this }
-  def value(preview: Boolean)(implicit runtime: R): T = output(0, preview)
+  def value(implicit runtime: R): T = output(0)
 }
 
 trait MultiOutputStep[T, R <: FlowRuntime] extends Step[T, R] { self =>
@@ -287,42 +275,37 @@ trait MultiOutputStep[T, R <: FlowRuntime] extends Step[T, R] { self =>
 
   case class OutPort(index: Int) extends ConnectionSource[T, R] {
     val step = self
-    def value(preview: Boolean)(implicit runtime: R) = self.output(index, preview)
+    def value(implicit runtime: R) = self.output(index)
     override def toString = s"$step.out($index)"
   }
 }
 
 /* templates */
 abstract class Producer[T, R <: FlowRuntime] extends SingleOutputStep[T, R] with NoInputStep[T, R] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
-    compute(preview)
-  protected def compute(preview: Boolean)(implicit runtime: R): T
+  protected def compute(index: Int)(implicit runtime: R): T = compute
+  protected def compute(implicit runtime: R): T
 }
 
 abstract class Transformer[T, R <: FlowRuntime] extends SingleOutputStep[T, R] with SingleInputStep[T, R] {
   override val step = this
   override val index = 0
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
-    compute(input(preview), preview)
-  protected def compute(arg: T, preview: Boolean)(implicit runtime: R): T
+  protected def compute(index: Int)(implicit runtime: R): T = compute(input)
+  protected def compute(arg: T)(implicit runtime: R): T
 }
 
 abstract class Splitter[T, R <: FlowRuntime] extends SingleInputStep[T, R] with MultiOutputStep[T, R] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
-    compute(input(preview), index, preview)
-  protected def compute(arg: T, index: Int, preview: Boolean)(implicit runtime: R): T
+  protected def compute(index: Int)(implicit runtime: R): T = compute(input, index)
+  protected def compute(arg: T, index: Int)(implicit runtime: R): T
 }
 
 abstract class Merger[T, R <: FlowRuntime] extends MultiInputStep[T, R] with SingleOutputStep[T, R] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
-    compute(inputs(preview), preview)
-  protected def compute(args: IndexedSeq[T], preview: Boolean)(implicit runtime: R): T
+  protected def compute(index: Int)(implicit runtime: R): T = compute(inputs)
+  protected def compute(args: IndexedSeq[T])(implicit runtime: R): T
 }
 
 abstract class Module[T, R <: FlowRuntime] extends MultiInputStep[T, R] with MultiOutputStep[T, R] {
-  protected def compute(index: Int, preview: Boolean)(implicit runtime: R): T =
-    compute(inputs(preview), index, preview)
-  protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: R): T
+  protected def compute(index: Int)(implicit runtime: R): T = compute(inputs, index)
+  protected def compute(args: IndexedSeq[T], index: Int)(implicit runtime: R): T
 }
 
 /* listeners */

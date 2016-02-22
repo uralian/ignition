@@ -112,12 +112,12 @@ case class Reduce(reducers: Iterable[(String, ReduceOp)], groupFields: Iterable[
 
   def groupBy(fields: String*) = copy(groupFields = fields)
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val groupFields = this.groupFields
     val dataFields = reducers map (_._1) toSeq
     val ops = reducers map (_._2) toSeq
 
-    val df = optLimit(arg, preview)
+    val df = optLimit(arg, runtime.previewMode)
 
     val rdd = toPair(df, dataFields, groupFields)
     rdd.persist

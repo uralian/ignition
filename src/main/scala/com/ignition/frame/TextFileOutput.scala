@@ -32,7 +32,7 @@ case class TextFileOutput(path: String, fields: Iterable[(String, String)],
   def separator(sep: String): TextFileOutput = copy(separator = sep)
   def header(out: Boolean): TextFileOutput = copy(outputHeader = out)
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val path = injectGlobals(this.path)
     val out = new PrintWriter(path)
 
@@ -45,7 +45,7 @@ case class TextFileOutput(path: String, fields: Iterable[(String, String)],
 
     val fmts = fields map (_._2) zipWithIndex
 
-    val df = optLimit(arg, preview)
+    val df = optLimit(arg, runtime.previewMode)
     df.select(columns: _*).collect foreach { row =>
       val line = fmts map {
         case (fmt, index) => fmt.format(row(index))
@@ -58,8 +58,7 @@ case class TextFileOutput(path: String, fields: Iterable[(String, String)],
     df
   }
 
-  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
-    input(true).schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = input.schema
 
   def toXml: Elem =
     <node outputHeader={ outputHeader }>

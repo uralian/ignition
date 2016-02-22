@@ -51,17 +51,16 @@ case class CassandraOutput(keyspace: String, table: String) extends FrameTransfo
         new DataRowWriter(buildSchema(0), table)
     }
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val keyspace = this.keyspace
     val table = this.table
     val columns = SomeColumns(arg.columns map (s => s: ColumnRef): _*)
-    val df = optLimit(arg, preview)
+    val df = optLimit(arg, runtime.previewMode)
     df.rdd.saveToCassandra(keyspace, table, columns)
     df
   }
 
-  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
-    input(true).schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = input.schema
 
   def toXml: Elem = <node keyspace={ keyspace } table={ table }/>.copy(label = tag)
 

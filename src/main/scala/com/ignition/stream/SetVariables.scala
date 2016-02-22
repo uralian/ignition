@@ -20,7 +20,7 @@ case class SetVariables(vars: Map[String, Any]) extends StreamTransformer {
 
   override val allInputsRequired: Boolean = false
 
-  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+  protected def compute(arg: DataStream)(implicit runtime: SparkStreamingRuntime): DataStream = {
     vars foreach {
       case (name, null)  => runtime.vars.drop(name)
       case (name, value) => runtime.vars(name) = value

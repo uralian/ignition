@@ -53,8 +53,7 @@ class StreamStepFactorySpec extends StreamFlowSpecification {
  * Abstract test step class.
  */
 abstract class AbstractTestStep extends StreamTransformer {
-  protected def compute(arg: DataStream,
-                        preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = ???
+  protected def compute(arg: DataStream)(implicit runtime: SparkStreamingRuntime): DataStream = ???
 }
 
 /**

@@ -18,7 +18,7 @@ import com.ignition.util.XmlUtils.RichNodeSeq
 case class Filter(condition: String) extends StreamSplitter(2) {
   import Filter._
 
-  protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+  protected def compute(arg: DataStream, index: Int)(implicit runtime: SparkStreamingRuntime): DataStream = {
 
     val expr = if (index == 0) condition else s"not($condition)"
     val filterFunc = (df: DataFrame) => df.filter(expr)

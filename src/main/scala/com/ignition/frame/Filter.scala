@@ -19,14 +19,13 @@ import com.ignition.util.XmlUtils.RichNodeSeq
 case class Filter(condition: String) extends FrameSplitter(2) {
   import Filter._
 
-  protected def compute(arg: DataFrame, index: Int, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, preview)
+  protected def compute(arg: DataFrame, index: Int)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, runtime.previewMode)
     val expr = if (index == 0) condition else s"not($condition)"
     df.filter(expr)
   }
 
-  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
-    input(true).schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = input.schema
 
   def toXml: Elem = <node><condition>{ condition }</condition></node>.copy(label = tag)
 

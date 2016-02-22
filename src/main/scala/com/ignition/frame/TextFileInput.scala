@@ -31,7 +31,7 @@ case class TextFileInput(path: String, separator: Option[String] = None, dataFie
   val schema: StructType = string(dataField)
   val regex = separator map (_.r)
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(implicit runtime: SparkRuntime): DataFrame = {
     val path = injectGlobals(this.path)
 
     val src = Source.fromFile(path)
@@ -41,7 +41,7 @@ case class TextFileInput(path: String, separator: Option[String] = None, dataFie
     val rdd = sc.parallelize(fragments map (Row(_)))
 
     val df = ctx.createDataFrame(rdd, schema)
-    optLimit(df, false)
+    optLimit(df, runtime.previewMode)
   }
 
   override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = schema

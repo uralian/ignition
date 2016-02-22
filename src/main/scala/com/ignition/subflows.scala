@@ -12,10 +12,10 @@ import com.ignition.util.XmlUtils._
 /**
  * A trivial implementation of a ConnectionSource which returns a static value.
  */
-private[ignition] case class ConnectionSourceStub[T, R <: FlowRuntime](value: T) extends ConnectionSource[T, R] {
+private[ignition] case class ConnectionSourceStub[T, R <: FlowRuntime](v: T) extends ConnectionSource[T, R] {
   val step = null
   val index = 0
-  def value(preview: Boolean)(implicit runtime: R): T = value
+  def value(implicit runtime: R): T = v
 }
 
 /**
@@ -260,11 +260,11 @@ trait SubFlowFactory[S <: Step[T, R], T, R <: FlowRuntime] {
 /**
  * A subflow which represents a Producer-type step.
  */
-abstract class SubProducer[T, R<:FlowRuntime](body: => ConnectionSource[T, R]) extends Producer[T, R] with SubFlow[T, R] {
+abstract class SubProducer[T, R <: FlowRuntime](body: => ConnectionSource[T, R]) extends Producer[T, R] with SubFlow[T, R] {
   lazy val inPoints = Nil
   lazy val outPoints = List(body)
 
-  protected def compute(preview: Boolean)(implicit runtime: R): T = body.value(preview)
+  protected def compute(implicit runtime: R): T = body.value
 }
 
 /**
@@ -276,9 +276,9 @@ abstract class SubTransformer[T, R <: FlowRuntime](body: => (ConnectionTarget[T,
   lazy val inPoints = List(body._1)
   lazy val outPoints = List(body._2)
 
-  protected def compute(arg: T, preview: Boolean)(implicit runtime: R): T = {
+  protected def compute(arg: T)(implicit runtime: R): T = {
     body._1 from ConnectionSourceStub(arg)
-    body._2.value(preview)
+    body._2.value
   }
 }
 
@@ -293,9 +293,9 @@ abstract class SubSplitter[T, R <: FlowRuntime](body: => (ConnectionTarget[T, R]
 
   def outputCount: Int = body._2.size
 
-  protected def compute(arg: T, index: Int, preview: Boolean)(implicit runtime: R): T = {
+  protected def compute(arg: T, index: Int)(implicit runtime: R): T = {
     body._1 from ConnectionSourceStub(arg)
-    body._2(index).value(preview)
+    body._2(index).value
   }
 }
 
@@ -312,9 +312,9 @@ abstract class SubMerger[T, R <: FlowRuntime](body: => (Seq[ConnectionTarget[T, 
 
   def inputCount: Int = body._1.size
 
-  protected def compute(args: IndexedSeq[T], preview: Boolean)(implicit runtime: R): T = {
+  protected def compute(args: IndexedSeq[T])(implicit runtime: R): T = {
     args zip body._1 foreach { case (arg, port) => port from ConnectionSourceStub(arg) }
-    body._2.value(preview)
+    body._2.value
   }
 }
 
@@ -332,8 +332,8 @@ abstract class SubModule[T, R <: FlowRuntime](body: => (Seq[ConnectionTarget[T, 
   def inputCount: Int = body._1.size
   def outputCount: Int = body._2.size
 
-  protected def compute(args: IndexedSeq[T], index: Int, preview: Boolean)(implicit runtime: R): T = {
+  protected def compute(args: IndexedSeq[T], index: Int)(implicit runtime: R): T = {
     args zip body._1 foreach { case (arg, port) => port from ConnectionSourceStub(arg) }
-    body._2(index).value(preview)
+    body._2(index).value
   }
 }

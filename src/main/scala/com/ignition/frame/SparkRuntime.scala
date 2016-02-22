@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 trait SparkRuntime extends FlowRuntime with Serializable {
   def sc: SparkContext
   def ctx: SQLContext
-
+  
   /**
    * Set once, read-only variables.
    */
@@ -77,7 +77,7 @@ trait SparkRuntime extends FlowRuntime with Serializable {
  *
  * @author Vlad Orzhekhovskiy
  */
-class DefaultSparkRuntime(@transient val ctx: SQLContext)
+class DefaultSparkRuntime(@transient val ctx: SQLContext, val previewMode: Boolean = false)
     extends SparkRuntime {
   
   @transient protected val log = LoggerFactory.getLogger(getClass)

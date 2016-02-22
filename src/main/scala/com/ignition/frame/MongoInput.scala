@@ -48,7 +48,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
   def limit(limit: Int) = copy(page = Page(limit, this.page.offset))
   def offset(offset: Int) = copy(page = Page(this.page.limit, offset))
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(implicit runtime: SparkRuntime): DataFrame = {
     val collection = MongoUtils.collection(db, coll)
 
     val fields = schema map (f => f.copy(name = f.name.replace('#', '.')))
@@ -59,7 +59,7 @@ case class MongoInput(db: String, coll: String, schema: StructType,
 
     val cursor = collection.find(query, keys).sort(orderBy)
     val cursorWithOffset = if (page.offset > 0) cursor.skip(page.offset) else cursor
-    val size = (page.limit, preview) match {
+    val size = (page.limit, runtime.previewMode) match {
       case (limit, false) if limit < 1 => None
       case (limit, true) if limit < 1 => Some(FrameStep.previewSize)
       case (limit, false) => Some(limit)

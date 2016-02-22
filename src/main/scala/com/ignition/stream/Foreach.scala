@@ -22,7 +22,7 @@ case class Foreach(flow: Step[DataFrame, SparkRuntime])
     extends StreamSplitter(flow.outputCount) {
   import Foreach._
 
-  protected def compute(arg: DataStream, index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+  protected def compute(arg: DataStream, index: Int)(implicit runtime: SparkStreamingRuntime): DataStream = {
     val flow = this.flow
     arg transform { rdd =>
       flow.resetCache(true, false)
@@ -31,12 +31,12 @@ case class Foreach(flow: Step[DataFrame, SparkRuntime])
         val schema = rdd.first.schema
         val df = runtime.ctx.createDataFrame(rdd, schema)
         val source = new FrameProducer { self =>
-          protected def compute(preview: Boolean)(implicit runtime: SparkRuntime) = optLimit(df, preview)
+          protected def compute(implicit runtime: SparkRuntime) = optLimit(df, runtime.previewMode)
           def toXml: scala.xml.Elem = ???
           def toJson: org.json4s.JValue = ???
         }
         source --> ins(flow)(0)
-        flow.output(index, preview).rdd
+        flow.output(index).rdd
       }
     }
   }
