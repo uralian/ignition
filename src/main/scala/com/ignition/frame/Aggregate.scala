@@ -47,10 +47,10 @@ trait RowAggregator[U] extends Serializable {
 abstract class AbstractAggregate[U: ClassTag](aggregator: RowAggregator[U], groupFields: Iterable[String] = Nil)
   extends FrameTransformer with PairFunctions {
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val groupFields = this.groupFields
 
-    val df = optLimit(arg, preview)
+    val df = optLimit(arg, runtime.previewMode)
 
     val rdd = toPair(df, df.schema.fieldNames, groupFields)
     rdd.persist

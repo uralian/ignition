@@ -23,7 +23,7 @@ case class Join(condition: Option[String], joinType: JoinType) extends StreamMer
 
   def joinType(jt: JoinType) = copy(joinType = jt)
 
-  protected def compute(args: IndexedSeq[DataStream], preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+  protected def compute(args: IndexedSeq[DataStream])(implicit runtime: SparkStreamingRuntime): DataStream = {
     val stream1 = args(0)
     val stream2 = args(1)
 

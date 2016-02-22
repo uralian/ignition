@@ -13,15 +13,9 @@ import com.mongodb.casbah.Imports.{ MongoDBObject, map2MongoDBObject }
 class MongoOutputSpec extends FrameFlowSpecification with EmbedConnection {
   sequential
 
-  override def beforeAll = {
-    super.beforeAll
-    mongodExecutable.start
-  }
+  override def beforeAll = mongodExecutable.start
 
-  override def afterAll = {
-    mongodExecutable.stop
-    super.afterAll
-  }
+  override def afterAll = mongodExecutable.stop
 
   override def map(fs: => Fragments) = super[FrameFlowSpecification].map(fs)
 

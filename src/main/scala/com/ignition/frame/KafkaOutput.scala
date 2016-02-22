@@ -38,10 +38,10 @@ case class KafkaOutput(field: String, topic: String, brokers: Iterable[String] =
     new ProducerConfig(props)
   }
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val producer = new Producer[String, String](config)
 
-    val df = optLimit(arg, preview)
+    val df = optLimit(arg, runtime.previewMode)
     df.select(field).collect.foreach { row =>
       val data = row.getString(0)
       val msg = new KeyedMessage[String, String](topic, data)
@@ -51,8 +51,7 @@ case class KafkaOutput(field: String, topic: String, brokers: Iterable[String] =
     df
   }
 
-  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
-    input(true).schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = input.schema
 
   def toXml: Elem =
     <node>

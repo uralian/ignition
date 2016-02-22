@@ -47,7 +47,7 @@ trait FrameStep extends Step[DataFrame, SparkRuntime] with XmlExport with JsonEx
    * calls output(), invoking it from output() directly or indirectly will result in infinite cycle.
    */
   protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
-    output(index, true).schema
+    output(index).schema
 
   /**
    * Takes one row from the data frame is preview is true.

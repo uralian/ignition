@@ -1,15 +1,14 @@
 package com.ignition.stream
 
 import scala.reflect.ClassTag
-
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.streaming.dstream.DStream.toPairDStreamFunctions
 import org.joda.time.DateTime
-
 import com.ignition._
+import com.ignition.frame.FrameStep
 
 /**
  * Workflow step that emits DataStream as the output.
@@ -68,11 +67,12 @@ trait StreamStep extends Step[DataStream, SparkStreamingRuntime] {
   /**
    * Triggers listener notification on stream events.
    */
-  abstract override protected def compute(index: Int, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
-    val stream = super.compute(index, preview)
+  abstract override protected def compute(index: Int)(implicit runtime: SparkStreamingRuntime): DataStream = {
+    val stream = super.compute(index)
     stream foreachRDD { (rdd, time) =>
       val date = new DateTime(time.milliseconds)
-      notifyDataListeners(StreamStepBatchProcessed(this, index, date, rdd))
+      val rows = if (runtime.previewMode) sc.parallelize(rdd.take(FrameStep.previewSize)) else rdd
+      notifyDataListeners(StreamStepBatchProcessed(this, index, date, runtime.previewMode, rows))
     }
     stream
   }
@@ -178,7 +178,7 @@ abstract class StateUpdate[S: ClassTag](keyFields: Iterable[String]) extends Str
    */
   def mapFunc(state: S): Iterable[Row]
 
-  protected def compute(arg: DataStream, preview: Boolean)(implicit runtime: SparkStreamingRuntime): DataStream = {
+  protected def compute(arg: DataStream)(implicit runtime: SparkStreamingRuntime): DataStream = {
 
     val stream = toPair(arg, Nil, keyFields)
 
@@ -196,7 +196,7 @@ abstract class StateUpdate[S: ClassTag](keyFields: Iterable[String]) extends Str
 /**
  * Encapsulates the details about the processed batch.
  */
-case class StreamStepBatchProcessed(step: StreamStep, index: Int, time: DateTime, rows: RDD[Row])
+case class StreamStepBatchProcessed(step: StreamStep, index: Int, time: DateTime, preview: Boolean, rows: RDD[Row])
 
 /**
  * Listener which will be notified on each processed stream batch.

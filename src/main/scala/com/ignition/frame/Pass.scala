@@ -14,8 +14,8 @@ import org.json4s.JsonDSL.{ pair2jvalue, string2jvalue }
 case class Pass() extends FrameTransformer {
   import Pass._
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime) =
-    optLimit(arg, preview)
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime) =
+    optLimit(arg, runtime.previewMode)
 
   def toXml: Elem = <node/>.copy(label = tag)
 

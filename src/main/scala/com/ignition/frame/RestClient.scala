@@ -100,7 +100,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod = HttpMethod.GE
   def noStatus() = copy(statusField = None)
   def responseHeaders(fieldName: String) = copy(headersField = Some(fieldName))
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val url = this.url
     val method = this.method
     val body = this.body
@@ -111,7 +111,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod = HttpMethod.GE
 
     val indexMap = arg.schema.indexMap
 
-    val df = optLimit(arg, preview)
+    val df = optLimit(arg, runtime.previewMode)
 
     val rdd = df mapPartitions { rows =>
       implicit val httpClient = new ApacheHttpClient
@@ -138,7 +138,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod = HttpMethod.GE
   override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = computeSchema
 
   private def computeSchema(implicit runtime: SparkRuntime): StructType = {
-    val inSchema = input(true).schema
+    val inSchema = input.schema
     val fields = inSchema ++ resultField.map(string(_)) ++ statusField.map(int(_)) ++ headersField.map(string(_))
     StructType(fields)
   }

@@ -27,8 +27,8 @@ case class AddFields(fields: Iterable[(String, Any)]) extends FrameTransformer {
   def add(tuple: (String, Any)) = copy(fields = this.fields.toSeq :+ tuple)
   def %(tuple: (String, Any)) = add(tuple)
   
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
-    val df = optLimit(arg, preview)
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
+    val df = optLimit(arg, runtime.previewMode)
 
     def column(name: String, expr: Any) = lit(expr).as(name)
 

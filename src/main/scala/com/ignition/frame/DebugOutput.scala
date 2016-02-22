@@ -31,9 +31,9 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
   def maxWidth(width: Int): DebugOutput = copy(maxWidth = Some(width))
   def unlimitedWidth(): DebugOutput = copy(maxWidth = None)
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val schema = arg.schema
-    val data = if (preview) arg.take(FrameStep.previewSize) else arg.collect
+    val data = if (runtime.previewMode) arg.take(FrameStep.previewSize) else arg.collect
 
     val widths = calculateWidths(schema, data)
     val delimiter = widths map ("-" * _) mkString ("+", "+", "+")
@@ -88,8 +88,7 @@ case class DebugOutput(names: Boolean = true, types: Boolean = false,
     arg
   }
 
-  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType =
-    input(true).schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = input.schema
 
   def toXml: Elem =
     <node names={ names } types={ types } max-width={ maxWidth }>

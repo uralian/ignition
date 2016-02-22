@@ -16,7 +16,7 @@ class FilterSpec extends StreamFlowSpecification {
     addRows(("john", 1, 65.0), ("john", 3, 78.0)).
     addRows(("jane", 2, 85.0), ("jane", 1, 46.0)).
     addRows(("jake", 4, 62.0), ("john", 3, 95.0))
-
+    
   "Filter for numeric expressions" should {
     "evaluate `===`" in {
       val f = Filter($"item" === 1)

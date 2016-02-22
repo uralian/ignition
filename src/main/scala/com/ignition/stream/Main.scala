@@ -10,7 +10,7 @@ import org.apache.spark.streaming.Milliseconds
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.string2JsonInput
 
-import com.ignition.{ BuildInfo, frame }
+import com.ignition.{ BuildInfo, SparkHelper }
 import com.ignition.util.ConfigUtils
 
 /**
@@ -24,7 +24,7 @@ object Main {
   implicit val runtime = {
     val streamCfg = ConfigUtils.getConfig("spark.streaming")
     val ms = streamCfg.getDuration("batch-duration", TimeUnit.MILLISECONDS)
-    new DefaultSparkStreamingRuntime(frame.Main.ctx, Milliseconds(ms))
+    new DefaultSparkStreamingRuntime(SparkHelper.sqlContext, Milliseconds(ms))
   }
 
   /* build command line parser */

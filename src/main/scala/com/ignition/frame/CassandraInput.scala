@@ -72,10 +72,10 @@ case class CassandraInput(keyspace: String, table: String, columns: Iterable[Str
 
   def where(cql: String, values: Any*): CassandraInput = copy(where = Some(Where(cql, values: _*)))
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(implicit runtime: SparkRuntime): DataFrame = {
     val tableRDD = ctx.sparkContext.cassandraTable[CassandraRow](keyspace, table)
     val selectRDD = if (columns.isEmpty) tableRDD else tableRDD.select(columns.toSeq.map(s => s: ColumnRef): _*)
-    val limitRDD = if (preview) selectRDD.limit(FrameStep.previewSize) else selectRDD
+    val limitRDD = if (runtime.previewMode) selectRDD.limit(FrameStep.previewSize) else selectRDD
     val schema = createSchema(selectRDD)
     val rows = where map (w => limitRDD.where(w.cql, w.values: _*)) getOrElse limitRDD
 

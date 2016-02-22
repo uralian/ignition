@@ -1,14 +1,14 @@
 package com.ignition.samples
 
 import org.apache.spark.streaming.Seconds
-
 import com.ignition.{ ExecutionException, frame, stream }
 import com.ignition.types.{ RichStructType, fieldToRichStruct, int, string }
+import com.ignition.SparkHelper
 
 object MultiSessionStreaming extends App {
 
   def testFrames() = {
-    implicit val rt = new frame.DefaultSparkRuntime(frame.Main.ctx)
+    implicit val rt = new frame.DefaultSparkRuntime(SparkHelper.sqlContext)
 
     // building simple flow grid-->pass
     val grid1 = frame.DataGrid(string("id") ~ string("name") ~ int("weight")) rows (
@@ -41,7 +41,7 @@ object MultiSessionStreaming extends App {
   }
 
   def testStreams() = {
-    implicit val rt = new stream.DefaultSparkStreamingRuntime(frame.Main.ctx, Seconds(5))
+    implicit val rt = new stream.DefaultSparkStreamingRuntime(SparkHelper.sqlContext, Seconds(5))
 
     // building simple flow queue -->pass
     val schema = string("name") ~ int("age")

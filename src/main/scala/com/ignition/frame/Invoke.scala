@@ -23,7 +23,7 @@ case class Invoke(path: String, fileType: String = "json")
 
   override val allInputsRequired = false
 
-  protected def compute(args: IndexedSeq[DataFrame], index: Int, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(args: IndexedSeq[DataFrame], index: Int)(implicit runtime: SparkRuntime): DataFrame = {
     val data = Source.fromFile(path).getLines mkString "\n"
     val step = if (fileType == "json")
       FrameStepFactory.fromJson(parse(data))
@@ -31,7 +31,7 @@ case class Invoke(path: String, fileType: String = "json")
       FrameStepFactory.fromXml(XML.loadString(data))
 
     args zip ins(step) foreach { case (arg, port) => port from ConnectionSourceStub(arg) }
-    outs(step)(index).value(preview)
+    outs(step)(index).value
   }
 
   def toXml: Elem = <node><path type={ fileType }>{ path }</path></node>.copy(label = tag)

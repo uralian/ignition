@@ -1,15 +1,10 @@
 package com.ignition.stream
 
-import scala.util.control.NonFatal
-
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.streaming.{ Duration, StreamingContext, StreamingContextState }
 
-import com.ignition.Having
+import com.ignition.{ ExecutionException, SparkHelper }
 import com.ignition.frame.{ DefaultSparkRuntime, SparkRuntime }
-import com.ignition.outs
-import com.ignition.util.ConfigUtils
-import com.ignition.util.ConfigUtils.RichConfig
 
 /**
  * An extension of [[com.ignition.frame.SparkRuntime]] which adds a streaming context to the mix.
@@ -58,16 +53,12 @@ trait SparkStreamingRuntime extends SparkRuntime {
 /**
  * The default implementation of [[SparkStreamingRuntime]].
  */
-class DefaultSparkStreamingRuntime(ctx: SQLContext, batchDuration: Duration)
-    extends DefaultSparkRuntime(ctx) with SparkStreamingRuntime {
-
-  @transient private val cfg = ConfigUtils.getConfig("spark.streaming")
-  @transient private val checkpointDir = cfg.getString("checkpoint-dir")
-  @transient private val terminationTimeout = cfg.getTimeInterval("termination-timeout")
+class DefaultSparkStreamingRuntime(ctx: SQLContext, batchDuration: Duration, previewMode: Boolean = false)
+    extends DefaultSparkRuntime(ctx, previewMode) with SparkStreamingRuntime {
 
   @transient private var steps: Set[StreamStep] = Set.empty
 
-  @transient private var _ssc: StreamingContext = createStreamingContext
+  @transient private var _ssc: StreamingContext = SparkHelper.createStreamingContext(batchDuration)
 
   def ssc: StreamingContext = _ssc
 
@@ -84,24 +75,12 @@ class DefaultSparkStreamingRuntime(ctx: SQLContext, batchDuration: Duration)
 
   def stop(): Unit = synchronized {
     assert(isRunning, "No active streaming context")
-    ssc.stop(false, true)
-    try {
-      if (!ssc.awaitTerminationOrTimeout(terminationTimeout.getMillis)) {
-        log.warn("Graceful termination failed, forcing stop streaming")
-        _ssc.stop(false, false)
-        _ssc.awaitTermination
-      }
-      log.info("Streaming Context stopped")
-      _ssc = createStreamingContext
-    } catch {
-      case NonFatal(e) => log.warn("Error stopping StreamingContext", e)
-    }
+    SparkHelper.stop(_ssc)
+    _ssc = SparkHelper.createStreamingContext(batchDuration)
     steps foreach (_.resetCache(true, true))
   }
 
-  private def bindToSSC(step: StreamStep) = outs(step) foreach { _.value(false)(this).foreachRDD(_ => {}) }
-
-  private def createStreamingContext = new StreamingContext(sc, batchDuration) having {
-    _.checkpoint(checkpointDir)
+  private def bindToSSC(step: StreamStep) = step.evaluate(this) foreach {
+    _.foreachRDD(_ => {})
   }
 }

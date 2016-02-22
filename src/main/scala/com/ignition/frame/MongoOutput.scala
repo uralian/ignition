@@ -21,11 +21,11 @@ import com.mongodb.casbah.commons.MongoDBObject
 case class MongoOutput(db: String, coll: String) extends FrameTransformer {
   import MongoOutput._
 
-  protected def compute(arg: DataFrame, preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(arg: DataFrame)(implicit runtime: SparkRuntime): DataFrame = {
     val db = this.db
     val coll = this.coll
 
-    val df = optLimit(arg, preview)
+    val df = optLimit(arg, runtime.previewMode)
     df foreachPartition { rows =>
       val collection = MongoUtils.collection(db, coll)
       rows foreach { row =>
@@ -40,7 +40,7 @@ case class MongoOutput(db: String, coll: String) extends FrameTransformer {
     df
   }
 
-  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = input(true).schema
+  override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = input.schema
 
   def toXml: Elem = <node db={ db } coll={ coll }/>.copy(label = tag)
 

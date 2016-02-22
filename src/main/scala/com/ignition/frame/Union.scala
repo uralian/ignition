@@ -17,16 +17,16 @@ case class Union() extends FrameMerger(Union.MAX_INPUTS) {
 
   override val allInputsRequired = false
 
-  protected def compute(args: IndexedSeq[DataFrame], preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
+  protected def compute(args: IndexedSeq[DataFrame])(implicit runtime: SparkRuntime): DataFrame = {
     validateSchema
     val rdd = ctx.sparkContext.union(args filter (_ != null) map (_.rdd))
     val df = ctx.createDataFrame(rdd, inSchemas.head)
-    optLimit(df, preview)
+    optLimit(df, runtime.previewMode)
   }
 
   override protected def buildSchema(index: Int)(implicit runtime: SparkRuntime): StructType = validateSchema
 
-  private def inSchemas(implicit runtime: SparkRuntime) = inputs(true) filter (_ != null) map (_.schema)
+  private def inSchemas(implicit runtime: SparkRuntime) = inputs filter (_ != null) map (_.schema)
 
   private def validateSchema(implicit runtime: SparkRuntime): StructType = {
     assert(!inSchemas.isEmpty, "No inputs connected")

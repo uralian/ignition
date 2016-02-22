@@ -1,14 +1,14 @@
 package com.ignition.frame
 
 import java.io.File
+
 import scala.io.Source
 import scala.xml.XML
-import org.apache.spark.{ SparkConf, SparkContext }
-import org.apache.spark.sql.SQLContext
+
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.string2JsonInput
-import com.ignition.util.ConfigUtils
-import com.ignition.BuildInfo
+
+import com.ignition.{ BuildInfo, SparkHelper }
 
 /**
  * The entry point for starting ignition frame flows.
@@ -16,30 +16,10 @@ import com.ignition.BuildInfo
  * @author Vlad Orzhekhovskiy
  */
 object Main {
-  import ConfigUtils._
-
-  /* build spark configuration */
-  private val sparkConf = {
-    val conf = new SparkConf(true)
-
-    val cassCfg = ConfigUtils.getConfig("cassandra")
-    cassCfg.getStringOption("host") foreach (conf.set("spark.cassandra.connection.host", _))
-    cassCfg.getStringOption("port") foreach (conf.set("spark.cassandra.connection.port", _))
-    cassCfg.getStringOption("username") foreach (conf.set("spark.cassandra.auth.username", _))
-    cassCfg.getStringOption("password") foreach (conf.set("spark.cassandra.auth.password", _))
-
-    val sparkCfg = ConfigUtils.getConfig("spark")
-    conf.setMaster(sparkCfg.getString("master-url"))
-    conf.setAppName(sparkCfg.getString("app-name"))
-    conf.set("spark.app.id", sparkCfg.getString("app-name"))
-
-    conf
-  }
+  import com.ignition.util.ConfigUtils._
 
   /* constructs spark runtime */
-  lazy val sc = new SparkContext(sparkConf)
-  lazy val ctx = new SQLContext(sc)
-  implicit protected lazy val runtime = new DefaultSparkRuntime(ctx)
+  implicit protected lazy val runtime = new DefaultSparkRuntime(SparkHelper.sqlContext)
 
   /* build command line parser */
   val parser = new scopt.OptionParser[FrameFlowConfig]("FrameFlowRunner") {
@@ -83,9 +63,9 @@ object Main {
    * @return a list of evaluated flow outputs.
    */
   def runFrameFlow(flow: FrameFlow,
-                  vars: Map[String, Any] = Map.empty,
-                  accs: Map[String, Any] = Map.empty,
-                  args: Array[String] = Array.empty) = {
+                   vars: Map[String, Any] = Map.empty,
+                   accs: Map[String, Any] = Map.empty,
+                   args: Array[String] = Array.empty) = {
 
     vars foreach {
       case (name, value) => runtime.vars(name) = value

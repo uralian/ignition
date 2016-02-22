@@ -34,7 +34,7 @@ case class FrameFlow(targets: Iterable[ConnectionSource[DataFrame, SparkRuntime]
    */
   def execute(preview: Boolean)(implicit runtime: SparkRuntime): Iterable[DataFrame] = {
     notifyListeners(new FrameFlowStarted(this))
-    val results = outPoints map (_.value(preview))
+    val results = outPoints map (_.value)
     notifyListeners(new FrameFlowComplete(this, results))
     results
   }

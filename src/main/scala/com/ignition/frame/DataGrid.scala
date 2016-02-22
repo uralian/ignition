@@ -29,8 +29,8 @@ case class DataGrid(schema: StructType, rows: Seq[Row]) extends FrameProducer {
 
   def rows(tuples: Product*): DataGrid = copy(rows = tuples map Row.fromTuple)
 
-  protected def compute(preview: Boolean)(implicit runtime: SparkRuntime): DataFrame = {
-    val data = if (preview) rows.take(FrameStep.previewSize) else rows
+  protected def compute(implicit runtime: SparkRuntime): DataFrame = {
+    val data = if (runtime.previewMode) rows.take(FrameStep.previewSize) else rows
     val rdd = ctx.sparkContext.parallelize(data)
     ctx.createDataFrame(rdd, schema)
   }
