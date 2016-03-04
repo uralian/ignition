@@ -86,5 +86,6 @@ object MultiSessionStreaming extends App {
     rt.stop
   }
 
+  testFrames
   testStreams
 }

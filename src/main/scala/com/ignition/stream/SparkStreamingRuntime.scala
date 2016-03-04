@@ -36,18 +36,24 @@ trait SparkStreamingRuntime extends SparkRuntime {
    * Restarts the runtime.
    */
   def restart() = { stop; start }
-
+  
   /**
    * Registers the step with the runtime. Subsequent restarts will keep binding the
    * step to newly created contexts.
    */
-  private[ignition] def register(step: StreamStep): Unit
+  def register(step: StreamStep): Unit
 
   /**
    * Unregisters the step with the runtime. After the restart, the step will no longer
    * be bound to the active context.
    */
-  private[ignition] def unregister(step: StreamStep): Unit
+  def unregister(step: StreamStep): Unit
+  
+  /**
+   * Unregisters all the steps associated with the runtime. After the restart, they will 
+   * no longer be bound to the active context.
+   */
+  def unregisterAll(): Unit
 }
 
 /**
@@ -62,9 +68,11 @@ class DefaultSparkStreamingRuntime(ctx: SQLContext, batchDuration: Duration, pre
 
   def ssc: StreamingContext = _ssc
 
-  private[ignition] def register(step: StreamStep) = synchronized { steps = steps + step }
+  def register(step: StreamStep) = synchronized { steps = steps + step }
 
-  private[ignition] def unregister(step: StreamStep) = synchronized { steps = steps - step }
+  def unregister(step: StreamStep) = synchronized { steps = steps - step }
+  
+  def unregisterAll() = synchronized { steps = Set.empty }
 
   def start(): Unit = synchronized {
     assert(!isRunning, "Streaming context already active")
