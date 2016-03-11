@@ -133,7 +133,7 @@ trait SubFlow[T, R <: FlowRuntime] extends Step[T, R] {
   /**
    * Reset the cache of the subflow and its constituents.
    */
-  override private[ignition] def resetCache(predecessors: Boolean, descendants: Boolean): Unit = synchronized {
+  override def resetCache(predecessors: Boolean, descendants: Boolean): Unit = synchronized {
     super.resetCache(predecessors, descendants)
     steps foreach (_.resetCache(false, false))
   }
