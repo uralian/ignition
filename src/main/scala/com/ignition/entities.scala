@@ -88,7 +88,7 @@ trait Step[T, R <: FlowRuntime] extends AbstractStep with XmlExport with JsonExp
   /**
    * Clears the cache of this step and optionally that of its predecessors and descendants.
    */
-  private[ignition] def resetCache(predecessors: Boolean, descendants: Boolean): Unit = synchronized {
+  def resetCache(predecessors: Boolean, descendants: Boolean): Unit = synchronized {
     this.cache = Map.empty[Int, T]
     if (predecessors) for {
       tgt <- ins(this)
