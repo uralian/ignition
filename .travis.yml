@@ -1,15 +1,19 @@
 language: scala
 
 scala:
- - "2.10.5"
+ - 2.10.5
  
 jdk:
- - oraclejdk7
+ - oraclejdk8
  
 branches:
  only:
   - master
-  
+
+cache:
+  directories:
+  - $HOME/.ivy2
+
 notifications:
  email:
   recipients:
