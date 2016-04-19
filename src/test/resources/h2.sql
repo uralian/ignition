@@ -15,7 +15,7 @@ CREATE TABLE customers (
 
 CREATE TABLE orders (
 	order_id UUID,
-	customer_id UUID,
+	customer_id UUID REFERENCES customers(customer_id),
 	date DATE,
 	description VARCHAR,
 	items INT,
@@ -26,7 +26,7 @@ CREATE TABLE orders (
 );
 
 CREATE TABLE shipments (
-	order_id UUID,
+	order_id UUID REFERENCES orders(order_id),
 	shipment_no INT,
 	date DATE,
 	items INT,
