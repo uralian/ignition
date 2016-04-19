@@ -1,6 +1,7 @@
 package com.ignition.script
 
 import org.joda.time._
+import org.joda.time.format.DateTimeFormat
 
 /**
  * Functions supported for script expressions.
@@ -63,6 +64,9 @@ trait DateTimeFunctions {
 
   def MINUS(x: java.sql.Date, count: Int, unit: String): java.sql.Date =
     new java.sql.Date(MINUS(new DateTime(x), count, unit).getMillis)
+  
+  def PARSE(x: String, pattern: String): java.sql.Timestamp =
+    DateTime.parse(x, DateTimeFormat.forPattern(pattern))
 
   private def DATEDIFF(x: java.util.Date, y: java.util.Date, unit: String): Long =
     DATEDIFF(new DateTime(x), new DateTime(y), unit)

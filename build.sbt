@@ -110,7 +110,8 @@ val testLibs = Seq(
   "org.scalacheck"           %% "scalacheck"                 % "1.11.3"         % "test",
   "de.flapdoodle.embed"       % "de.flapdoodle.embed.mongo"  % "1.47.2"         % "test",
   "com.github.athieriot"     %% "specs2-embedmongo"          % "0.7.0"          % "test",
-  "com.novocode"              % "junit-interface"            % "0.11"           % "test"
+  "com.novocode"              % "junit-interface"            % "0.11"           % "test",
+  "com.h2database"            % "h2"                         % "1.4.191"        % "test"
 )
 
 val cassandraLibs = Seq(
