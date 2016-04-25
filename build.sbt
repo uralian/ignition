@@ -102,7 +102,8 @@ val sparkLibs = Seq(
   "org.apache.spark"         %% "spark-streaming"            % SPARK_VERSION    % "provided",
   "org.apache.spark"         %% "spark-streaming-kafka"      % SPARK_VERSION    % "provided",
   "org.apache.spark"         %% "spark-sql"                  % SPARK_VERSION    % "provided",
-  "org.apache.spark"         %% "spark-mllib"                % SPARK_VERSION    % "provided"
+  "org.apache.spark"         %% "spark-mllib"                % SPARK_VERSION    % "provided",
+  "org.apache.spark"         %% "spark-hive"                 % SPARK_VERSION    % "provided"
 )
 
 val testLibs = Seq(
