@@ -113,6 +113,7 @@ class JdbcOutputSpec extends FrameFlowSpecification {
           ("name" -> "c") ~ ("value" -> "d")))
       JdbcOutput.fromJson(step2.toJson) === step2
     }
+    "be unserializable" in assertUnserializable(JdbcOutput())
   }
 
   /**
