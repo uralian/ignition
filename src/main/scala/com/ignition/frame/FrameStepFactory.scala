@@ -29,6 +29,7 @@ object FrameStepFactory extends XmlFrameStepFactory with JsonFrameStepFactory {
   def fromXml(xml: Node): FrameStep = xml.label match {
     case AddFields.tag         => AddFields.fromXml(xml)
     case BasicStats.tag        => BasicStats.fromXml(xml)
+    case Cache.tag             => Cache.fromXml(xml)
     case CassandraInput.tag    => CassandraInput.fromXml(xml)
     case CassandraOutput.tag   => CassandraOutput.fromXml(xml)
     case CsvFileInput.tag      => CsvFileInput.fromXml(xml)
@@ -68,6 +69,7 @@ object FrameStepFactory extends XmlFrameStepFactory with JsonFrameStepFactory {
   def fromJson(json: JValue): FrameStep = (json \ "tag" asString) match {
     case AddFields.tag         => AddFields.fromJson(json)
     case BasicStats.tag        => BasicStats.fromJson(json)
+    case Cache.tag             => Cache.fromJson(json)
     case CassandraInput.tag    => CassandraInput.fromJson(json)
     case CassandraOutput.tag   => CassandraOutput.fromJson(json)
     case CsvFileInput.tag      => CsvFileInput.fromJson(json)
