@@ -28,3 +28,4 @@ project/plugins/project/
 .key
 nodes.json
 nodes.json.bak
+metastore_db/

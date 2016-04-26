@@ -4,11 +4,11 @@ import scala.collection.JavaConverters.asScalaSetConverter
 import scala.util.control.NonFatal
 
 import org.apache.spark.{ SparkConf, SparkContext }
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.streaming.{ Duration, StreamingContext }
 import org.slf4j.LoggerFactory
 
-import com.typesafe.config.ConfigException
+import com.ignition.util.ConfigUtils
 import com.typesafe.config.ConfigValueType.{ BOOLEAN, NUMBER, STRING }
 
 /**
@@ -55,7 +55,7 @@ object SparkHelper {
 
   /* lazily create Spark Context and SQL Context */
   lazy val sparkContext = new SparkContext(sparkConf)
-  lazy val sqlContext = new SQLContext(sparkContext)
+  lazy val sqlContext = new HiveContext(sparkContext)
 
   /* read additional configuration settings */
   private val streamCfg = getConfig("spark.streaming")
