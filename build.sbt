@@ -120,6 +120,7 @@ val cassandraLibs = Seq(
 )
 
 libraryDependencies ++= Seq(
+  "io.reactivex"             %% "rxscala"                    % "0.26.1",
   "com.squants"              %% "squants"                    % "0.4.2",
   "com.stackmob"             %% "newman"                     % "1.3.5"
 		exclude("com.typesafe.akka", "akka-actor_2.10"),
