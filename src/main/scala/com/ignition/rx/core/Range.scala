@@ -1,12 +1,11 @@
 package com.ignition.rx.core
 
-import com.ignition.rx.RxProducer
+import com.ignition.rx.AbstractRxBlock
 
 import rx.lang.scala.Observable
 
-class Range[A] extends RxProducer[Iterable[A], A](Observable.from[A]) {
+class Range[A] extends AbstractRxBlock[A] {
   val range = Port[Iterable[A]]("range")
 
-  protected def combineAttributes = range.in
-  protected def inputs: Unit = NO_INPUTS
+  protected def compute = range.in flatMap Observable.from[A]
 }

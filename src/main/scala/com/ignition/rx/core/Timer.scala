@@ -2,14 +2,12 @@ package com.ignition.rx.core
 
 import scala.concurrent.duration.Duration
 
-import com.ignition.rx.RxProducer
+import com.ignition.rx.AbstractRxBlock
 
 import rx.lang.scala.Observable
 
-class Timer extends RxProducer[Duration, Long](Observable.timer) {
+class Timer extends AbstractRxBlock[Long] {
   val delay = Port[Duration]("delay")
 
-  protected def combineAttributes = delay.in
-
-  protected def inputs: Unit = NO_INPUTS
+  protected def compute = delay.in flatMap Observable.timer
 }

@@ -2,17 +2,8 @@ package com.ignition.rx.core
 
 import com.ignition.rx.RxTransformer
 
-import rx.lang.scala.Observable
-
-class DropByCount[T] extends RxTransformer[Int, T, T](DropByCount.evaluate) {
+class DropByCount[T] extends RxTransformer[T, T] {
   val count = Port[Int]("count")
-  val source = Port[T]("source")
 
-  protected def combineAttributes = count.in
-
-  protected def inputs = source.in
-}
-
-object DropByCount {
-  def evaluate[T](count: Int) = (input: Observable[T]) => input drop count
+  protected def compute = count.in flatMap source.in.drop
 }

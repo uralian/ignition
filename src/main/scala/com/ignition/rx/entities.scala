@@ -12,7 +12,10 @@ import rx.lang.scala.subjects.BehaviorSubject
  */
 trait RxBlock[+R] {
   /**
-   * Returns the block's output as an Observable.
+   * Returns the block's output as an Observable. This observable is stable in the sense that
+   * it keeps emitting items, whether the block has been reset, or its inputs changed etc., i.e.
+   * it never calls `onError` or `onCompleted` methods on its subscribers until the block's
+   * `shutdown()` method is called.
    */
   def output: Observable[R]
 
@@ -29,66 +32,91 @@ trait RxBlock[+R] {
 
 /**
  * Top of RxBlock hierarchy.
- *
- * @param A the type of the attribute set (a single class or a tuple).
- * @param T the type of the inputs: a single Observable or a collection of them.
- * @param R the type of the result.
  */
-abstract class AbstractRxBlock[A, T, R](evaluator: A => T => Observable[R])
-    extends RxBlock[R] with Logging { self =>
+abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
 
   /**
-   * Combines the attribute streams into a single observable.
+   * computes the block's output
    */
-  protected def combineAttributes: Observable[A]
+  protected def compute: Observable[R]
 
   /**
-   * Returns the input streams.
+   * Ports connected to this block's output.
    */
-  protected def inputs: T
+  private val targets = collection.mutable.Set.empty[AbstractRxBlock[_]#Port[R]]
 
+  /**
+   * "stable" observable, will never get onError or onCompleted
+   */
   private val subj = BehaviorSubject[R]()
-  private var outSubscription: Option[Subscription] = None
-  private var attrSubscription: Option[Subscription] = None
-
   lazy val output = withEvents("output")(subj).share
+
+  /**
+   * Output subscription.
+   */
+  private var obs: Observable[R] = Observable.never
+  private var subscription: Option[Subscription] = None
 
   /**
    * Resets the block by renewing the subscriptions and re-initiating the sequence.
    */
-  def reset() = {
+  def reset() = synchronized {
     unsubsribeOutput
-    unsubscribeAttributes
 
-    attrSubscription = Some(combineAttributes subscribe { attrs =>
-      unsubsribeOutput
-      outSubscription = Some(evaluator(attrs)(inputs) subscribe (subj.onNext(_)))
-    })
+    obs = withEvents("output")(compute).share
+    subscription = Some(obs subscribe (subj.onNext(_)))
+
+    targets foreach (_.bind(obs))
+    targets map (_.owner) foreach (_.reset)
   }
 
   /**
-   * Cancels all subscriptions and stops emitting items. 
+   * Cancels all subscriptions and stops emitting items.
    */
-  def shutdown() = {
+  def shutdown() = synchronized {
     unsubsribeOutput
-    unsubscribeAttributes
     subj.onCompleted
   }
 
   /**
    * Connects the output of this block to an input port of another block.
    */
-  def bind(port: AbstractRxBlock[_, _, _]#Port[R]) = port.bind(this)
-  
+  def to[T](port: AbstractRxBlock[T]#Port[R]): port.owner.type = synchronized {
+    targets += port
+    port.bind(obs)
+
+    info(s"${port.owner.id}.${port.name} bound to $id.output")
+    port.owner
+  }
+
   /**
    * Connects the output of this block to an input port of another block.
-   * An alias for `bind(port)`.
+   * An alias for `to(port)`.
    */
-  def ~>(port: AbstractRxBlock[_, _, _]#Port[R]) = bind(port)
+  def ~>[T](port: AbstractRxBlock[T]#Port[R]) = to(port)
 
-  protected def unsubscribeAttributes() = attrSubscription foreach (_.unsubscribe)
-  protected def unsubsribeOutput() = outSubscription foreach (_.unsubscribe)
+  /**
+   * Connects the output of this block to `source` input port of a transformer block.
+   */
+  def to[U](block: RxTransformer[R, U]): block.type = {
+    to(block.source)
+    block
+  }
 
+  /**
+   * Connects the output of this block to `source` input port of a transformer block.
+   * An alias for `to(block)`.
+   */
+  def ~>[U](block: RxTransformer[R, U]): block.type = to(block)
+
+  /**
+   * Cancels the output subscription.
+   */
+  protected def unsubsribeOutput() = subscription foreach (_.unsubscribe)
+
+  /**
+   * Decorates the observable by adding listeners for its lifecycle events.
+   */
   protected def withEvents(name: String)(stream: Observable[R]): Observable[R] = {
     def render(state: String) = debug(s"[$id.$name] $state")
 
@@ -99,27 +127,37 @@ abstract class AbstractRxBlock[A, T, R](evaluator: A => T => Observable[R])
       .doOnUnsubscribe(render("unsubscribed from"))
   }
 
-  protected val NO_ATTRIBUTES = Observable.just({})
-
-  protected val NO_INPUTS = {}
-
+  /**
+   * Generates block's id for logging.
+   */
   protected val id = getClass.getSimpleName + (math.abs(hashCode) % 1000)
 
   /**
-   * Connector for attributes and inputs.
+   * Connector for attributes and inputs. Provides the input as Observable[X].
    */
   case class Port[X](name: String) {
     val owner = self
 
-    var in: Observable[X] = Observable.never
+    private var _in: Observable[X] = Observable.never
+
+    /**
+     * Block's input as Observable[X].
+     */
+    def in = _in
+
+    /**
+     * Binds this port to an observable.
+     */
+    private[rx] def bind(source: Observable[X]) = synchronized {
+      _in = source
+    }
 
     /**
      * Assign a specific value to this port.
      */
     def set(value: X) = synchronized {
-      in = Observable.just(value)
+      _in = Observable.just(value)
       info(s"$id.$name set to $value")
-      reset
     }
 
     /**
@@ -131,25 +169,19 @@ abstract class AbstractRxBlock[A, T, R](evaluator: A => T => Observable[R])
     /**
      * Connects this port to the output of another block.
      */
-    def bind(block: AbstractRxBlock[_, _, X]) = synchronized {
-      in = block.output
-      info(s"$id.$name bound to ${block.id}.output")
-      reset
-    }
+    def from(block: AbstractRxBlock[X]): Unit = block to this
 
     /**
      * Connects this port to the output of another block.
-     * An alias for `bind(block)`.
+     * An alias for `from(block)`.
      */
-    def <~(block: AbstractRxBlock[_, _, X]) = bind(block)
+    def <~(block: AbstractRxBlock[X]) = from(block)
 
     /**
-     * Unbinds this port so that it never emits any values.
+     * Disconnects the port from any source so that it never emits any values.
      */
     def unbind() = synchronized {
-      in = Observable.never
-      info(s"$id.$name unbound")
-      reset
+      _in = Observable.never
     }
   }
 
@@ -158,6 +190,11 @@ abstract class AbstractRxBlock[A, T, R](evaluator: A => T => Observable[R])
    */
   case class PortList[X](name: String) extends IndexedSeq[Port[X]] {
     val ports = ArrayBuffer.empty[Port[X]]
+
+    /**
+     * Returns a collection of input observables, one from each port.
+     */
+    def ins = ports map (_.in)
 
     /**
      * Returns the specified port.
@@ -170,9 +207,9 @@ abstract class AbstractRxBlock[A, T, R](evaluator: A => T => Observable[R])
     def length = ports.length
 
     /**
-     * Adds and returns a new port.
+     * Adds a new port to the list.
      */
-    def add() = {
+    def add(): Port[X] = {
       val index = ports.length
       val port = Port[X](s"$name($index)")
       ports += port
@@ -181,37 +218,112 @@ abstract class AbstractRxBlock[A, T, R](evaluator: A => T => Observable[R])
     }
 
     /**
-     * Removes the port at the specified index.
+     * Adds a few new ports to the list.
      */
-    def remove(index: Int) = {
+    def add(count: Int): Unit = (1 to count) foreach (_ => add)
+
+    /**
+     * Clears the current associations and assigns the set of items to the ports.
+     */
+    def set(items: X*): Unit = {
+      ports.clear
+      items foreach (_ => add)
+      ports zip items foreach {
+        case (port, item) => port.set(item)
+      }
+      info(s"$id.$name set to $items")
+    }
+
+    /**
+     * Clears the current associations and assigns the set of items to the ports.
+     * An alias for `set(items)`.
+     */
+    def <~(items: X*) = set(items: _*)
+
+    /**
+     * Removes the last port in the list.
+     */
+    def removeLast() = {
+      val index = ports.length - 1
       ports.remove(index)
       info(s"$id.$name($index) port removed")
-      reset
+    }
+
+    /**
+     * Removes all ports from the list.
+     */
+    def clear() = {
+      ports.clear
+      info(s"$id.$name all ports removed")
     }
   }
 }
 
 /**
- * A block that does not have any inputs.
- */
-abstract class RxProducer[A, R](evaluator: A => Observable[R]) extends AbstractRxBlock[A, Unit, R](
-  (attrs: A) => (x: Unit) => evaluator(attrs))
-
-/**
  * A block that has one input.
  */
-abstract class RxTransformer[A, T, R](evaluator: A => Observable[T] => Observable[R])
-  extends AbstractRxBlock[A, Observable[T], R](evaluator)
+abstract class RxTransformer[T, R] extends AbstractRxBlock[R] {
+  val source = Port[T]("source")
+
+  def from(block: AbstractRxBlock[T]) = source from block
+
+  def <~(block: AbstractRxBlock[T]) = from(block)
+}
 
 /**
  * A block that has two inputs.
  */
-abstract class RxMerger[A, T1, T2, R](evaluator: A => (Observable[T1], Observable[T2]) => Observable[R])
-  extends AbstractRxBlock[A, (Observable[T1], Observable[T2]), R](
-    (attrs: A) => (tuple: (Observable[T1], Observable[T2])) => evaluator(attrs)(tuple._1, tuple._2))
+abstract class RxMerger2[T1, T2, R] extends AbstractRxBlock[R] {
+  val source1 = Port[T1]("source1")
+  val source2 = Port[T2]("source2")
+
+  def from(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2])) = {
+    source1 from tuple._1
+    source2 from tuple._2
+  }
+
+  def <~(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2])) = from(tuple)
+}
+
+/**
+ * A block that has three inputs.
+ */
+abstract class RxMerger3[T1, T2, T3, R] extends AbstractRxBlock[R] {
+  val source1 = Port[T1]("source1")
+  val source2 = Port[T2]("source2")
+  val source3 = Port[T3]("source3")
+
+  def from(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3])) = {
+    source1 from tuple._1
+    source2 from tuple._2
+    source3 from tuple._3
+  }
+
+  def <~(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3])) = from(tuple)
+}
+
+/**
+ * A block that has four inputs.
+ */
+abstract class RxMerger4[T1, T2, T3, T4, R] extends AbstractRxBlock[R] {
+  val source1 = Port[T1]("source1")
+  val source2 = Port[T2]("source2")
+  val source3 = Port[T3]("source3")
+  val source4 = Port[T4]("source4")
+
+  def from(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3], AbstractRxBlock[T4])) = {
+    source1 from tuple._1
+    source2 from tuple._2
+    source3 from tuple._3
+    source4 from tuple._4
+  }
+
+  def <~(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3], AbstractRxBlock[T4])) = from(tuple)
+}
 
 /**
  * A block that has a list of inputs of the same type.
  */
-abstract class RxMergerN[A, T, R](evaluator: A => Seq[Observable[T]] => Observable[R])
-  extends AbstractRxBlock[A, Seq[Observable[T]], R](evaluator)
+abstract class RxMergerN[T, R] extends AbstractRxBlock[R] {
+  val sources = PortList[T]("sources")
+}

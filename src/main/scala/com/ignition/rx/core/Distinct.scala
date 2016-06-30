@@ -2,24 +2,16 @@ package com.ignition.rx.core
 
 import com.ignition.rx.RxTransformer
 
-import rx.lang.scala.Observable
-
-class Distinct[T] extends RxTransformer[(T => _, Boolean), T, T](Distinct.evaluate) {
+class Distinct[T] extends RxTransformer[T, T] {
   val selector = Port[T => _]("selector")
   val global = Port[Boolean]("global")
-  val source = Port[T]("source")
 
   protected def combineAttributes = selector.in combineLatest global.in
 
   protected def inputs = source.in
-}
 
-object Distinct {
-  def evaluate[T](attrs: (T => _, Boolean)) = {
-    val (selector, global) = attrs
-    global match {
-      case true => (input: Observable[T]) => input distinct selector
-      case false => (input: Observable[T]) => input distinctUntilChanged selector
-    }
+  protected def compute = (selector.in combineLatest global.in) flatMap {
+    case (func, true)  => source.in distinct func
+    case (func, false) => source.in distinctUntilChanged func
   }
 }

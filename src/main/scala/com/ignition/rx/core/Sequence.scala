@@ -1,12 +1,11 @@
 package com.ignition.rx.core
 
-import rx.lang.scala.Observable
-import com.ignition.rx.RxProducer
-import scala.collection.mutable.ArrayBuffer
+import com.ignition.rx.AbstractRxBlock
 
-class Sequence[A] extends RxProducer[Seq[A], A](Observable.from[A]) {
+import rx.lang.scala.Observable
+
+class Sequence[A] extends AbstractRxBlock[A] {
   val items = PortList[A]("items")
 
-  protected def combineAttributes = Observable.combineLatest(items map (_.in))(identity)
-  protected def inputs: Unit = NO_INPUTS
+  protected def compute = Observable.combineLatest(items.ins)(identity) flatMap Observable.from[A]
 }
