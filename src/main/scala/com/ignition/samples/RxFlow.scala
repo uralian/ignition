@@ -9,7 +9,6 @@ import rx.lang.scala.subjects.BehaviorSubject
 import scala.util.Random
 
 object RxFlow extends App with Logging {
-
   testZero
   testValueHolder
   testInterval
@@ -44,9 +43,12 @@ object RxFlow extends App with Logging {
   
   testContains
   testCount
-  
   testElementAt
-
+  
+  testExists
+  testFilter
+  testFirst
+  
   def testZero() = {
     val zero = new Zero[Int]
     zero.output subscribe testSub("ZERO")
@@ -527,6 +529,45 @@ object RxFlow extends App with Logging {
     rng.reset
     
     ea.index <~ 10
+    rng.reset
+  }
+  
+  def testExists() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 10)
+    
+    val ex = new Exists[Int]
+    ex.output subscribe testSub("EXISTS")
+    rng ~> ex
+    
+    ex.predicate <~ ((n: Int) => n % 2 == 0)
+    rng.reset
+    
+    rng.range <~ (1 to 10 by 2)
+    rng.reset
+  }
+  
+  def testFilter() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 10)
+
+    val filter = new Filter[Int]
+    filter.output subscribe testSub("FILTER")
+    rng ~> filter
+    
+    filter.predicate <~ ((n: Int) => n > 3 && n < 7)
+    rng.reset
+  }
+  
+  def testFirst() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 10)
+    
+    val first = new First[Int]
+    first.output subscribe testSub("FIRST")
+    rng ~> first
+    
+    first.default <~ None
     rng.reset
   }
 
