@@ -16,18 +16,31 @@ object RxFlow extends App with Logging {
   testSequence
   testTimer
   testRange
+
   testAMB
+
   testCombineLatest
   testCombineLatest2
   testCombineLatest3
+
   testZip
+
   testCache
   testCollect
   testDelay
   testDistinct
+
   testDropByTime
   testDropByCount
   testDropWhile
+  
+  testTakeByTime
+  testTakeByCount
+  testTakeRight
+  testTakeWhile
+  
+  testConcat
+  testInsert
 
   def testZero() = {
     val zero = new Zero[Int]
@@ -332,7 +345,7 @@ object RxFlow extends App with Logging {
     i1.initial <~ (0 milliseconds)
     i1.period <~ (100 milliseconds)
 
-    val drop = new DropByTime[Long]
+    val drop = new DropByTime[Long](false)
     drop.output subscribe testSub("DROP")
 
     drop.source <~ i1
@@ -349,7 +362,7 @@ object RxFlow extends App with Logging {
   def testDropByCount() = {
     val rng = new Range[Int]
 
-    val drop = new DropByCount[Int]
+    val drop = new DropByCount[Int](false)
     drop.output subscribe testSub("DROP")
 
     drop.count <~ 4
@@ -369,6 +382,100 @@ object RxFlow extends App with Logging {
     drop.source <~ rng
 
     rng.range <~ (1 to 10)
+    rng.reset
+  }
+
+  def testTakeByTime() = {
+    val i1 = new Interval
+    i1.initial <~ (50 milliseconds)
+    i1.period <~ (100 milliseconds)
+
+    val take = new TakeByTime[Long]
+    take.output subscribe testSub("TAKE")
+
+    take.source <~ i1
+    take.period <~ (200 milliseconds)
+
+    i1.reset
+    delay(500)
+
+    i1.period <~ (50 milliseconds)
+    i1.reset
+    delay(400)
+  }
+  
+  def testTakeByCount() = {
+    val rng = new Range[Int]
+
+    val take = new TakeByCount[Int]
+    take.output subscribe testSub("TAKE")
+
+    take.count <~ 4
+    take.source <~ rng
+
+    rng.range <~ (1 to 10)
+    rng.reset
+  }
+  
+  def testTakeRight() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 10)
+    
+    val take = new TakeRight[Int]
+    take.output subscribe testSub("TAKE")
+
+    take.count <~ Some(3)
+    take.period <~ None
+    take.source <~ rng
+    
+    rng.reset
+  }
+  
+  def testTakeWhile() = {
+    val rng = new Range[Int]
+
+    val take = new TakeWhile[Int]
+    take.output subscribe testSub("TAKE")
+
+    take.predicate <~ ((n: Int) => n < 5)
+    take.source <~ rng
+
+    rng.range <~ (1 to 10)
+    rng.reset
+  }
+  
+  def testConcat() = {
+    val rng1 = new Range[Int]
+    rng1.range <~ (1 to 5)
+    
+    val rng2 = new Range[Int]
+    rng2.range <~ (20 to 22)
+    
+    val conc = new Concat[Int]
+    conc.output subscribe testSub("CONCAT")
+    
+    conc.source1 <~ rng1
+    conc.source2 <~ rng2
+    rng2.reset
+    rng1.reset
+  }
+  
+  def testInsert() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 5)
+
+    val prep = new Insert[Int](true)
+    prep.output subscribe testSub("PREPEND")
+    
+    prep.item <~ 0
+    prep.source <~ rng
+    rng.reset
+    
+    val app = new Insert[Int](false)
+    app.output subscribe testSub("APPEND")
+    
+    app.item <~ 9
+    app.source <~ rng
     rng.reset
   }
 

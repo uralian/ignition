@@ -4,8 +4,11 @@ import scala.concurrent.duration.Duration
 
 import com.ignition.rx.RxTransformer
 
-class DropByTime[T] extends RxTransformer[T, T] {
+class DropByTime[T](right: Boolean) extends RxTransformer[T, T] {
   val period = Port[Duration]("period")
 
-  protected def compute = period.in flatMap source.in.drop
+  protected def compute = right match {
+    case true  => period.in flatMap source.in.dropRight
+    case false => period.in flatMap source.in.drop
+  }
 }
