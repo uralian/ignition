@@ -41,6 +41,11 @@ object RxFlow extends App with Logging {
   
   testConcat
   testInsert
+  
+  testContains
+  testCount
+  
+  testElementAt
 
   def testZero() = {
     val zero = new Zero[Int]
@@ -476,6 +481,52 @@ object RxFlow extends App with Logging {
     
     app.item <~ 9
     app.source <~ rng
+    rng.reset
+  }
+  
+  def testContains() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 5)
+
+    val c = new Contains[Int]
+    c.output subscribe testSub("CONTAINS")
+    
+    c.item <~ 3
+    c.source <~ rng
+    rng.reset
+    
+    c.item <~ 0
+    rng.reset
+  }
+  
+  def testCount() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 10)
+    
+    val c = new Count[Int]
+    c.output subscribe testSub("COUNT")
+    rng ~> c
+    
+    c.predicate <~ ((n: Int) => n < 4)
+    rng.reset
+    
+    c.predicate <~ ((n: Int) => n % 2 == 0)
+    rng.reset
+  }
+  
+  def testElementAt() = {
+    val rng = new Range[Int]
+    rng.range <~ (0 to 5)
+    
+    val ea = new ElementAt[Int]
+    ea.output subscribe testSub("EA")
+    rng ~> ea
+    
+    ea.default <~ Some(99)
+    ea.index <~ 4
+    rng.reset
+    
+    ea.index <~ 10
     rng.reset
   }
 
