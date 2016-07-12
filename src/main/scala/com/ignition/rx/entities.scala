@@ -277,12 +277,12 @@ abstract class RxMerger2[T1, T2, R] extends AbstractRxBlock[R] {
   val source1 = Port[T1]("source1")
   val source2 = Port[T2]("source2")
 
-  def from(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2])) = {
-    source1 from tuple._1
-    source2 from tuple._2
+  def from(a: AbstractRxBlock[_ <: T1], b: AbstractRxBlock[_ <: T2]) = {
+    source1 from a
+    source2 from b
   }
 
-  def <~(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2])) = from(tuple)
+  def <~(a: AbstractRxBlock[_ <: T1], b: AbstractRxBlock[_ <: T2]) = from(a, b)
 }
 
 /**
@@ -293,13 +293,13 @@ abstract class RxMerger3[T1, T2, T3, R] extends AbstractRxBlock[R] {
   val source2 = Port[T2]("source2")
   val source3 = Port[T3]("source3")
 
-  def from(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3])) = {
-    source1 from tuple._1
-    source2 from tuple._2
-    source3 from tuple._3
+  def from(a: AbstractRxBlock[_ <: T1], b: AbstractRxBlock[_ <: T2], c: AbstractRxBlock[_ <: T3]) = {
+    source1 from a
+    source2 from b
+    source3 from c
   }
 
-  def <~(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3])) = from(tuple)
+  def <~(a: AbstractRxBlock[_ <: T1], b: AbstractRxBlock[_ <: T2], c: AbstractRxBlock[_ <: T3]) = from(a, b, c)
 }
 
 /**
@@ -311,14 +311,14 @@ abstract class RxMerger4[T1, T2, T3, T4, R] extends AbstractRxBlock[R] {
   val source3 = Port[T3]("source3")
   val source4 = Port[T4]("source4")
 
-  def from(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3], AbstractRxBlock[_ <: T4])) = {
-    source1 from tuple._1
-    source2 from tuple._2
-    source3 from tuple._3
-    source4 from tuple._4
+  def from(a: AbstractRxBlock[_ <: T1], b: AbstractRxBlock[_ <: T2], c: AbstractRxBlock[_ <: T3], d: AbstractRxBlock[_ <: T4]) = {
+    source1 from a
+    source2 from b
+    source3 from c
+    source4 from d
   }
 
-  def <~(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3], AbstractRxBlock[_ <: T4])) = from(tuple)
+  def <~(a: AbstractRxBlock[_ <: T1], b: AbstractRxBlock[_ <: T2], c: AbstractRxBlock[_ <: T3], d: AbstractRxBlock[_ <: T4]) = from(a, b, c, d)
 }
 
 /**
