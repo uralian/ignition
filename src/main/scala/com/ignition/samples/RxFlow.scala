@@ -12,17 +12,16 @@ object RxFlow extends App with Logging {
 
   testZero
   testValueHolder
+
   testInterval
   testSequence
   testTimer
   testRange
 
   testAMB
-
   testCombineLatest
   testCombineLatest2
   testCombineLatest3
-
   testZip
 
   testCache
@@ -30,27 +29,32 @@ object RxFlow extends App with Logging {
   testDelay
   testDistinct
 
-  testDropByTime
-  testDropByCount
-  testDropWhile
-  
   testTakeByTime
   testTakeByCount
   testTakeRight
   testTakeWhile
   
+  testDropByTime
+  testDropByCount
+  testDropWhile
+
   testConcat
   testInsert
-  
+
   testContains
   testCount
   testElementAt
-  
+
   testExists
   testFilter
   testFirst
   testLast
   testLength
+  testIsEmpty
+  
+  testFold
+  testReduce
+  testRepeat
   
   def testZero() = {
     val zero = new Zero[Int]
@@ -594,6 +598,54 @@ object RxFlow extends App with Logging {
     len.output subscribe testSub("LENGTH")
 
     rng ~> len
+    rng.reset
+  }
+  
+  def testIsEmpty() = {
+    val emp = new IsEmpty
+    emp.output subscribe testSub("EMPTY")
+    
+    emp.source <~ 5
+    emp.reset
+  }
+  
+  def testFold() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 5)
+
+    val fold = new Fold[Int, String]
+    fold.output subscribe testSub("FOLD")
+    rng ~> fold
+    
+    fold.initial <~ "data"
+    fold.accumulator <~ ((s: String, n: Int) => s ++ ":" + n.toString)
+    rng.reset
+    
+    rng.range <~ Seq(1, 2, 4, 8)
+    rng.reset
+  }
+  
+  def testReduce() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 5)
+    
+    val red = new Reduce[Int]
+    red.output subscribe testSub("REDUCE")
+    rng ~> red
+    
+    red.accumulator <~ ((a: Int, b: Int) => a * b)
+    rng.reset
+  }
+  
+  def testRepeat() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 5)
+
+    val rep = new Repeat[Int]
+    rep.output subscribe testSub("REPEAT")
+    rng ~> rep
+
+    rep.count <~ Some(3L)
     rng.reset
   }
 
