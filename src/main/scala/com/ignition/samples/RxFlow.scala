@@ -1,12 +1,13 @@
 package com.ignition.samples
 
-import _root_.rx.lang.scala._
-import com.ignition.util.Logging
-import scala.concurrent.duration._
+import scala.concurrent.duration.{ Duration, DurationInt, DurationLong }
+
+import com.ignition.rx.{ RichTuple2, RichValue }
 import com.ignition.rx.core._
-import com.ignition.rx._
-import rx.lang.scala.subjects.BehaviorSubject
-import scala.util.Random
+import com.ignition.rx.numeric._
+import com.ignition.util.Logging
+
+import rx.lang.scala.Subscriber
 
 object RxFlow extends App with Logging {
 
@@ -23,17 +24,19 @@ object RxFlow extends App with Logging {
   testCombineLatest2
   testCombineLatest3
   testZip
+  testMerge
 
   testCache
   testCollect
   testDelay
   testDistinct
+  testSample
 
   testTakeByTime
   testTakeByCount
   testTakeRight
   testTakeWhile
-  
+
   testDropByTime
   testDropByCount
   testDropWhile
@@ -51,10 +54,13 @@ object RxFlow extends App with Logging {
   testLast
   testLength
   testIsEmpty
-  
+
   testFold
   testReduce
   testRepeat
+  testScan
+
+  testNumeric
   
   def testZero() = {
     val zero = new Zero[Int]
@@ -417,7 +423,7 @@ object RxFlow extends App with Logging {
     i1.reset
     delay(400)
   }
-  
+
   def testTakeByCount() = {
     val rng = new Range[Int]
 
@@ -430,21 +436,21 @@ object RxFlow extends App with Logging {
     rng.range <~ (1 to 10)
     rng.reset
   }
-  
+
   def testTakeRight() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 10)
-    
+
     val take = new TakeRight[Int]
     take.output subscribe testSub("TAKE")
 
     take.count <~ Some(3)
     take.period <~ None
     take.source <~ rng
-    
+
     rng.reset
   }
-  
+
   def testTakeWhile() = {
     val rng = new Range[Int]
 
@@ -457,103 +463,103 @@ object RxFlow extends App with Logging {
     rng.range <~ (1 to 10)
     rng.reset
   }
-  
+
   def testConcat() = {
     val rng1 = new Range[Int]
     rng1.range <~ (1 to 5)
-    
+
     val rng2 = new Range[Int]
     rng2.range <~ (20 to 22)
-    
+
     val conc = new Concat[Int]
     conc.output subscribe testSub("CONCAT")
-    
+
     conc.source1 <~ rng1
     conc.source2 <~ rng2
     rng2.reset
     rng1.reset
   }
-  
+
   def testInsert() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 5)
 
     val prep = new Insert[Int](true)
     prep.output subscribe testSub("PREPEND")
-    
+
     prep.item <~ 0
     prep.source <~ rng
     rng.reset
-    
+
     val app = new Insert[Int](false)
     app.output subscribe testSub("APPEND")
-    
+
     app.item <~ 9
     app.source <~ rng
     rng.reset
   }
-  
+
   def testContains() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 5)
 
     val c = new Contains[Int]
     c.output subscribe testSub("CONTAINS")
-    
+
     c.item <~ 3
     c.source <~ rng
     rng.reset
-    
+
     c.item <~ 0
     rng.reset
   }
-  
+
   def testCount() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 10)
-    
+
     val c = new Count[Int]
     c.output subscribe testSub("COUNT")
     rng ~> c
-    
+
     c.predicate <~ ((n: Int) => n < 4)
     rng.reset
-    
+
     c.predicate <~ ((n: Int) => n % 2 == 0)
     rng.reset
   }
-  
+
   def testElementAt() = {
     val rng = new Range[Int]
     rng.range <~ (0 to 5)
-    
+
     val ea = new ElementAt[Int]
     ea.output subscribe testSub("EA")
     rng ~> ea
-    
+
     ea.default <~ Some(99)
     ea.index <~ 4
     rng.reset
-    
+
     ea.index <~ 10
     rng.reset
   }
-  
+
   def testExists() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 10)
-    
+
     val ex = new Exists[Int]
     ex.output subscribe testSub("EXISTS")
     rng ~> ex
-    
+
     ex.predicate <~ ((n: Int) => n % 2 == 0)
     rng.reset
-    
+
     rng.range <~ (1 to 10 by 2)
     rng.reset
   }
-  
+
   def testFilter() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 10)
@@ -561,23 +567,23 @@ object RxFlow extends App with Logging {
     val filter = new Filter[Int]
     filter.output subscribe testSub("FILTER")
     rng ~> filter
-    
+
     filter.predicate <~ ((n: Int) => n > 3 && n < 7)
     rng.reset
   }
-  
+
   def testFirst() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 10)
-    
+
     val first = new First[Int]
     first.output subscribe testSub("FIRST")
     rng ~> first
-    
+
     first.default <~ None
     rng.reset
   }
-  
+
   def testLast() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 5)
@@ -585,30 +591,30 @@ object RxFlow extends App with Logging {
     val last = new Last[Int]
     last.output subscribe testSub("LAST")
     rng ~> last
-    
+
     last.default <~ None
     rng.reset
   }
-  
+
   def testLength() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 5)
-    
+
     val len = new Length
     len.output subscribe testSub("LENGTH")
 
     rng ~> len
     rng.reset
   }
-  
+
   def testIsEmpty() = {
     val emp = new IsEmpty
     emp.output subscribe testSub("EMPTY")
-    
+
     emp.source <~ 5
     emp.reset
   }
-  
+
   def testFold() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 5)
@@ -616,27 +622,27 @@ object RxFlow extends App with Logging {
     val fold = new Fold[Int, String]
     fold.output subscribe testSub("FOLD")
     rng ~> fold
-    
+
     fold.initial <~ "data"
     fold.accumulator <~ ((s: String, n: Int) => s ++ ":" + n.toString)
     rng.reset
-    
+
     rng.range <~ Seq(1, 2, 4, 8)
     rng.reset
   }
-  
+
   def testReduce() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 5)
-    
+
     val red = new Reduce[Int]
     red.output subscribe testSub("REDUCE")
     rng ~> red
-    
+
     red.accumulator <~ ((a: Int, b: Int) => a * b)
     rng.reset
   }
-  
+
   def testRepeat() = {
     val rng = new Range[Int]
     rng.range <~ (1 to 5)
@@ -646,6 +652,76 @@ object RxFlow extends App with Logging {
     rng ~> rep
 
     rep.count <~ Some(3L)
+    rng.reset
+  }
+
+  def testMerge() = {
+    val i1 = new Interval
+    i1.initial <~ (0 milliseconds)
+    i1.period <~ (50 milliseconds)
+
+    val i2 = new Interval
+    i2.initial <~ (20 milliseconds)
+    i2.period <~ (80 milliseconds)
+
+    val merge = new Merge[Long]
+    merge.output subscribe testSub("MERGE")
+    (i1, i2) ~> merge
+
+    i1.reset
+    i2.reset
+    delay(300)
+  }
+
+  def testSample() = {
+    val i = new Interval
+    i.initial <~ (0 milliseconds)
+    i.period <~ (30 milliseconds)
+
+    val smp = new Sample[Long]
+    smp.output subscribe testSub("SAMPLE")
+
+    smp.period <~ (100 milliseconds)
+    i ~> smp
+
+    i.reset
+    delay(350)
+  }
+
+  def testScan() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 5)
+
+    val scan = new Scan[Int, Int]
+    scan.output subscribe testSub("SCAN")
+
+    scan.initial <~ 0
+    scan.accumulator <~ ((a: Int, b: Int) => a + b)
+
+    rng ~> scan
+    rng.reset
+  }
+
+  def testNumeric() = {
+    val rng = new Range[Int]
+    rng.range <~ (1 to 5)
+
+    val min = new Min[Int]
+    min.output subscribe testSub("MIN")
+    rng ~> min
+
+    val max = new Max[Int]
+    max.output subscribe testSub("MAX")
+    rng ~> max
+
+    val sum = new Sum[Int]
+    sum.output subscribe testSub("SUM")
+    rng ~> sum
+
+    val mul = new Mul[Int]
+    mul.output subscribe testSub("MUL")
+    rng ~> mul
+    
     rng.reset
   }
 
