@@ -43,7 +43,7 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
   /**
    * Ports connected to this block's output.
    */
-  private val targets = collection.mutable.Set.empty[AbstractRxBlock[_]#Port[R]]
+  private val targets = collection.mutable.Set.empty[AbstractRxBlock[_]#Port[_ >: R]]
 
   /**
    * "stable" observable, will never get onError or onCompleted
@@ -81,7 +81,7 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
   /**
    * Connects the output of this block to an input port of another block.
    */
-  def to[T](port: AbstractRxBlock[T]#Port[R]): port.owner.type = synchronized {
+  def to[T](port: AbstractRxBlock[T]#Port[_ >: R]): port.owner.type = synchronized {
     targets += port
     port.bind(obs)
 
@@ -93,12 +93,12 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
    * Connects the output of this block to an input port of another block.
    * An alias for `to(port)`.
    */
-  def ~>[T](port: AbstractRxBlock[T]#Port[R]) = to(port)
+  def ~>[T](port: AbstractRxBlock[T]#Port[_ >: R]) = to(port)
 
   /**
    * Connects the output of this block to `source` input port of a transformer block.
    */
-  def to[U](block: RxTransformer[R, U]): block.type = {
+  def to[U](block: RxTransformer[_ >: R, U]): block.type = {
     to(block.source)
     block
   }
@@ -107,7 +107,7 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
    * Connects the output of this block to `source` input port of a transformer block.
    * An alias for `to(block)`.
    */
-  def ~>[U](block: RxTransformer[R, U]): block.type = to(block)
+  def ~>[U](block: RxTransformer[_ >: R, U]): block.type = to(block)
 
   /**
    * Cancels the output subscription.
@@ -169,13 +169,13 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
     /**
      * Connects this port to the output of another block.
      */
-    def from(block: AbstractRxBlock[X]): Unit = block to this
+    def from(block: AbstractRxBlock[_ <: X]): Unit = block to this
 
     /**
      * Connects this port to the output of another block.
      * An alias for `from(block)`.
      */
-    def <~(block: AbstractRxBlock[X]) = from(block)
+    def <~(block: AbstractRxBlock[_ <: X]) = from(block)
 
     /**
      * Disconnects the port from any source so that it never emits any values.
@@ -265,9 +265,9 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
 abstract class RxTransformer[T, R] extends AbstractRxBlock[R] {
   val source = Port[T]("source")
 
-  def from(block: AbstractRxBlock[T]) = source from block
+  def from(block: AbstractRxBlock[_ <: T]) = source from block
 
-  def <~(block: AbstractRxBlock[T]) = from(block)
+  def <~(block: AbstractRxBlock[_ <: T]) = from(block)
 }
 
 /**
@@ -277,12 +277,12 @@ abstract class RxMerger2[T1, T2, R] extends AbstractRxBlock[R] {
   val source1 = Port[T1]("source1")
   val source2 = Port[T2]("source2")
 
-  def from(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2])) = {
+  def from(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2])) = {
     source1 from tuple._1
     source2 from tuple._2
   }
 
-  def <~(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2])) = from(tuple)
+  def <~(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2])) = from(tuple)
 }
 
 /**
@@ -293,13 +293,13 @@ abstract class RxMerger3[T1, T2, T3, R] extends AbstractRxBlock[R] {
   val source2 = Port[T2]("source2")
   val source3 = Port[T3]("source3")
 
-  def from(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3])) = {
+  def from(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3])) = {
     source1 from tuple._1
     source2 from tuple._2
     source3 from tuple._3
   }
 
-  def <~(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3])) = from(tuple)
+  def <~(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3])) = from(tuple)
 }
 
 /**
@@ -311,14 +311,14 @@ abstract class RxMerger4[T1, T2, T3, T4, R] extends AbstractRxBlock[R] {
   val source3 = Port[T3]("source3")
   val source4 = Port[T4]("source4")
 
-  def from(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3], AbstractRxBlock[T4])) = {
+  def from(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3], AbstractRxBlock[_ <: T4])) = {
     source1 from tuple._1
     source2 from tuple._2
     source3 from tuple._3
     source4 from tuple._4
   }
 
-  def <~(tuple: (AbstractRxBlock[T1], AbstractRxBlock[T2], AbstractRxBlock[T3], AbstractRxBlock[T4])) = from(tuple)
+  def <~(tuple: (AbstractRxBlock[_ <: T1], AbstractRxBlock[_ <: T2], AbstractRxBlock[_ <: T3], AbstractRxBlock[_ <: T4])) = from(tuple)
 }
 
 /**
