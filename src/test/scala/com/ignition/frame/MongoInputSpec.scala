@@ -1,19 +1,37 @@
 package com.ignition.frame
 
+import org.json4s.JsonDSL
 import org.junit.runner.RunWith
-import org.specs2.specification.Fragments
 import org.specs2.runner.JUnitRunner
+import org.specs2.specification.core.Fragments
 
-import com.github.athieriot.EmbedConnection
+import com.ignition.ExecutionException
 import com.ignition.types.{ RichStructType, boolean, fieldToRichStruct, string }
 import com.ignition.util.MongoUtils
 import com.mongodb.casbah.Imports.MongoDBObject
 
+import de.flapdoodle.embed.mongo.{ MongodExecutable, MongodStarter }
+import de.flapdoodle.embed.mongo.config.{ MongodConfigBuilder, Net }
+import de.flapdoodle.embed.mongo.distribution.Version
+import de.flapdoodle.embed.process.runtime.Network
+
 @RunWith(classOf[JUnitRunner])
-class MongoInputSpec extends FrameFlowSpecification with EmbedConnection {
+class MongoInputSpec extends FrameFlowSpecification {
   sequential
 
-  override def beforeAll = mongodExecutable.start
+  private val starter = MongodStarter.getDefaultInstance
+
+  val mongodConfig = (new MongodConfigBuilder)
+    .version(Version.Main.PRODUCTION)
+    .net(new Net(12345, Network.localhostIsIPv6))
+    .build
+
+  private var mongodExecutable: MongodExecutable = null
+
+  override def beforeAll = {
+    mongodExecutable = starter.prepare(mongodConfig)
+    mongodExecutable.start
+  }
 
   override def afterAll = mongodExecutable.stop
 

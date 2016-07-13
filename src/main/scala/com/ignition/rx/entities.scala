@@ -194,7 +194,7 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
     /**
      * Returns a collection of input observables, one from each port.
      */
-    def ins = ports map (_.in)
+    def ins = ports map (_.in) toIndexedSeq
 
     /**
      * Returns the specified port.

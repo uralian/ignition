@@ -4,11 +4,9 @@ import java.util.concurrent.TimeUnit
 import scala.collection.JavaConversions.asScalaSet
 import com.typesafe.config.{ Config, ConfigException, ConfigFactory }
 import com.typesafe.config.ConfigValueType.{ BOOLEAN, LIST, NULL, NUMBER, OBJECT, STRING }
-import squants.thermal.Temperature
 import org.joda.time.DateTime
 import scala.util.Try
 import org.joda.time.Duration
-import squants.electro.ElectricCurrent
 
 /**
  * Encapsulates extensions to the standard Typesafe Config functionality.
@@ -24,26 +22,6 @@ object ConfigUtils {
    */
   implicit class RichConfig(val cfg: Config) extends AnyVal {
 
-    /**
-     * Parses an entry as a temperature value. The entry must be formatted as a decimal number
-     * followed by a valid scale suffix: F, C, or K.
-     */
-    @throws(classOf[ConfigException])
-    def getTemperature(key: String): Temperature = {
-      val str = cfg.getString(key)
-      Temperature(str) getOrElse (throw new ConfigException.BadValue(key, s"$str is not a valid temperature"))
-    }
-
-    /**
-     * Parses an entry as an electric current. The entry must be formatted as a decimal number
-     * followed by a valid unit suffix: A or mA.
-     */
-    @throws(classOf[ConfigException])
-    def getElectricCurrent(key: String): ElectricCurrent = {
-      val str = cfg.getString(key)
-      ElectricCurrent(str) getOrElse (throw new ConfigException.BadValue(key, s"$str is not a valid current"))
-    }
-    
     /**
      * Parses an entry as a time value.
      */
@@ -101,10 +79,6 @@ object ConfigUtils {
 
     def getStringOption = getOption(cfg.getString) _
 
-    def getTemperatureOption = getOption(getTemperature) _
-    
-    def getElectricCurrentOption = getOption(getElectricCurrent) _
-
     def getTimeOption = getOption(getTime) _
 
     def getTimeIntervalOption = getOption(getTimeInterval) _
@@ -131,10 +105,6 @@ object ConfigUtils {
     def getLongWithDefault = getLongOption andThen withDefault
 
     def getStringWithDefault = getStringOption andThen withDefault
-
-    def getTemperatureWithDefault = getTemperatureOption andThen withDefault
-    
-    def getElectricCurrentWithDefault = getElectricCurrentOption andThen withDefault
 
     def getTimeWithDefault = getTimeOption andThen withDefault
 

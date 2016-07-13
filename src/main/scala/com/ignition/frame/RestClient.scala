@@ -121,7 +121,7 @@ case class RestClient(url: String, method: HttpMethod.HttpMethod = HttpMethod.GE
         val ri = RequestInfo(new URL(rowUrl), body, headers)
         val frsp = method.invoke(ri) map { rsp =>
           val result = rsp.bodyString
-          val headers = compact(render(rsp.headers.map(_.list).getOrElse(Nil).toList))
+          val headers = rsp.headers.getOrElse(Nil)
           val status = rsp.code.code
           val fields = resultField.map(_ => result).toSeq ++ statusField.map(_ => status) ++ headersField.map(_ => headers)
           Row.fromSeq(row.toSeq ++ fields)

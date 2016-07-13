@@ -2,7 +2,7 @@ package com.ignition.frame.mllib
 
 import scala.util.Random
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.sql.{ Row, SQLContext }
 
 import com.ignition.{ ExecutionException, TestDataHelper }
@@ -11,7 +11,7 @@ import com.ignition.types.{ RichStructType, double, fieldToRichStruct, int, long
 
 object MLLibLoadTest extends App with TestDataHelper {
 
-  val sc = new SparkContext("local[4]", "test")
+  val sc = new SparkContext("local[4]", "test", new SparkConf)
   implicit val ctx = new SQLContext(sc)
   import ctx.implicits._
   implicit val runtime = new DefaultSparkRuntime(ctx)

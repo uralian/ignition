@@ -7,5 +7,5 @@ import rx.lang.scala.Observable
 class Sequence[A] extends AbstractRxBlock[A] {
   val items = PortList[A]("items")
 
-  protected def compute = Observable.combineLatest(items.ins)(identity) flatMap Observable.from[A]
+  protected def compute = Observable.combineLatest(items.ins.toIterable)(identity) flatMap Observable.from[A]
 }

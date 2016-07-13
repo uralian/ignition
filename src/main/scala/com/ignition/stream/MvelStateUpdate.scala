@@ -38,7 +38,7 @@ abstract class MvelStateUpdate[S <: AnyRef: ClassTag](schema: StructType, expr: 
 
   @transient private lazy val compiled = MvelStateUpdate.synchronized {
     val pctx = new ParserContext
-    pctx.addInput("$input", classOf[java.util.List[java.util.Map[String, Any]]])
+    pctx.addInput("$" + "input", classOf[java.util.List[java.util.Map[String, Any]]])
     pctx.addInput("$state", stateClass)
     ScriptFunctions.getClass.getDeclaredMethods foreach { method =>
       pctx.addImport(method.getName, method)
