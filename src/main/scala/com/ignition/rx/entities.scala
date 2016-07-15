@@ -66,7 +66,7 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
     obs = withEvents("output")(compute).share
     subscription = Some(obs subscribe (subj.onNext(_)))
 
-    targets foreach (_.bind(obs))
+    targets foreach (_.bind(obs, Some(this)))
     targets map (_.owner) foreach (_.reset)
   }
 
@@ -76,14 +76,21 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
   def shutdown() = synchronized {
     unsubsribeOutput
     subj.onCompleted
+
+    targets foreach (_.unbind)
+    targets map (_.owner) foreach (_.reset)
+
+    targets.clear
   }
 
   /**
    * Connects the output of this block to an input port of another block.
    */
   def to[T](port: AbstractRxBlock[T]#Port[_ >: R]): port.owner.type = synchronized {
+    port.unset
+    
     targets += port
-    port.bind(obs)
+    port.bind(obs, Some(this))
 
     info(s"${port.owner.id}.${port.name} bound to $id.output")
     port.owner
@@ -133,12 +140,23 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
   protected val id = getClass.getSimpleName + (math.abs(hashCode) % 1000)
 
   /**
+   * Removes the specified port from the list of targets and unbinds it.
+   * This method is called from port's `unset` method and should not be called directly.
+   */
+  private def disconnect[T](port: AbstractRxBlock[T]#Port[_ >: R]) = synchronized {
+    targets -= port
+    port.unbind
+    info(s"${port.owner.id}.${port.name} disconnected from $id.output")
+  }
+
+  /**
    * Connector for attributes and inputs. Provides the input as Observable[X].
    */
   case class Port[X](name: String) {
     val owner = self
 
     private var _in: Observable[X] = Observable.never
+    private var _srcBlock: Option[AbstractRxBlock[_ <: X]] = None
 
     /**
      * Block's input as Observable[X].
@@ -146,16 +164,26 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
     def in = _in
 
     /**
-     * Binds this port to an observable.
+     * Binds this port to an observable, optionally specifying the source block.
      */
-    private[rx] def bind(source: Observable[X]) = synchronized {
+    private[AbstractRxBlock] def bind(source: Observable[X], block: Option[AbstractRxBlock[_ <: X]]) = synchronized {
       _in = source
+      _srcBlock = block
+    }
+
+    /**
+     * Disconnects the port from any source so that it never emits any values.
+     */
+    private[AbstractRxBlock] def unbind() = synchronized {
+      _in = Observable.never
+      _srcBlock = None
     }
 
     /**
      * Assign a specific value to this port.
      */
     def set(value: X) = synchronized {
+      unset
       _in = Observable.just(value)
       info(s"$id.$name set to $value")
     }
@@ -176,12 +204,13 @@ abstract class AbstractRxBlock[R] extends RxBlock[R] with Logging { self =>
      * An alias for `from(block)`.
      */
     def <~(block: AbstractRxBlock[_ <: X]) = from(block)
-
+    
     /**
-     * Disconnects the port from any source so that it never emits any values.
+     * Disconnects this port from the input source.
      */
-    def unbind() = synchronized {
-      _in = Observable.never
+    def unset() = {
+      _srcBlock foreach (_.disconnect(this))
+      _srcBlock = None
     }
   }
 
