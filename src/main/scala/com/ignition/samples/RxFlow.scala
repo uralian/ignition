@@ -1,13 +1,12 @@
 package com.ignition.samples
 
 import scala.concurrent.duration.{ Duration, DurationInt, DurationLong }
-
 import com.ignition.rx.{ RichTuple2, RichValue }
 import com.ignition.rx.core._
 import com.ignition.rx.numeric._
 import com.ignition.util.Logging
-
 import rx.lang.scala.Subscriber
+import com.ignition.rx._
 
 object RxFlow extends App with Logging {
 
@@ -62,6 +61,8 @@ object RxFlow extends App with Logging {
 
   testNumeric
   
+  testPipeline
+
   def testZero() = {
     val zero = new Zero[Int]
     zero.output subscribe testSub("ZERO")
@@ -721,8 +722,101 @@ object RxFlow extends App with Logging {
     val mul = new Mul[Int]
     mul.output subscribe testSub("MUL")
     rng ~> mul
-    
+
     rng.reset
+  }
+
+  def testPipeline() = {
+
+    val pipe = new RxPipeline[Long] {
+      private val z = new RxTransformer[Long, Long] {
+        protected def compute = source.in map identity
+      }
+      private val f = new Filter[Long]
+      private val t = new TakeByCount[Long]
+
+      z ~> f ~> t
+
+      val source = Port[Long]("source")
+      val predicate = Port[Long => Boolean]("predicate")
+      val count = Port[Int]("count")
+
+      protected val target = t
+
+      protected val allBlocks = List(z, f, t)
+
+      protected def bindPorts() = {
+        z.source.from(this.source.in)
+        f.predicate.from(this.predicate.in)
+        t.count.from(this.count.in)
+      }
+      
+      override protected val blocksToReset = List(z)
+    }
+
+    /*
+    val pipe = new RxTransformer[Long, Long] {
+
+      val z = new RxTransformer[Long, Long] {
+        protected def compute = source.in map identity
+      }
+      val f = new Filter[Long]
+      val t = new TakeByCount[Long]
+
+      z ~> f ~> t
+
+      val predicate = Port[Long => Boolean]("predicate")
+      val count = Port[Int]("count")
+
+      protected def compute = t.observe
+
+      override def reset() = {
+        z.source.from(this.source.in)
+        f.predicate.from(this.predicate.in)
+        t.count.from(this.count.in)
+        z.reset
+        super.reset
+      }
+
+      override def shutdown() = {
+        z.shutdown
+        f.shutdown
+        t.shutdown
+        super.shutdown
+      }
+    }
+    */
+    pipe.output subscribe testSub("PIPE")
+
+    val i1 = new Interval
+    i1.initial <~ (0 seconds)
+    i1.period <~ (200 milliseconds)
+
+    i1 ~> pipe.source
+
+    pipe.predicate <~ ((n: Long) => n % 3 == 1)
+    pipe.count <~ 3
+    i1.reset
+    delay(2000)
+
+    val i2 = new Range[Long]
+    i2.range <~ List(1L, 3L, 4L, 5L, 6L, 8L, 9L, 12L, 13L)
+    i2 ~> pipe.source
+    i2.reset
+    delay(1000)
+
+    pipe.predicate <~ ((n: Long) => n % 2 == 0)
+    i2.reset
+    delay(1000)
+
+    pipe.count <~ 5
+    i1 ~> pipe.source
+    i1.reset
+    delay(2500)
+
+    i2.shutdown
+    i1.shutdown
+    delay(500)
   }
 
   /* helpers */
