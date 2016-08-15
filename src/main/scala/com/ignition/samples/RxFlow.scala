@@ -9,7 +9,6 @@ import rx.lang.scala.Subscriber
 import com.ignition.rx._
 
 object RxFlow extends App with Logging {
-
   testZero
   testValueHolder
 
@@ -60,6 +59,8 @@ object RxFlow extends App with Logging {
   testScan
 
   testNumeric
+
+  testWindow
   
   testPipeline
 
@@ -725,6 +726,29 @@ object RxFlow extends App with Logging {
 
     rng.reset
   }
+  
+  def testWindow() = {
+    val i = new Interval
+    i.initial <~ (50 milliseconds)    
+    i.period <~ (100 milliseconds)
+
+    val w1 = new WindowBySize[Long]
+    w1.output subscribe testSub("W1")
+    w1.count <~ 5
+    w1.skip <~ 2
+    
+    val w2 = new WindowByTime[Long]
+    w2.output subscribe testSub("W2")
+    w2.span <~ (350 milliseconds)
+    w2.shift <~ (150 milliseconds)
+    
+    i ~> w1
+    i ~> w2
+    
+    i.reset
+    
+    delay(2000)
+  }
 
   def testPipeline() = {
 
@@ -754,38 +778,6 @@ object RxFlow extends App with Logging {
       override protected val blocksToReset = List(z)
     }
 
-    /*
-    val pipe = new RxTransformer[Long, Long] {
-
-      val z = new RxTransformer[Long, Long] {
-        protected def compute = source.in map identity
-      }
-      val f = new Filter[Long]
-      val t = new TakeByCount[Long]
-
-      z ~> f ~> t
-
-      val predicate = Port[Long => Boolean]("predicate")
-      val count = Port[Int]("count")
-
-      protected def compute = t.observe
-
-      override def reset() = {
-        z.source.from(this.source.in)
-        f.predicate.from(this.predicate.in)
-        t.count.from(this.count.in)
-        z.reset
-        super.reset
-      }
-
-      override def shutdown() = {
-        z.shutdown
-        f.shutdown
-        t.shutdown
-        super.shutdown
-      }
-    }
-    */
     pipe.output subscribe testSub("PIPE")
 
     val i1 = new Interval
