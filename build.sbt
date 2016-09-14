@@ -1,8 +1,10 @@
 // properties
 
 val APP_VERSION = "0.4.0-SNAPSHOT"
-val SCALA_VERSION = "2.10.5"
-val SPARK_VERSION = "1.5.1"
+val SCALA_VERSION = "2.11.8"
+val SPARK_VERSION = "1.6.1"
+
+crossScalaVersions := Seq("2.10.5", SCALA_VERSION)
 
 // tasks
 
@@ -25,6 +27,7 @@ version := APP_VERSION
 scalaVersion := SCALA_VERSION
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xlint", "-Ywarn-dead-code", "-language:_", "-target:jvm-1.7", "-encoding", "UTF-8")
 resolvers += "typesafe repo" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers += "Bintray megamsys" at "https://dl.bintray.com/megamsys/scala/"
 
 // run options
 
@@ -32,6 +35,8 @@ run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Comp
 
 // test options
 
+fork in Test := true
+javaOptions in Test += "-XX:MaxMetaspaceSize=512m"
 parallelExecution in Test := false
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
 ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := false
@@ -107,26 +112,30 @@ val sparkLibs = Seq(
 )
 
 val testLibs = Seq(
-  "org.specs2"               %% "specs2"                     % "2.3.12"         % "test",
-  "org.scalacheck"           %% "scalacheck"                 % "1.11.3"         % "test",
-  "de.flapdoodle.embed"       % "de.flapdoodle.embed.mongo"  % "1.47.2"         % "test",
-  "com.github.athieriot"     %% "specs2-embedmongo"          % "0.7.0"          % "test",
+  "org.specs2"               %% "specs2"                     % "3.7"            % "test",
+  "org.scalacheck"           %% "scalacheck"                 % "1.12.5"         % "test",
+  "de.flapdoodle.embed"       % "de.flapdoodle.embed.mongo"  % "1.50.5"         % "test",
   "com.novocode"              % "junit-interface"            % "0.11"           % "test",
-  "com.h2database"            % "h2"                         % "1.4.191"        % "test"
+  "com.h2database"            % "h2"                         % "1.4.192"        % "test"
 )
 
 val cassandraLibs = Seq(
-  "com.datastax.spark"       %% "spark-cassandra-connector"  % "1.5.0-M2"
+  "com.datastax.spark"       %% "spark-cassandra-connector"  % "1.6.0"
 )
 
+def newmanLib(version: String) = version match {
+  case "2.10.5" => "com.stackmob" %% "newman" % "1.3.5" exclude("com.typesafe.akka", "akka-actor_2.10")
+  case SCALA_VERSION => "io.megam" %% "newman" % "1.3.12" exclude("com.typesafe.akka", "akka-actor_2.11")
+}
+
 libraryDependencies ++= Seq(
-  "com.squants"              %% "squants"                    % "0.4.2",
-  "com.stackmob"             %% "newman"                     % "1.3.5"
-		exclude("com.typesafe.akka", "akka-actor_2.10"),
+  "io.reactivex"             %% "rxscala"                    % "0.26.2",
   "org.mvel"                  % "mvel2"                      % "2.0",
   "org.json4s"               %% "json4s-jackson"             % "3.2.11",
-  "io.gatling"               %% "jsonpath"                   % "0.6.2",
-  "com.github.scopt"         %% "scopt"                      % "3.3.0",
-  "org.apache.commons"        % "commons-math3"              % "3.5",
-  "org.mongodb"              %% "casbah"                     % "2.8.0"
-) ++ sparkLibs ++ cassandraLibs ++ testLibs
+  "io.gatling"               %% "jsonpath"                   % "0.6.7",
+  "com.github.scopt"         %% "scopt"                      % "3.5.0",
+  "org.apache.commons"        % "commons-math3"              % "3.6.1",
+  "org.mongodb"              %% "casbah"                     % "3.1.1"
+) ++ sparkLibs ++ cassandraLibs ++ testLibs 
+
+libraryDependencies <+= scalaVersion(newmanLib(_))

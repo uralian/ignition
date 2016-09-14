@@ -1,7 +1,8 @@
 package com.ignition
 
 import org.specs2.mutable.Specification
-import org.specs2.specification.Fragments
+import org.specs2.specification.core.Fragments
+import org.specs2.specification.create.DefaultFragmentFactory
 
 /**
  * Trait that provides hooks for executing tasks before an after *ALL* tests
@@ -30,7 +31,7 @@ import org.specs2.specification.Fragments
  */
 trait BeforeAllAfterAll extends Specification {
   override def map(fragments: => Fragments) =
-    org.specs2.specification.Step(beforeAll) ^ fragments ^ org.specs2.specification.Step(afterAll)
+    DefaultFragmentFactory.step(beforeAll) ^ fragments ^ DefaultFragmentFactory.step(afterAll)
 
   protected def beforeAll() = {}
   protected def afterAll() = {}

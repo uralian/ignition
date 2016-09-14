@@ -1,19 +1,37 @@
 package com.ignition.frame
 
+import org.json4s.JsonDSL
 import org.junit.runner.RunWith
-import org.specs2.specification.Fragments
 import org.specs2.runner.JUnitRunner
+import org.specs2.specification.core.Fragments
 
-import com.github.athieriot.EmbedConnection
+import com.ignition.ExecutionException
 import com.ignition.types.{ RichStructType, boolean, fieldToRichStruct, int, string }
 import com.ignition.util.MongoUtils
 import com.mongodb.casbah.Imports.{ MongoDBObject, map2MongoDBObject }
 
+import de.flapdoodle.embed.mongo.{ MongodExecutable, MongodStarter }
+import de.flapdoodle.embed.mongo.config.{ MongodConfigBuilder, Net }
+import de.flapdoodle.embed.mongo.distribution.Version
+import de.flapdoodle.embed.process.runtime.Network
+
 @RunWith(classOf[JUnitRunner])
-class MongoOutputSpec extends FrameFlowSpecification with EmbedConnection {
+class MongoOutputSpec extends FrameFlowSpecification {
   sequential
 
-  override def beforeAll = mongodExecutable.start
+  private val starter = MongodStarter.getDefaultInstance
+
+  val mongodConfig = (new MongodConfigBuilder)
+    .version(Version.Main.PRODUCTION)
+    .net(new Net(12345, Network.localhostIsIPv6()))
+    .build
+
+  private var mongodExecutable: MongodExecutable = null
+
+  override def beforeAll = {
+    mongodExecutable = starter.prepare(mongodConfig)
+    mongodExecutable.start
+  }
 
   override def afterAll = mongodExecutable.stop
 
@@ -46,12 +64,12 @@ class MongoOutputSpec extends FrameFlowSpecification with EmbedConnection {
     }
     "save to/load from xml" in {
       val mongo = MongoOutput("test", "accounts")
-      mongo.toXml must ==/(<mongo-output db="test" coll="accounts" />)
+      mongo.toXml must ==/(<mongo-output db="test" coll="accounts"/>)
       MongoOutput.fromXml(mongo.toXml) === mongo
     }
     "save to/load from json" in {
       import org.json4s.JsonDSL._
-      
+
       val mongo = MongoOutput("test", "accounts")
       mongo.toJson === ("tag" -> "mongo-output") ~ ("db" -> "test") ~ ("coll" -> "accounts")
       MongoOutput.fromJson(mongo.toJson) === mongo

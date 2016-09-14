@@ -1,7 +1,8 @@
 package com.ignition.stream
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 import org.apache.spark.rdd.RDD
@@ -38,11 +39,11 @@ trait StreamFlowSpecification extends FrameFlowSpecification {
       private var batchIndex = 0
       override def onBatchCompleted(event: StreamingListenerBatchCompleted) = synchronized {
         batchIndex += 1
-        if (batchIndex >= batchCount) future { rt.stop }
+        if (batchIndex == batchCount) Future { rt.stop }
       }
       override def onReceiverError(error: StreamingListenerReceiverError) = synchronized {
         log.error("Receiver error occurred: " + error)
-        future { rt.stop }
+        Future { rt.stop }
       }
     }
     rt.ssc.addStreamingListener(listen)

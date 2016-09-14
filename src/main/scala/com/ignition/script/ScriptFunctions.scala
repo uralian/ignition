@@ -36,7 +36,8 @@ trait NumericFunctions {
  * DateTime functions.
  */
 trait DateTimeFunctions {
-  import DateTimeFunctions._
+  
+  private val dtf = DateTimeFunctions
 
   implicit def jodaToJavaDate(dt: DateTime) = new java.sql.Date(dt.getMillis)
   implicit def jodaToJavaTimestamp(dt: DateTime) = new java.sql.Timestamp(dt.getMillis)
@@ -81,30 +82,30 @@ trait DateTimeFunctions {
   private def SECOND(x: DateTime): Int = x.getSecondOfMinute
 
   private def PLUS(x: DateTime, count: Int, unit: String): DateTime = unit match {
-    case YEAR => x.plusYears(count)
-    case MONTH => x.plusMonths(count)
-    case DAY => x.plusDays(count)
-    case HOUR => x.plusHours(count)
-    case MINUTE => x.plusMinutes(count)
-    case SECOND => x.plusSeconds(count)
+    case dtf.YEAR => x.plusYears(count)
+    case dtf.MONTH => x.plusMonths(count)
+    case dtf.DAY => x.plusDays(count)
+    case dtf.HOUR => x.plusHours(count)
+    case dtf.MINUTE => x.plusMinutes(count)
+    case dtf.SECOND => x.plusSeconds(count)
   }
 
   private def MINUS(x: DateTime, count: Int, unit: String): DateTime = unit match {
-    case YEAR => x.minusYears(count)
-    case MONTH => x.minusMonths(count)
-    case DAY => x.minusDays(count)
-    case HOUR => x.minusHours(count)
-    case MINUTE => x.minusMinutes(count)
-    case SECOND => x.minusSeconds(count)
+    case dtf.YEAR => x.minusYears(count)
+    case dtf.MONTH => x.minusMonths(count)
+    case dtf.DAY => x.minusDays(count)
+    case dtf.HOUR => x.minusHours(count)
+    case dtf.MINUTE => x.minusMinutes(count)
+    case dtf.SECOND => x.minusSeconds(count)
   }
 
   private def DATEDIFF(x: DateTime, y: DateTime, unit: String): Long = {
     val duration = new Duration(x, y)
     unit match {
-      case DAY => duration.getStandardDays
-      case HOUR => duration.getStandardHours
-      case MINUTE => duration.getStandardMinutes
-      case SECOND => duration.getStandardSeconds
+      case dtf.DAY => duration.getStandardDays
+      case dtf.HOUR => duration.getStandardHours
+      case dtf.MINUTE => duration.getStandardMinutes
+      case dtf.SECOND => duration.getStandardSeconds
     }
   }
 }
