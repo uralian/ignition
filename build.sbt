@@ -1,6 +1,6 @@
 // properties
 
-val APP_VERSION = "0.4.0"
+val APP_VERSION = "0.5.0-SNAPSHOT"
 val SCALA_VERSION = "2.11.8"
 val SPARK_VERSION = "1.6.1"
 
@@ -129,7 +129,6 @@ def newmanLib(version: String) = version match {
 }
 
 libraryDependencies ++= Seq(
-  "io.reactivex"             %% "rxscala"                    % "0.26.2",
   "org.mvel"                  % "mvel2"                      % "2.0",
   "org.json4s"               %% "json4s-jackson"             % "3.2.11",
   "io.gatling"               %% "jsonpath"                   % "0.6.7",
