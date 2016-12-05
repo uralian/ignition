@@ -28,7 +28,7 @@ notifications:
    - vlad@uralian.com
    
 script:
- - sbt -XX:MaxPermSize=1024m -Xmx1024m clean coverage test
+ - sbt -J-XX:MaxPermSize=1024m -J-Xmx1024m clean coverage test
  
 after_success: 
  - sbt coveralls
