@@ -35,8 +35,8 @@ run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Comp
 
 // test options
 
-fork in Test := true
-javaOptions in Test += "-XX:MaxMetaspaceSize=512m"
+fork in Test := false
+javaOptions in Test += "-XX:MaxMetaspaceSize=1024m"
 parallelExecution in Test := false
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
 ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := false
