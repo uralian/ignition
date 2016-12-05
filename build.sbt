@@ -35,7 +35,7 @@ run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Comp
 
 // test options
 
-fork in Test := true
+fork in Test := false
 javaOptions in Test += "-XX:MaxMetaspaceSize=512m"
 parallelExecution in Test := false
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
