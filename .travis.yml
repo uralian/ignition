@@ -12,7 +12,12 @@ branches:
 
 cache:
   directories:
-  - $HOME/.ivy2
+  - $HOME/.ivy2/cache
+  - $HOME/.sbt/boot/
+  
+before_cache:
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - find $HOME/.sbt -name "*.lock" -delete
 
 notifications:
  email:
